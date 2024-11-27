@@ -1,5 +1,7 @@
 import { useState, useEffect } from 'react';
 import { facilitiesService } from '../services/firebase';
+import { collection, getDocs } from 'firebase/firestore';
+import { db } from '../lib/firebase';
 import { Facility } from '../types';
 import Header from '../components/Header';
 import Footer from '../components/Footer';
@@ -35,11 +37,27 @@ const HomePage = () => {
   useEffect(() => {
     const fetchFacilities = async () => {
       try {
+        // First, let's check if there are any facilities at all
+        const facilitiesRef = collection(db, 'facilities');
+        const allSnapshot = await getDocs(facilitiesRef);
+        console.log('Total facilities in DB:', allSnapshot.size);
+        allSnapshot.forEach(doc => {
+          console.log('Facility:', doc.id, doc.data());
+        });
+
+        // Now try to get active facilities
         const { facilities: data } = await facilitiesService.getFacilities();
+        console.log('Active facilities:', data);
+        
+        if (data.length === 0) {
+          console.log('No active facilities found');
+          setError('No facilities available at this time');
+        }
+        
         setFacilities(data);
       } catch (err) {
+        console.error('Error fetching facilities:', err);
         setError('Error loading facilities');
-        console.error('Error:', err);
       } finally {
         setLoading(false);
       }
@@ -77,7 +95,15 @@ const HomePage = () => {
               <div className="animate-spin h-8 w-8 border-4 border-blue-600 rounded-full border-t-transparent"></div>
             </div>
           ) : error ? (
-            <div className="text-center text-red-600">{error}</div>
+            <div className="text-center text-red-600 py-8">
+              <p className="text-lg mb-2">{error}</p>
+              <p className="text-sm text-gray-600">Please check back later or contact support if the issue persists.</p>
+            </div>
+          ) : facilities.length === 0 ? (
+            <div className="text-center py-8">
+              <p className="text-lg text-gray-600">No facilities available at this time.</p>
+              <p className="text-sm text-gray-500 mt-2">Please check back later for updates.</p>
+            </div>
           ) : (
             <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-8">
               {facilities.map((facility) => (

@@ -13,7 +13,8 @@ import {
   enableNetwork,
   disableNetwork,
   writeBatch,
-  addDoc
+  addDoc,
+  Timestamp
 } from 'firebase/firestore';
 import { db, auth } from '../lib/firebase';
 import { Facility } from '../types';
@@ -39,52 +40,86 @@ export const networkService = {
   }
 };
 
-const transformFacilityData = (doc: QueryDocumentSnapshot<DocumentData>) => {
+const transformFacilityData = (doc: QueryDocumentSnapshot<DocumentData>): Facility => {
   const data = doc.data();
+  console.log('Raw facility data:', { id: doc.id, ...data }); // Debug log
+  
   return {
     id: doc.id,
-    ...data,
-    images: data.images || [],
+    name: data.name || '',
+    description: data.description || '',
+    location: data.location || '',
     amenities: data.amenities || [],
-    tags: data.tags || [],
+    images: data.images || [],
+    status: data.status || 'pending',
+    ownerId: data.ownerId || '',
     rating: data.rating || 0,
     reviewCount: data.reviewCount || 0,
     createdAt: data.createdAt?.toDate?.()?.toISOString() || new Date().toISOString(),
-    updatedAt: data.updatedAt?.toDate?.()?.toISOString() || new Date().toISOString()
+    updatedAt: data.updatedAt?.toDate?.()?.toISOString() || new Date().toISOString(),
+    subscriptionId: data.subscriptionId,
+    phone: data.phone || '',
+    tags: data.tags || []
   };
 };
 
 export const facilitiesService = {
   async getFacilities() {
     try {
+      console.log('Fetching facilities from collection:', FACILITIES_COLLECTION);
+      
+      // First get all facilities to check what's available
+      const allFacilitiesRef = collection(db, FACILITIES_COLLECTION);
+      const allSnapshot = await getDocs(allFacilitiesRef);
+      console.log('Total facilities found:', allSnapshot.size);
+      
+      // Then get active facilities
       const facilitiesRef = collection(db, FACILITIES_COLLECTION);
       const q = query(
         facilitiesRef,
-        where('status', '==', 'active'),
+        // Temporarily remove status filter for testing
+        // where('status', '==', 'active'),
         orderBy('createdAt', 'desc'),
         limit(20)
       );
       
+      console.log('Executing facilities query...');
       const snapshot = await getDocs(q);
-      const facilities = snapshot.docs.map(transformFacilityData) as Facility[];
+      console.log('Query returned:', snapshot.size, 'facilities');
+      
+      const facilities = snapshot.docs.map(doc => {
+        const facility = transformFacilityData(doc);
+        console.log('Transformed facility:', facility);
+        return facility;
+      });
 
       return { facilities };
     } catch (error) {
       console.error('Error getting facilities:', error);
+      // Log more details about the error
+      if (error instanceof Error) {
+        console.error('Error name:', error.name);
+        console.error('Error message:', error.message);
+        console.error('Error stack:', error.stack);
+      }
       return { facilities: [] };
     }
   },
 
   async getFacilityById(id: string) {
     try {
+      console.log('Fetching facility by ID:', id);
       const docRef = doc(db, FACILITIES_COLLECTION, id);
       const docSnap = await getDoc(docRef);
       
       if (!docSnap.exists()) {
+        console.log('No facility found with ID:', id);
         return null;
       }
       
-      return transformFacilityData(docSnap) as Facility;
+      const facility = transformFacilityData(docSnap);
+      console.log('Found facility:', facility);
+      return facility;
     } catch (error) {
       console.error('Error getting facility:', error);
       return null;
@@ -95,6 +130,7 @@ export const facilitiesService = {
     if (!auth.currentUser) throw new Error('User must be authenticated');
 
     try {
+      console.log('Creating new facility with data:', data);
       const facilityData = {
         ...data,
         ownerId: auth.currentUser.uid,
@@ -106,6 +142,7 @@ export const facilitiesService = {
       };
 
       const docRef = await addDoc(collection(db, FACILITIES_COLLECTION), facilityData);
+      console.log('Created facility with ID:', docRef.id);
       return { id: docRef.id };
     } catch (error) {
       console.error('Error creating facility:', error);
@@ -115,6 +152,7 @@ export const facilitiesService = {
 
   async getUserListings(userId: string) {
     try {
+      console.log('Fetching listings for user:', userId);
       const facilitiesRef = collection(db, FACILITIES_COLLECTION);
       const q = query(
         facilitiesRef,
@@ -123,7 +161,8 @@ export const facilitiesService = {
       );
       
       const snapshot = await getDocs(q);
-      return snapshot.docs.map(transformFacilityData) as Facility[];
+      console.log('Found', snapshot.size, 'listings for user');
+      return snapshot.docs.map(transformFacilityData);
     } catch (error) {
       console.error('Error getting user listings:', error);
       return [];
@@ -136,6 +175,7 @@ export const usersService = {
     if (!auth.currentUser) throw new Error('No authenticated user');
     
     try {
+      console.log('Creating new user:', userData);
       const userRef = doc(db, USERS_COLLECTION, auth.currentUser.uid);
       const batch = writeBatch(db);
       
@@ -146,6 +186,7 @@ export const usersService = {
       });
 
       await batch.commit();
+      console.log('User created successfully');
       return userData;
     } catch (error) {
       console.error('Error creating user:', error);
@@ -155,15 +196,21 @@ export const usersService = {
 
   async getUserById(userId: string) {
     try {
+      console.log('Fetching user by ID:', userId);
       const userDoc = await getDoc(doc(db, USERS_COLLECTION, userId));
-      if (!userDoc.exists()) return null;
+      if (!userDoc.exists()) {
+        console.log('No user found with ID:', userId);
+        return null;
+      }
       
       const data = userDoc.data();
-      return {
+      const user = {
         ...data,
         id: userDoc.id,
         createdAt: data.createdAt?.toDate?.()?.toISOString() || new Date().toISOString()
       };
+      console.log('Found user:', user);
+      return user;
     } catch (error) {
       console.error('Error getting user:', error);
       return null;
