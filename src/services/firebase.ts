@@ -24,25 +24,25 @@ import { Facility } from '../types';
 
 const FACILITIES_COLLECTION = 'facilities';
 const USERS_COLLECTION = 'users';
-const BATCH_SIZE = 12; // Number of facilities to load at a time
+const BATCH_SIZE = 12;
 
-export const networkService = {
-  goOnline: async () => {
-    try {
-      await enableNetwork(db);
-    } catch (error) {
-      console.error('Error enabling network:', error);
-    }
-  },
-  
-  goOffline: async () => {
-    try {
-      await disableNetwork(db);
-    } catch (error) {
-      console.error('Error disabling network:', error);
-    }
-  }
-};
+interface FacilitiesService {
+  getFacilities: (lastDoc?: QueryDocumentSnapshot<DocumentData>) => Promise<{
+    facilities: Facility[];
+    lastVisible: QueryDocumentSnapshot<DocumentData> | null;
+    hasMore: boolean;
+  }>;
+  getFacilityById: (id: string) => Promise<Facility | null>;
+  createFacility: (data: Partial<Facility>) => Promise<{ id: string }>;
+  updateFacility: (id: string, data: Partial<Facility>) => Promise<boolean>;
+  approveFacility: (id: string) => Promise<boolean>;
+  rejectFacility: (id: string) => Promise<boolean>;
+  archiveFacility: (id: string) => Promise<boolean>;
+  deleteFacility: (id: string) => Promise<boolean>;
+  getUserListings: (userId: string) => Promise<Facility[]>;
+  getAllListingsForAdmin: () => Promise<Facility[]>;
+  getArchivedListings: () => Promise<Facility[]>;
+}
 
 const transformFacilityData = (doc: QueryDocumentSnapshot<DocumentData>): Facility => {
   const data = doc.data();
@@ -69,23 +69,23 @@ const transformFacilityData = (doc: QueryDocumentSnapshot<DocumentData>): Facili
   };
 };
 
-interface FacilitiesService {
-  getFacilities: (lastDoc?: QueryDocumentSnapshot<DocumentData>) => Promise<{
-    facilities: Facility[];
-    lastVisible: QueryDocumentSnapshot<DocumentData> | null;
-    hasMore: boolean;
-  }>;
-  getFacilityById: (id: string) => Promise<Facility | null>;
-  createFacility: (data: Partial<Facility>) => Promise<{ id: string }>;
-  updateFacility: (id: string, data: Partial<Facility>) => Promise<boolean>;
-  approveFacility: (id: string) => Promise<boolean>;
-  rejectFacility: (id: string) => Promise<boolean>;
-  archiveFacility: (id: string) => Promise<boolean>;
-  deleteFacility: (id: string) => Promise<boolean>;
-  getUserListings: (userId: string) => Promise<Facility[]>;
-  getAllListingsForAdmin: () => Promise<Facility[]>;
-  getArchivedListings: () => Promise<Facility[]>;
-}
+export const networkService = {
+  goOnline: async () => {
+    try {
+      await enableNetwork(db);
+    } catch (error) {
+      console.error('Error enabling network:', error);
+    }
+  },
+  
+  goOffline: async () => {
+    try {
+      await disableNetwork(db);
+    } catch (error) {
+      console.error('Error disabling network:', error);
+    }
+  }
+};
 
 export const facilitiesService: FacilitiesService = {
   async getFacilities(lastDoc?: QueryDocumentSnapshot<DocumentData>) {
@@ -100,7 +100,6 @@ export const facilitiesService: FacilitiesService = {
         limit(BATCH_SIZE)
       );
 
-      // If we have a last document, start after it
       if (lastDoc) {
         baseQuery = query(
           facilitiesRef,
@@ -111,7 +110,6 @@ export const facilitiesService: FacilitiesService = {
         );
       }
       
-      console.log('Executing facilities query...');
       const snapshot = await getDocs(baseQuery);
       console.log('Query returned:', snapshot.size, 'facilities');
       
@@ -121,9 +119,7 @@ export const facilitiesService: FacilitiesService = {
         return facility;
       });
 
-      // Get the last visible document for next batch
       const lastVisible = snapshot.docs[snapshot.docs.length - 1] || null;
-      // Check if there might be more results
       const hasMore = snapshot.docs.length === BATCH_SIZE;
 
       return { facilities, lastVisible, hasMore };
@@ -297,8 +293,6 @@ export const facilitiesService: FacilitiesService = {
       const facilitiesRef = collection(db, FACILITIES_COLLECTION);
       const q = query(
         facilitiesRef,
-        where('moderationStatus', '!=', 'archived'),
-        orderBy('moderationStatus'),
         orderBy('createdAt', 'desc')
       );
       

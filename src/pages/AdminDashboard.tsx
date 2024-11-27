@@ -12,8 +12,7 @@ import {
   AlertCircle,
   X,
   ShieldCheck,
-  ShieldAlert,
-  ArchiveRestore
+  ShieldAlert
 } from 'lucide-react';
 import { useNavigate } from 'react-router-dom';
 import { useAuthStore } from '../store/authStore';
@@ -28,7 +27,7 @@ export default function AdminDashboard() {
   const navigate = useNavigate();
   const { user } = useAuthStore();
   const [searchTerm, setSearchTerm] = useState('');
-  const [statusFilter, setStatusFilter] = useState('active');
+  const [statusFilter, setStatusFilter] = useState('all');
   const [facilities, setFacilities] = useState<Facility[]>([]);
   const [archivedFacilities, setArchivedFacilities] = useState<Facility[]>([]);
   const [loading, setLoading] = useState(true);
@@ -57,12 +56,12 @@ export default function AdminDashboard() {
   const fetchFacilities = async () => {
     try {
       setLoading(true);
-      const [listings, archived] = await Promise.all([
+      const [allListings, archivedListings] = await Promise.all([
         facilitiesService.getAllListingsForAdmin(),
         facilitiesService.getArchivedListings()
       ]);
-      setFacilities(listings);
-      setArchivedFacilities(archived);
+      setFacilities(allListings);
+      setArchivedFacilities(archivedListings);
     } catch (error) {
       console.error('Error fetching facilities:', error);
     } finally {
@@ -75,12 +74,19 @@ export default function AdminDashboard() {
   }, []);
 
   // Filter facilities based on search and status
-  const filteredFacilities = (showArchived ? archivedFacilities : facilities).filter(facility => {
+  const filteredFacilities = facilities.filter(facility => {
     const matchesSearch = facility.name.toLowerCase().includes(searchTerm.toLowerCase()) ||
                          facility.location.toLowerCase().includes(searchTerm.toLowerCase());
     const matchesStatus = statusFilter === 'all' || facility.moderationStatus === statusFilter;
     return matchesSearch && matchesStatus;
   });
+
+  const filteredArchivedFacilities = archivedFacilities.filter(facility => {
+    return facility.name.toLowerCase().includes(searchTerm.toLowerCase()) ||
+           facility.location.toLowerCase().includes(searchTerm.toLowerCase());
+  });
+
+  const displayedFacilities = showArchived ? filteredArchivedFacilities : filteredFacilities;
 
   const getStatusColor = (status: string) => {
     switch (status) {
@@ -214,7 +220,7 @@ export default function AdminDashboard() {
               <div className="flex justify-center py-8">
                 <div className="animate-spin h-8 w-8 border-4 border-blue-600 rounded-full border-t-transparent"></div>
               </div>
-            ) : filteredFacilities.length === 0 ? (
+            ) : displayedFacilities.length === 0 ? (
               <div className="text-center py-8">
                 <AlertCircle className="w-12 h-12 text-blue-600 mx-auto mb-4" />
                 <h2 className="text-xl font-semibold mb-2">No Facilities Found</h2>
@@ -235,7 +241,7 @@ export default function AdminDashboard() {
                     </tr>
                   </thead>
                   <tbody>
-                    {filteredFacilities.map((facility) => (
+                    {displayedFacilities.map((facility) => (
                       <tr key={facility.id} className="border-b hover:bg-gray-50">
                         <td className="py-4 px-4">
                           <div className="font-medium">{facility.name}</div>
