@@ -1,15 +1,51 @@
 import { Shield } from 'lucide-react';
 
-const InsuranceSection = () => {
-  const insuranceProviders = [
-    { name: 'Aetna', logo: '/insurance/aetna.svg' },
-    { name: 'Blue Cross Blue Shield', logo: '/insurance/bcbs.svg' },
-    { name: 'Cigna', logo: '/insurance/cigna.svg' },
-    { name: 'United Healthcare', logo: '/insurance/united.svg' },
-    { name: 'Humana', logo: '/insurance/humana.svg' },
-    { name: 'Kaiser Permanente', logo: '/insurance/kaiser.svg' }
-  ];
+const insuranceProviders = [
+  { 
+    name: 'Aetna',
+    logo: '/insurance/aetna.svg',
+    bgColor: 'bg-red-50',
+    borderColor: 'border-red-200',
+    hoverColor: 'hover:border-red-300'
+  },
+  { 
+    name: 'Blue Cross Blue Shield',
+    logo: '/insurance/bcbs.svg',
+    bgColor: 'bg-blue-50',
+    borderColor: 'border-blue-200',
+    hoverColor: 'hover:border-blue-300'
+  },
+  { 
+    name: 'Cigna',
+    logo: '/insurance/cigna.svg',
+    bgColor: 'bg-teal-50',
+    borderColor: 'border-teal-200',
+    hoverColor: 'hover:border-teal-300'
+  },
+  { 
+    name: 'United Healthcare',
+    logo: '/insurance/united.svg',
+    bgColor: 'bg-orange-50',
+    borderColor: 'border-orange-200',
+    hoverColor: 'hover:border-orange-300'
+  },
+  { 
+    name: 'Humana',
+    logo: '/insurance/humana.svg',
+    bgColor: 'bg-green-50',
+    borderColor: 'border-green-200',
+    hoverColor: 'hover:border-green-300'
+  },
+  { 
+    name: 'Kaiser Permanente',
+    logo: '/insurance/kaiser.svg',
+    bgColor: 'bg-purple-50',
+    borderColor: 'border-purple-200',
+    hoverColor: 'hover:border-purple-300'
+  }
+];
 
+const InsuranceSection = () => {
   return (
     <section className="bg-white py-16">
       <div className="container mx-auto px-4">
@@ -28,7 +64,7 @@ const InsuranceSection = () => {
           {insuranceProviders.map((provider) => (
             <div
               key={provider.name}
-              className="flex items-center justify-center p-4 bg-gray-50 rounded-lg hover:shadow-md transition-shadow"
+              className={`flex items-center justify-center p-6 rounded-lg border-2 transition-all ${provider.bgColor} ${provider.borderColor} ${provider.hoverColor} hover:shadow-lg`}
             >
               <img
                 src={provider.logo}
