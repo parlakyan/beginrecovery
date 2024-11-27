@@ -6,10 +6,8 @@ import {
   persistentSingleTabManager,
   type PersistentSingleTabManagerSettings
 } from 'firebase/firestore';
-import { getAuth, setPersistence, browserLocalPersistence, onAuthStateChanged } from 'firebase/auth';
+import { getAuth, setPersistence, browserLocalPersistence } from 'firebase/auth';
 import { getAnalytics, isSupported } from 'firebase/analytics';
-import useAuthStore from '../store/authStore';
-import { usersService } from '../services/firebase';
 
 // Initialize Firebase with environment variables
 const firebaseConfig = {
@@ -38,32 +36,10 @@ const db = initializeFirestore(app, {
   })
 });
 
-// Set auth persistence and initialize auth state listener
-setPersistence(auth, browserLocalPersistence)
-  .then(() => {
-    // Set up auth state listener
-    onAuthStateChanged(auth, async (firebaseUser) => {
-      try {
-        if (firebaseUser) {
-          const user = await usersService.getUserById(firebaseUser.uid);
-          useAuthStore.getState().setUser(user);
-        } else {
-          useAuthStore.getState().clearAuth();
-        }
-      } catch (error) {
-        console.error('Error in auth state change:', error);
-        useAuthStore.getState().setError('Error initializing auth');
-        useAuthStore.getState().clearAuth();
-      } finally {
-        useAuthStore.getState().setLoading(false);
-      }
-    });
-  })
-  .catch((error) => {
-    console.error('Error setting auth persistence:', error);
-    useAuthStore.getState().setError('Error initializing auth');
-    useAuthStore.getState().setLoading(false);
-  });
+// Set auth persistence
+setPersistence(auth, browserLocalPersistence).catch((error) => {
+  console.error('Error setting auth persistence:', error);
+});
 
 // Initialize analytics only in production
 const analytics = async () => {
