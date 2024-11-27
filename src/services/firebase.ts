@@ -146,7 +146,11 @@ export const usersService = {
       });
 
       await batch.commit();
-      return userData;
+      return {
+        id: auth.currentUser.uid,
+        email: userData.email,
+        role: userData.role
+      };
     } catch (error) {
       console.error('Error creating user:', error);
       throw error;
@@ -160,9 +164,9 @@ export const usersService = {
       
       const data = userDoc.data();
       return {
-        ...data,
         id: userDoc.id,
-        createdAt: data.createdAt?.toDate?.()?.toISOString() || new Date().toISOString()
+        email: data.email || null,
+        role: data.role || 'user'
       };
     } catch (error) {
       console.error('Error getting user:', error);

@@ -145,8 +145,40 @@ onAuthStateChanged(auth, async (firebaseUser: FirebaseUser | null) => {
     store.setLoading(true);
 
     if (firebaseUser) {
-      const userData = await usersService.getUserById(firebaseUser.uid);
-      store.setUser(userData);
+      try {
+        const userData = await usersService.getUserById(firebaseUser.uid);
+        
+        if (userData) {
+          const formattedUserData: User = {
+            id: userData.id,
+            email: userData.email || firebaseUser.email,
+            role: userData.role || 'user'
+          };
+          store.setUser(formattedUserData);
+        } else {
+          // If no user data found, create a default user entry
+          await usersService.createUser({
+            email: firebaseUser.email || '',
+            role: 'user'
+          });
+          
+          // Retry fetching user data
+          const newUserData = await usersService.getUserById(firebaseUser.uid);
+          if (newUserData) {
+            const formattedNewUserData: User = {
+              id: newUserData.id,
+              email: newUserData.email || firebaseUser.email,
+              role: newUserData.role || 'user'
+            };
+            store.setUser(formattedNewUserData);
+          } else {
+            store.setUser(null);
+          }
+        }
+      } catch (userFetchError) {
+        console.error('Error fetching user data:', userFetchError);
+        store.setUser(null);
+      }
     } else {
       store.setUser(null);
     }
