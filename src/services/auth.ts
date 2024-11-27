@@ -1,35 +1,40 @@
-import api from './api';
+import { 
+  signOut as firebaseSignOut,
+  sendPasswordResetEmail,
+  updatePassword as firebaseUpdatePassword
+} from 'firebase/auth';
+import { auth } from '../lib/firebase';
 import { useAuthStore } from '../store/authStore';
 
-interface LoginData {
-  email: string;
-  password: string;
-}
+export const signOut = async () => {
+  try {
+    await firebaseSignOut(auth);
+    const store = useAuthStore.getState();
+    store.setUser(null);
+  } catch (error) {
+    console.error('Sign out error:', error);
+    throw error;
+  }
+};
 
-interface RegisterData extends LoginData {
-  role?: string;
-}
+export const resetPassword = async (email: string) => {
+  try {
+    await sendPasswordResetEmail(auth, email);
+  } catch (error) {
+    console.error('Reset password error:', error);
+    throw error;
+  }
+};
 
-interface AuthResponse {
-  user: {
-    id: string;
-    email: string;
-    role: string;
-  };
-  token: string;
-}
-
-export const authApi = {
-  login: (data: LoginData) => 
-    api.post<AuthResponse>('/auth/login', data),
-  
-  register: (data: RegisterData) => 
-    api.post<AuthResponse>('/auth/register', data),
-  
-  logout: () => {
-    useAuthStore.getState().clearAuth();
-  },
-  
-  getCurrentUser: () => 
-    api.get<AuthResponse>('/auth/me')
+export const updatePassword = async (newPassword: string) => {
+  try {
+    const user = auth.currentUser;
+    if (!user) {
+      throw new Error('No authenticated user');
+    }
+    await firebaseUpdatePassword(user, newPassword);
+  } catch (error) {
+    console.error('Update password error:', error);
+    throw error;
+  }
 };

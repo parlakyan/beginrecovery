@@ -1,47 +1,48 @@
-import { useState, useEffect } from 'react';
+import { useState, useCallback } from 'react';
 import { facilitiesService } from '../services/firebase';
 import { Facility } from '../types';
 
 interface SearchFilters {
-  treatmentTypes: string[];
-  amenities: string[];
-  insurance: string[];
-  rating: number | null;
-  priceRange: [number, number] | null;
+  location?: string;
+  treatment?: string[];
+  insurance?: string[];
 }
 
-export function useSearch(query: string, filters: SearchFilters) {
-  const [results, setResults] = useState<Facility[]>([]);
+export const useSearch = () => {
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
+  const [results, setResults] = useState<Facility[]>([]);
 
-  useEffect(() => {
-    const searchFacilities = async () => {
-      try {
-        setLoading(true);
-        setError(null);
-        
-        const facilities = await facilitiesService.searchFacilities({
-          query,
-          treatmentTypes: filters.treatmentTypes,
-          amenities: filters.amenities,
-          insurance: filters.insurance,
-          rating: filters.rating
-        });
-        
-        setResults(facilities);
-      } catch (err) {
-        console.error('Error searching facilities:', err);
-        setError('Failed to fetch results');
-        setResults([]);
-      } finally {
-        setLoading(false);
-      }
-    };
+  const search = useCallback(async (filters: SearchFilters) => {
+    setLoading(true);
+    setError(null);
 
-    const timeoutId = setTimeout(searchFacilities, 300);
-    return () => clearTimeout(timeoutId);
-  }, [query, filters]);
+    try {
+      // For now, just get all facilities and filter client-side
+      const { facilities } = await facilitiesService.getFacilities();
+      
+      // Apply filters
+      const filtered = facilities.filter(facility => {
+        if (filters.location && !facility.location.toLowerCase().includes(filters.location.toLowerCase())) {
+          return false;
+        }
+        // Add more filter logic here as needed
+        return true;
+      });
 
-  return { results, loading, error };
-}
+      setResults(filtered);
+    } catch (err) {
+      console.error('Search error:', err);
+      setError('Error searching facilities');
+    } finally {
+      setLoading(false);
+    }
+  }, []);
+
+  return {
+    loading,
+    error,
+    results,
+    search
+  };
+};

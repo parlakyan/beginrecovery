@@ -16,6 +16,7 @@ interface User {
   id: string;
   email: string | null;
   role: 'user' | 'owner' | 'admin';
+  createdAt: string;
 }
 
 interface AuthState {
@@ -54,36 +55,24 @@ const formatAuthError = (error: AuthError): string => {
 
 export const useAuthStore = create<AuthState>()(
   persist(
-    (set, get) => ({
+    (set) => ({
       user: null,
       loading: true,
       error: null,
       initialized: false,
 
-      setUser: (user) => {
-        console.log('Setting user in store:', user);
-        set({ user });
-      },
-      setLoading: (loading) => {
-        console.log('Setting loading state:', loading);
-        set({ loading });
-      },
-      setInitialized: (initialized) => {
-        console.log('Setting initialized state:', initialized);
-        set({ initialized });
-      },
+      setUser: (user) => set({ user }),
+      setLoading: (loading) => set({ loading }),
+      setInitialized: (initialized) => set({ initialized }),
 
       signIn: async (email: string, password: string) => {
         try {
           set({ loading: true, error: null });
           const userCredential = await signInWithEmailAndPassword(auth, email, password);
-          console.log('Sign in successful, user UID:', userCredential.user.uid);
           const userData = await usersService.getUserById(userCredential.user.uid);
-          console.log('User data retrieved:', userData);
           set({ user: userData });
         } catch (error: any) {
           const errorMessage = formatAuthError(error);
-          console.error('Sign in error:', errorMessage, error);
           set({ error: errorMessage });
           throw error;
         } finally {
@@ -96,21 +85,15 @@ export const useAuthStore = create<AuthState>()(
           set({ loading: true, error: null });
           const userCredential = await createUserWithEmailAndPassword(auth, email, password);
           
-          await usersService.createUser({
+          const newUser = await usersService.createUser({
             email,
-            role
+            role,
+            createdAt: new Date().toISOString()
           });
 
-          set({ 
-            user: {
-              id: userCredential.user.uid,
-              email: userCredential.user.email,
-              role: role as 'user' | 'owner' | 'admin'
-            }
-          });
+          set({ user: newUser });
         } catch (error: any) {
           const errorMessage = formatAuthError(error);
-          console.error('Sign up error:', errorMessage, error);
           set({ error: errorMessage });
           throw error;
         } finally {
@@ -123,7 +106,6 @@ export const useAuthStore = create<AuthState>()(
           await firebaseSignOut(auth);
           set({ user: null });
         } catch (error: any) {
-          console.error('Sign out error:', error);
           set({ error: 'Failed to sign out' });
           throw error;
         }
@@ -135,7 +117,6 @@ export const useAuthStore = create<AuthState>()(
           await sendPasswordResetEmail(auth, email);
         } catch (error: any) {
           const errorMessage = formatAuthError(error);
-          console.error('Reset password error:', errorMessage, error);
           set({ error: errorMessage });
           throw error;
         } finally {
@@ -170,10 +151,10 @@ onAuthStateChanged(auth, async (firebaseUser: FirebaseUser | null) => {
           store.setUser(userData);
         } else {
           console.log('No user data found, creating new user');
-          // If no user data found, create a default user entry
           const newUser = await usersService.createUser({
             email: firebaseUser.email || '',
-            role: 'user'
+            role: 'user',
+            createdAt: new Date().toISOString()
           });
           
           console.log('New user created:', newUser);

@@ -22,43 +22,61 @@ import { useAuthStore } from './store/authStore';
 
 const AppLayout = () => {
   return (
-    <>
+    <div className="min-h-screen">
       <NetworkStatus />
       <Outlet />
-    </>
+    </div>
   );
 };
 
-const router = createBrowserRouter(
-  createRoutesFromElements(
-    <Route element={<AppLayout />}>
-      <Route index element={<HomePage />} />
-      <Route path="listing/:id" element={<ListingDetail />} />
-      <Route path="login" element={<Login />} />
-      <Route path="register" element={<Register />} />
-      <Route path="reset-password" element={<ResetPassword />} />
-      <Route path="create-listing" element={<CreateListing />} />
-      <Route path="payment/*" element={<Payment />} />
-      <Route 
-        path="account/*" 
-        element={
-          <ProtectedRoute>
-            <AccountPage />
-          </ProtectedRoute>
-        } 
-      />
-      <Route 
-        path="admin/*" 
-        element={
-          <ProtectedRoute requiredRole="admin">
-            <AdminDashboard />
-          </ProtectedRoute>
-        } 
-      />
-      <Route path="*" element={<NotFound />} />
-    </Route>
-  )
-);
+const router = createBrowserRouter([
+  {
+    path: '/',
+    element: <AppLayout />,
+    children: [
+      {
+        index: true,
+        element: <HomePage />
+      },
+      {
+        path: 'listing/:id',
+        element: <ListingDetail />
+      },
+      {
+        path: 'login',
+        element: <Login />
+      },
+      {
+        path: 'register',
+        element: <Register />
+      },
+      {
+        path: 'reset-password',
+        element: <ResetPassword />
+      },
+      {
+        path: 'create-listing',
+        element: <CreateListing />
+      },
+      {
+        path: 'payment/*',
+        element: <Payment />
+      },
+      {
+        path: 'account/*',
+        element: <ProtectedRoute><AccountPage /></ProtectedRoute>
+      },
+      {
+        path: 'admin/*',
+        element: <ProtectedRoute requiredRole="admin"><AdminDashboard /></ProtectedRoute>
+      },
+      {
+        path: '*',
+        element: <NotFound />
+      }
+    ]
+  }
+]);
 
 export default function App() {
   const { initialized } = useAuthStore();

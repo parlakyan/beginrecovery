@@ -13,10 +13,11 @@ import {
   enableNetwork,
   disableNetwork,
   writeBatch,
-  addDoc
+  addDoc,
+  Timestamp
 } from 'firebase/firestore';
 import { db, auth } from '../lib/firebase';
-import { Facility } from '../types';
+import { Facility, User, CreateUserData } from '../types';
 
 const FACILITIES_COLLECTION = 'facilities';
 const USERS_COLLECTION = 'users';
@@ -39,18 +40,24 @@ export const networkService = {
   }
 };
 
-const transformFacilityData = (doc: QueryDocumentSnapshot<DocumentData>) => {
+const transformFacilityData = (doc: QueryDocumentSnapshot<DocumentData>): Facility => {
   const data = doc.data();
   return {
     id: doc.id,
-    ...data,
-    images: data.images || [],
+    name: data.name || '',
+    description: data.description || '',
+    location: data.location || '',
     amenities: data.amenities || [],
-    tags: data.tags || [],
+    images: data.images || [],
+    status: data.status || 'pending',
+    ownerId: data.ownerId || '',
     rating: data.rating || 0,
     reviewCount: data.reviewCount || 0,
     createdAt: data.createdAt?.toDate?.()?.toISOString() || new Date().toISOString(),
-    updatedAt: data.updatedAt?.toDate?.()?.toISOString() || new Date().toISOString()
+    updatedAt: data.updatedAt?.toDate?.()?.toISOString() || new Date().toISOString(),
+    subscriptionId: data.subscriptionId,
+    phone: data.phone || '',
+    tags: data.tags || []
   };
 };
 
@@ -66,7 +73,7 @@ export const facilitiesService = {
       );
       
       const snapshot = await getDocs(q);
-      const facilities = snapshot.docs.map(transformFacilityData) as Facility[];
+      const facilities = snapshot.docs.map(transformFacilityData);
 
       return { facilities };
     } catch (error) {
@@ -84,7 +91,7 @@ export const facilitiesService = {
         return null;
       }
       
-      return transformFacilityData(docSnap) as Facility;
+      return transformFacilityData(docSnap);
     } catch (error) {
       console.error('Error getting facility:', error);
       return null;
@@ -102,7 +109,8 @@ export const facilitiesService = {
         rating: 0,
         reviewCount: 0,
         createdAt: serverTimestamp(),
-        updatedAt: serverTimestamp()
+        updatedAt: serverTimestamp(),
+        tags: data.tags || []
       };
 
       const docRef = await addDoc(collection(db, FACILITIES_COLLECTION), facilityData);
@@ -123,7 +131,7 @@ export const facilitiesService = {
       );
       
       const snapshot = await getDocs(q);
-      return snapshot.docs.map(transformFacilityData) as Facility[];
+      return snapshot.docs.map(transformFacilityData);
     } catch (error) {
       console.error('Error getting user listings:', error);
       return [];
@@ -132,24 +140,26 @@ export const facilitiesService = {
 };
 
 export const usersService = {
-  async createUser(userData: { email: string; role: 'user' | 'owner' | 'admin' }) {
+  async createUser(userData: CreateUserData): Promise<User> {
     if (!auth.currentUser) throw new Error('No authenticated user');
     
     try {
       const userRef = doc(db, USERS_COLLECTION, auth.currentUser.uid);
       const batch = writeBatch(db);
+      const now = Timestamp.now();
       
       batch.set(userRef, {
         ...userData,
         id: auth.currentUser.uid,
-        createdAt: serverTimestamp()
+        createdAt: now
       });
 
       await batch.commit();
       return {
         id: auth.currentUser.uid,
         email: userData.email,
-        role: userData.role
+        role: userData.role,
+        createdAt: now.toDate().toISOString()
       };
     } catch (error) {
       console.error('Error creating user:', error);
@@ -157,7 +167,7 @@ export const usersService = {
     }
   },
 
-  async getUserById(userId: string) {
+  async getUserById(userId: string): Promise<User | null> {
     try {
       const userDoc = await getDoc(doc(db, USERS_COLLECTION, userId));
       if (!userDoc.exists()) return null;
@@ -166,7 +176,8 @@ export const usersService = {
       return {
         id: userDoc.id,
         email: data.email || null,
-        role: (data.role || 'user') as 'user' | 'owner' | 'admin'
+        role: (data.role || 'user') as 'user' | 'owner' | 'admin',
+        createdAt: data.createdAt?.toDate?.()?.toISOString() || new Date().toISOString()
       };
     } catch (error) {
       console.error('Error getting user:', error);

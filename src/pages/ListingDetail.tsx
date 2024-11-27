@@ -1,38 +1,27 @@
-import React, { useState, useEffect } from 'react';
-import { useParams, useNavigate } from 'react-router-dom';
+import { useState, useEffect } from 'react';
+import { useParams } from 'react-router-dom';
 import { facilitiesService } from '../services/firebase';
-import SEOHead from '../components/SEOHead';
+import { Facility, FacilityWithContact } from '../types';
+import ContactBox from '../components/ContactBox';
 import DetailCarousel from '../components/DetailCarousel';
 import TabSection from '../components/TabSection';
-import ContactBox from '../components/ContactBox';
-import StaffSection from '../components/StaffSection';
-import InsuranceSection from '../components/InsuranceSection';
-import CertificationsSection from '../components/CertificationsSection';
 import ReviewsSection from '../components/ReviewsSection';
-import MapSection from '../components/MapSection';
-import Header from '../components/Header';
-import Footer from '../components/Footer';
-import { Loader2 } from 'lucide-react';
-import { Facility } from '../types';
+import NearbyFacilities from '../components/NearbyFacilities';
 
-export default function ListingDetail() {
-  const { id } = useParams();
-  const navigate = useNavigate();
+const ListingDetail = () => {
+  const { id } = useParams<{ id: string }>();
+  const [facility, setFacility] = useState<Facility | null>(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
-  const [facility, setFacility] = useState<Facility | null>(null);
-  const [activeTab, setActiveTab] = useState('about');
 
   useEffect(() => {
-    const loadFacility = async () => {
+    const fetchFacility = async () => {
       if (!id) {
-        navigate('/');
+        setError('Facility ID is required');
+        setLoading(false);
         return;
       }
-      
-      setLoading(true);
-      setError(null);
-      
+
       try {
         const facilityData = await facilitiesService.getFacilityById(id);
         if (facilityData) {
@@ -41,110 +30,96 @@ export default function ListingDetail() {
           setError('Facility not found');
         }
       } catch (err) {
-        console.error('Error loading facility:', err);
-        setError('Failed to load facility details');
+        setError('Error loading facility details');
+        console.error('Error:', err);
       } finally {
         setLoading(false);
       }
     };
 
-    loadFacility();
-  }, [id, navigate]);
+    fetchFacility();
+  }, [id]);
 
   if (loading) {
     return (
-      <div className="min-h-screen bg-gray-50">
-        <Header />
-        <div className="flex items-center justify-center min-h-[calc(100vh-64px)]">
-          <div className="flex items-center gap-2">
-            <Loader2 className="w-6 h-6 animate-spin text-blue-600" />
-            <span>Loading facility details...</span>
-          </div>
-        </div>
-        <Footer />
+      <div className="min-h-screen flex items-center justify-center">
+        <div className="animate-spin h-8 w-8 border-4 border-blue-600 rounded-full border-t-transparent"></div>
       </div>
     );
   }
 
   if (error || !facility) {
     return (
-      <div className="min-h-screen bg-gray-50">
-        <Header />
-        <div className="flex items-center justify-center min-h-[calc(100vh-64px)]">
-          <div className="text-center">
-            <h2 className="text-2xl font-bold text-gray-800 mb-2">Oops!</h2>
-            <p className="text-gray-600">{error || 'Facility not found'}</p>
-            <button 
-              onClick={() => navigate('/')}
-              className="mt-4 text-blue-600 hover:text-blue-700"
-            >
-              Return to Home
-            </button>
-          </div>
+      <div className="min-h-screen flex items-center justify-center">
+        <div className="text-center">
+          <h2 className="text-2xl font-bold text-gray-800 mb-4">Error</h2>
+          <p className="text-gray-600">{error || 'Facility not found'}</p>
         </div>
-        <Footer />
       </div>
     );
   }
 
+  const facilityWithContact: FacilityWithContact = {
+    ...facility,
+    phone: facility.phone || '(555) 555-5555' // Provide default phone if not available
+  };
+
   return (
     <div className="min-h-screen bg-gray-50">
-      <SEOHead
-        title={`${facility.name} - Recovery Center in ${facility.location}`}
-        description={`${facility.name} offers comprehensive addiction treatment in ${facility.location}. ${facility.description.slice(0, 150)}...`}
-        canonicalUrl={`${window.location.origin}/listing/${id}`}
-        type="article"
-      />
-
-      <Header />
-
-      <DetailCarousel images={facility.images} />
-
-      <div className="container mx-auto px-4 -mt-16 relative z-10">
-        <div className="bg-white rounded-xl shadow-lg p-8 mb-8">
-          <div className="flex items-center justify-between mb-6">
-            <h1 className="text-3xl font-bold">{facility.name}</h1>
-            <div className="text-right">
-              <div className="text-2xl font-bold text-blue-600">{facility.rating}/5.0</div>
-              <div className="text-sm text-gray-600">{facility.reviewCount} Reviews</div>
-            </div>
-          </div>
-          <p className="text-gray-600 mb-6">{facility.description}</p>
-          <div className="flex flex-wrap gap-2">
-            {facility.tags.map((tag, index) => (
-              <span
-                key={`tag-${index}`}
-                className="px-3 py-1 bg-blue-50 text-blue-600 rounded-full text-sm font-medium"
-              >
-                {tag}
-              </span>
-            ))}
-          </div>
+      <div className="container mx-auto px-4 py-8">
+        <div className="mb-8">
+          <h1 className="text-3xl font-bold text-gray-800 mb-2">{facility.name}</h1>
+          <p className="text-gray-600">{facility.location}</p>
         </div>
 
         <div className="grid grid-cols-1 lg:grid-cols-3 gap-8">
-          <div className="lg:col-span-2 space-y-8">
-            <TabSection 
-              facility={facility} 
-              activeTab={activeTab} 
-              setActiveTab={setActiveTab} 
-            />
-            <StaffSection />
-            <InsuranceSection />
-            <CertificationsSection />
-            <ReviewsSection facility={{ rating: facility.rating, reviewCount: facility.reviewCount }} />
-            <MapSection coordinates={{ lat: 34.0522, lng: -118.2437 }} />
+          <div className="lg:col-span-2">
+            <div className="bg-white rounded-lg shadow-md overflow-hidden mb-8">
+              <DetailCarousel images={facility.images} />
+            </div>
+
+            <div className="bg-white rounded-lg shadow-md p-6 mb-8">
+              <h2 className="text-2xl font-bold text-gray-800 mb-4">About</h2>
+              <p className="text-gray-600">{facility.description}</p>
+            </div>
+
+            <div className="bg-white rounded-lg shadow-md p-6 mb-8">
+              <h2 className="text-2xl font-bold text-gray-800 mb-4">Amenities</h2>
+              <div className="grid grid-cols-2 md:grid-cols-3 gap-4">
+                {facility.amenities.map((amenity, index) => (
+                  <div key={index} className="flex items-center">
+                    <span className="text-gray-600">{amenity}</span>
+                  </div>
+                ))}
+              </div>
+            </div>
+
+            <div className="bg-white rounded-lg shadow-md p-6 mb-8">
+              <h2 className="text-2xl font-bold text-gray-800 mb-4">Tags</h2>
+              <div className="flex flex-wrap gap-2">
+                {facility.tags.map((tag, index) => (
+                  <span
+                    key={index}
+                    className="px-3 py-1 bg-blue-100 text-blue-800 rounded-full text-sm"
+                  >
+                    {tag}
+                  </span>
+                ))}
+              </div>
+            </div>
+
+            <TabSection facility={facility} />
+            <ReviewsSection facility={facility} />
           </div>
 
-          <div className="lg:col-span-1">
-            <div className="sticky top-4">
-              <ContactBox facility={facility} />
-            </div>
+          <div className="space-y-8">
+            <ContactBox facility={facilityWithContact} />
+            <NearbyFacilities facility={facility} />
           </div>
         </div>
       </div>
-
-      <Footer />
     </div>
   );
-}
+};
+
+export default ListingDetail;
