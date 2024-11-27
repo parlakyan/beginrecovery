@@ -1,12 +1,10 @@
 import { useState, useEffect } from 'react';
 import { facilitiesService } from '../services/firebase';
-import { collection, getDocs } from 'firebase/firestore';
-import { db } from '../lib/firebase';
 import { Facility } from '../types';
 import Header from '../components/Header';
 import Footer from '../components/Footer';
 import HeroSection from '../components/HeroSection';
-import ListingCard from '../components/ListingCard';
+import RehabCard from '../components/RehabCard';
 import LocationBrowser from '../components/LocationBrowser';
 import InsuranceSection from '../components/InsuranceSection';
 import CoreValues from '../components/CoreValues';
@@ -37,23 +35,7 @@ const HomePage = () => {
   useEffect(() => {
     const fetchFacilities = async () => {
       try {
-        // First, let's check if there are any facilities at all
-        const facilitiesRef = collection(db, 'facilities');
-        const allSnapshot = await getDocs(facilitiesRef);
-        console.log('Total facilities in DB:', allSnapshot.size);
-        allSnapshot.forEach(doc => {
-          console.log('Facility:', doc.id, doc.data());
-        });
-
-        // Now try to get active facilities
         const { facilities: data } = await facilitiesService.getFacilities();
-        console.log('Active facilities:', data);
-        
-        if (data.length === 0) {
-          console.log('No active facilities found');
-          setError('No facilities available at this time');
-        }
-        
         setFacilities(data);
       } catch (err) {
         console.error('Error fetching facilities:', err);
@@ -80,8 +62,11 @@ const HomePage = () => {
         <TreatmentFinder />
         
         <div className="container mx-auto px-4 py-12">
-          <div className="flex justify-between items-center mb-8">
-            <h2 className="text-3xl font-bold text-gray-800">Featured Facilities</h2>
+          <div className="flex justify-between items-center mb-12">
+            <div>
+              <h2 className="text-3xl font-bold text-gray-800 mb-2">Featured Facilities</h2>
+              <p className="text-gray-600">Browse our selection of top rehabilitation centers</p>
+            </div>
             <button
               onClick={() => setIsFiltersOpen(true)}
               className="px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition-colors"
@@ -107,7 +92,7 @@ const HomePage = () => {
           ) : (
             <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-8">
               {facilities.map((facility) => (
-                <ListingCard key={facility.id} facility={facility} />
+                <RehabCard key={facility.id} facility={facility} />
               ))}
             </div>
           )}
