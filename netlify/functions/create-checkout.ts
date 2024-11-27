@@ -11,6 +11,10 @@ if (!process.env.STRIPE_SECRET_KEY) {
   throw new Error('Missing STRIPE_SECRET_KEY environment variable');
 }
 
+if (!process.env.STRIPE_PRICE_ID) {
+  throw new Error('Missing STRIPE_PRICE_ID environment variable');
+}
+
 const app = initializeApp({
   credential: cert(serviceAccount)
 });
@@ -69,7 +73,19 @@ export const handler: Handler = async (event) => {
       };
     }
 
-    // Create Stripe checkout session
+    // Fetch facility details to get pricing information
+    const facilityDoc = await db.collection('facilities').doc(facilityId).get();
+    const facilityData = facilityDoc.data();
+
+    if (!facilityData) {
+      return {
+        statusCode: 404,
+        headers,
+        body: JSON.stringify({ error: 'Facility not found' })
+      };
+    }
+
+    // Create Stripe checkout session with dynamic pricing
     const session = await stripe.checkout.sessions.create({
       payment_method_types: ['card'],
       mode: 'subscription',
@@ -88,7 +104,10 @@ export const handler: Handler = async (event) => {
     return {
       statusCode: 200,
       headers,
-      body: JSON.stringify({ sessionId: session.id })
+      body: JSON.stringify({ 
+        sessionId: session.id,
+        facilityName: facilityData.name 
+      })
     };
   } catch (error) {
     console.error('Checkout error:', error);
@@ -97,7 +116,7 @@ export const handler: Handler = async (event) => {
       headers,
       body: JSON.stringify({ 
         error: 'Internal server error',
-        details: error.message 
+        details: error instanceof Error ? error.message : 'Unknown error'
       })
     };
   }
