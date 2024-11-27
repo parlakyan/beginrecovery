@@ -4,12 +4,19 @@ import { Facility } from '../types';
 import HeroSection from '../components/HeroSection';
 import ListingCard from '../components/ListingCard';
 import LocationBrowser from '../components/LocationBrowser';
+import InsuranceSection from '../components/InsuranceSection';
 import CoreValues from '../components/CoreValues';
+import SearchFilters from '../components/SearchFilters';
+import TreatmentFinder from '../components/TreatmentFinder';
+import CertificationsSection from '../components/CertificationsSection';
+import StaffSection from '../components/StaffSection';
 
-interface Filters {
-  location?: string;
-  treatment?: string[];
-  insurance?: string[];
+interface SearchFiltersState {
+  treatmentTypes: string[];
+  amenities: string[];
+  insurance: string[];
+  rating: number | null;
+  priceRange: [number, number] | null;
 }
 
 const HomePage = () => {
@@ -17,7 +24,13 @@ const HomePage = () => {
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
   const [isFiltersOpen, setIsFiltersOpen] = useState(false);
-  const [filters, setFilters] = useState<Filters>({});
+  const [filters, setFilters] = useState<SearchFiltersState>({
+    treatmentTypes: [],
+    amenities: [],
+    insurance: [],
+    rating: null,
+    priceRange: null
+  });
 
   useEffect(() => {
     const fetchFacilities = async () => {
@@ -35,7 +48,7 @@ const HomePage = () => {
     fetchFacilities();
   }, []);
 
-  const handleFilterChange = (newFilters: Filters) => {
+  const handleFilterChange = (newFilters: SearchFiltersState) => {
     setFilters(newFilters);
     // TODO: Implement filter logic
   };
@@ -43,6 +56,7 @@ const HomePage = () => {
   return (
     <div className="min-h-screen bg-gray-50">
       <HeroSection />
+      <TreatmentFinder />
       
       <div className="container mx-auto px-4 py-12">
         <div className="flex justify-between items-center mb-8">
@@ -71,7 +85,19 @@ const HomePage = () => {
       </div>
 
       <LocationBrowser />
+      <InsuranceSection />
+      <CertificationsSection />
+      <StaffSection />
       <CoreValues />
+
+      {isFiltersOpen && (
+        <SearchFilters
+          isOpen={isFiltersOpen}
+          onClose={() => setIsFiltersOpen(false)}
+          filters={filters}
+          onFilterChange={handleFilterChange}
+        />
+      )}
     </div>
   );
 };
