@@ -4,26 +4,20 @@
   functions = "netlify/functions"
 
 [[redirects]]
-  from = "/admin"
-  to = "/index.html"
-  status = 200
-  force = true
-
-[[redirects]]
-  from = "/admin/*"
-  to = "/index.html"
-  status = 200
-  force = true
-
-[[redirects]]
   from = "/*"
   to = "/index.html"
   status = 200
-  force = true
-
-[functions]
-  node_bundler = "esbuild"
-  external_node_modules = ["firebase-admin"]
 
 [build.environment]
   NODE_VERSION = "18"
+
+[[headers]]
+  for = "/*"
+  [headers.values]
+    X-Content-Type-Options = "nosniff"
+    Content-Type = "text/html; charset=UTF-8"
+
+[[headers]]
+  for = "/assets/*"
+  [headers.values]
+    Cache-Control = "public, max-age=31536000, immutable"
