@@ -17,14 +17,19 @@ import {
   updateDoc,
   deleteDoc,
   startAfter,
-  Timestamp
+  Timestamp,
+  setDoc
 } from 'firebase/firestore';
-import { db, auth } from '../lib/firebase';
-import { Facility } from '../types';
+import { getAuth } from 'firebase/auth';
+import { db } from '../lib/firebase';
+import { Facility, User } from '../types';
 
 const FACILITIES_COLLECTION = 'facilities';
 const USERS_COLLECTION = 'users';
-const BATCH_SIZE = 12;
+const BATCH_SIZE = 6;
+
+// Get auth instance directly
+const auth = getAuth();
 
 interface SearchParams {
   query?: string;
@@ -34,26 +39,85 @@ interface SearchParams {
   rating?: number;
 }
 
-interface FacilitiesService {
-  getFacilities: (lastDoc?: QueryDocumentSnapshot<DocumentData>) => Promise<{
-    facilities: Facility[];
-    lastVisible: QueryDocumentSnapshot<DocumentData> | null;
-    hasMore: boolean;
-  }>;
-  getFacilityById: (id: string) => Promise<Facility | null>;
-  createFacility: (data: Partial<Facility>) => Promise<{ id: string }>;
-  updateFacility: (id: string, data: Partial<Facility>) => Promise<boolean>;
-  approveFacility: (id: string) => Promise<boolean>;
-  rejectFacility: (id: string) => Promise<boolean>;
-  archiveFacility: (id: string) => Promise<boolean>;
-  deleteFacility: (id: string) => Promise<boolean>;
-  getUserListings: (userId: string) => Promise<Facility[]>;
-  getAllListingsForAdmin: () => Promise<Facility[]>;
-  getArchivedListings: () => Promise<Facility[]>;
-  searchFacilities: (params: SearchParams) => Promise<Facility[]>;
-  getNearbyFacilities: (location: string, limit?: number) => Promise<Facility[]>;
-  getTopRatedFacilities: (limit?: number) => Promise<Facility[]>;
+interface CreateUserInput {
+  email: string;
+  role: 'user' | 'owner' | 'admin';
+  createdAt: string;
 }
+
+export const networkService = {
+  goOnline: async () => {
+    try {
+      await enableNetwork(db);
+    } catch (error) {
+      console.error('Error enabling network:', error);
+    }
+  },
+  
+  goOffline: async () => {
+    try {
+      await disableNetwork(db);
+    } catch (error) {
+      console.error('Error disabling network:', error);
+    }
+  }
+};
+
+export const usersService = {
+  async createUser(userData: CreateUserInput) {
+    if (!auth.currentUser) throw new Error('No authenticated user');
+    
+    try {
+      console.log('Creating new user:', userData);
+      const userRef = doc(db, USERS_COLLECTION, auth.currentUser.uid);
+      
+      const userDoc = await getDoc(userRef);
+      if (userDoc.exists()) {
+        console.log('User already exists, returning existing data');
+        return userDoc.data() as User;
+      }
+
+      const newUserData: User = {
+        id: auth.currentUser.uid,
+        email: userData.email,
+        role: userData.role,
+        createdAt: userData.createdAt
+      };
+
+      await setDoc(userRef, newUserData);
+      console.log('User created successfully');
+      
+      return newUserData;
+    } catch (error) {
+      console.error('Error creating user:', error);
+      throw error;
+    }
+  },
+
+  async getUserById(userId: string): Promise<User | null> {
+    try {
+      console.log('Fetching user by ID:', userId);
+      const userDoc = await getDoc(doc(db, USERS_COLLECTION, userId));
+      if (!userDoc.exists()) {
+        console.log('No user found with ID:', userId);
+        return null;
+      }
+      
+      const data = userDoc.data();
+      const user: User = {
+        id: userDoc.id,
+        email: data.email || 'anonymous@user.com',
+        role: data.role || 'user',
+        createdAt: data.createdAt?.toDate?.()?.toISOString() || new Date().toISOString()
+      };
+      console.log('Found user:', user);
+      return user;
+    } catch (error) {
+      console.error('Error getting user:', error);
+      return null;
+    }
+  }
+};
 
 const transformFacilityData = (doc: QueryDocumentSnapshot<DocumentData>): Facility => {
   const data = doc.data();
@@ -76,60 +140,49 @@ const transformFacilityData = (doc: QueryDocumentSnapshot<DocumentData>): Facili
     phone: data.phone || '',
     tags: data.tags || [],
     isVerified: Boolean(data.subscriptionId),
+    isFeatured: Boolean(data.isFeatured),
     moderationStatus: data.moderationStatus || 'pending'
   };
 };
 
-export const networkService = {
-  goOnline: async () => {
-    try {
-      await enableNetwork(db);
-    } catch (error) {
-      console.error('Error enabling network:', error);
-    }
-  },
-  
-  goOffline: async () => {
-    try {
-      await disableNetwork(db);
-    } catch (error) {
-      console.error('Error disabling network:', error);
-    }
-  }
-};
-
-export const facilitiesService: FacilitiesService = {
+export const facilitiesService = {
   async getFacilities(lastDoc?: QueryDocumentSnapshot<DocumentData>) {
     try {
-      console.log('Fetching facilities from collection:', FACILITIES_COLLECTION);
+      console.log('Fetching approved facilities from collection:', FACILITIES_COLLECTION);
       
+      // First, let's check if we can get any documents at all
       const facilitiesRef = collection(db, FACILITIES_COLLECTION);
-      let baseQuery = query(
-        facilitiesRef,
-        where('moderationStatus', '==', 'approved'),
-        orderBy('createdAt', 'desc'),
-        limit(BATCH_SIZE)
-      );
-
-      if (lastDoc) {
-        baseQuery = query(
-          facilitiesRef,
-          where('moderationStatus', '==', 'approved'),
-          orderBy('createdAt', 'desc'),
-          startAfter(lastDoc),
-          limit(BATCH_SIZE)
-        );
+      const testQuery = query(facilitiesRef);
+      const testSnapshot = await getDocs(testQuery);
+      console.log('Total documents in collection:', testSnapshot.size);
+      
+      if (testSnapshot.size === 0) {
+        console.log('No documents found in collection. Please check:');
+        console.log('1. Collection name:', FACILITIES_COLLECTION);
+        console.log('2. Firebase connection:', db);
+        return { facilities: [], lastVisible: null, hasMore: false };
       }
+
+      // Now query for approved facilities
+      const baseQuery = query(
+        facilitiesRef,
+        where('moderationStatus', '==', 'approved')
+      );
       
       const snapshot = await getDocs(baseQuery);
-      console.log('Query returned:', snapshot.size, 'facilities');
+      console.log('Query returned:', snapshot.size, 'approved facilities');
       
-      const facilities = snapshot.docs.map(doc => {
-        const facility = transformFacilityData(doc);
-        console.log('Transformed facility:', facility);
-        return facility;
+      snapshot.docs.forEach((doc: QueryDocumentSnapshot<DocumentData>) => {
+        const data = doc.data();
+        console.log('Facility data:', {
+          id: doc.id,
+          name: data.name,
+          moderationStatus: data.moderationStatus,
+          isVerified: Boolean(data.subscriptionId)
+        });
       });
-
+      
+      const facilities = snapshot.docs.map(transformFacilityData);
       const lastVisible = snapshot.docs[snapshot.docs.length - 1] || null;
       const hasMore = snapshot.docs.length === BATCH_SIZE;
 
@@ -142,6 +195,63 @@ export const facilitiesService: FacilitiesService = {
         console.error('Error stack:', error.stack);
       }
       return { facilities: [], lastVisible: null, hasMore: false };
+    }
+  },
+
+  async getFeaturedFacilities() {
+    try {
+      console.log('Fetching featured facilities');
+      const facilitiesRef = collection(db, FACILITIES_COLLECTION);
+      const q = query(
+        facilitiesRef,
+        where('moderationStatus', '==', 'approved'),
+        where('isFeatured', '==', true),
+        limit(BATCH_SIZE)
+      );
+      
+      const snapshot = await getDocs(q);
+      console.log('Found', snapshot.size, 'featured facilities');
+      
+      return snapshot.docs.map(transformFacilityData);
+    } catch (error) {
+      console.error('Error getting featured facilities:', error);
+      return [];
+    }
+  },
+
+  async featureFacility(id: string) {
+    try {
+      console.log('Featuring facility:', id);
+      const facilityRef = doc(db, FACILITIES_COLLECTION, id);
+      
+      await updateDoc(facilityRef, {
+        isFeatured: true,
+        updatedAt: serverTimestamp()
+      });
+
+      console.log('Facility featured successfully');
+      return true;
+    } catch (error) {
+      console.error('Error featuring facility:', error);
+      throw error;
+    }
+  },
+
+  async unfeatureFacility(id: string) {
+    try {
+      console.log('Unfeaturing facility:', id);
+      const facilityRef = doc(db, FACILITIES_COLLECTION, id);
+      
+      await updateDoc(facilityRef, {
+        isFeatured: false,
+        updatedAt: serverTimestamp()
+      });
+
+      console.log('Facility unfeatured successfully');
+      return true;
+    } catch (error) {
+      console.error('Error unfeaturing facility:', error);
+      throw error;
     }
   },
 
@@ -176,6 +286,7 @@ export const facilitiesService: FacilitiesService = {
         status: 'pending',
         rating: 0,
         reviewCount: 0,
+        isFeatured: false,
         createdAt: serverTimestamp(),
         updatedAt: serverTimestamp(),
         moderationStatus: 'pending',
@@ -302,14 +413,36 @@ export const facilitiesService: FacilitiesService = {
     try {
       console.log('Fetching all listings for admin');
       const facilitiesRef = collection(db, FACILITIES_COLLECTION);
-      const q = query(
-        facilitiesRef,
-        orderBy('createdAt', 'desc')
-      );
       
-      const snapshot = await getDocs(q);
-      console.log('Found', snapshot.size, 'total listings');
-      return snapshot.docs.map(transformFacilityData);
+      // First, let's check if we can get any documents at all
+      const testQuery = query(facilitiesRef);
+      const testSnapshot = await getDocs(testQuery);
+      console.log('Total documents in collection:', testSnapshot.size);
+      
+      if (testSnapshot.size === 0) {
+        console.log('No documents found in collection. Please check:');
+        console.log('1. Collection name:', FACILITIES_COLLECTION);
+        console.log('2. Firebase connection:', db);
+        return [];
+      }
+
+      // Log all documents to see what we have
+      testSnapshot.docs.forEach((doc: QueryDocumentSnapshot<DocumentData>) => {
+        const data = doc.data();
+        console.log('Document data:', {
+          id: doc.id,
+          name: data.name,
+          moderationStatus: data.moderationStatus,
+          isVerified: Boolean(data.subscriptionId)
+        });
+      });
+
+      // Filter in memory instead of in query
+      const facilities = testSnapshot.docs.map(transformFacilityData);
+      const activeFacilities = facilities.filter((facility: Facility) => facility.moderationStatus !== 'archived');
+      console.log('Active facilities:', activeFacilities);
+
+      return activeFacilities;
     } catch (error) {
       console.error('Error getting all listings:', error);
       return [];
@@ -320,14 +453,37 @@ export const facilitiesService: FacilitiesService = {
     try {
       console.log('Fetching archived listings');
       const facilitiesRef = collection(db, FACILITIES_COLLECTION);
+      
+      // First, let's check if we can get any documents at all
+      const testQuery = query(facilitiesRef);
+      const testSnapshot = await getDocs(testQuery);
+      console.log('Total documents in collection:', testSnapshot.size);
+      
+      if (testSnapshot.size === 0) {
+        console.log('No documents found in collection. Please check:');
+        console.log('1. Collection name:', FACILITIES_COLLECTION);
+        console.log('2. Firebase connection:', db);
+        return [];
+      }
+
+      // Now query for archived facilities
       const q = query(
         facilitiesRef,
-        where('moderationStatus', '==', 'archived'),
-        orderBy('createdAt', 'desc')
+        where('moderationStatus', '==', 'archived')
       );
       
       const snapshot = await getDocs(q);
       console.log('Found', snapshot.size, 'archived listings');
+      
+      snapshot.docs.forEach((doc: QueryDocumentSnapshot<DocumentData>) => {
+        const data = doc.data();
+        console.log('Archived listing data:', {
+          id: doc.id,
+          name: data.name,
+          moderationStatus: data.moderationStatus
+        });
+      });
+
       return snapshot.docs.map(transformFacilityData);
     } catch (error) {
       console.error('Error getting archived listings:', error);
@@ -342,11 +498,9 @@ export const facilitiesService: FacilitiesService = {
       const facilitiesRef = collection(db, FACILITIES_COLLECTION);
       let baseQuery = query(
         facilitiesRef,
-        where('moderationStatus', '==', 'approved'),
-        orderBy('createdAt', 'desc')
+        where('moderationStatus', '==', 'approved')
       );
 
-      // Add search filters
       if (params.location) {
         baseQuery = query(
           baseQuery,
@@ -355,27 +509,22 @@ export const facilitiesService: FacilitiesService = {
         );
       }
 
-      if (params.rating) {
-        baseQuery = query(
-          baseQuery,
-          where('rating', '>=', params.rating)
-        );
-      }
-
-      // Execute query
       const snapshot = await getDocs(baseQuery);
       console.log('Search returned:', snapshot.size, 'facilities');
       
-      // Transform and filter results
       let facilities = snapshot.docs.map(transformFacilityData);
 
-      // Apply additional filters that can't be done in query
+      // Apply filters in memory
       if (params.query) {
         const searchTerm = params.query.toLowerCase();
         facilities = facilities.filter(facility => 
           facility.name.toLowerCase().includes(searchTerm) ||
           facility.description.toLowerCase().includes(searchTerm)
         );
+      }
+
+      if (params.rating) {
+        facilities = facilities.filter(facility => facility.rating >= params.rating!);
       }
 
       if (params.tags?.length) {
@@ -390,6 +539,9 @@ export const facilitiesService: FacilitiesService = {
         );
       }
 
+      // Sort by rating
+      facilities.sort((a, b) => b.rating - a.rating);
+
       return facilities;
     } catch (error) {
       console.error('Error searching facilities:', error);
@@ -402,19 +554,22 @@ export const facilitiesService: FacilitiesService = {
       console.log('Fetching nearby facilities for location:', location);
       
       const facilitiesRef = collection(db, FACILITIES_COLLECTION);
+      // Simplified query to avoid compound query errors
       const q = query(
         facilitiesRef,
         where('moderationStatus', '==', 'approved'),
         where('location', '>=', location.toLowerCase()),
-        where('location', '<=', location.toLowerCase() + '\uf8ff'),
-        orderBy('location'),
-        orderBy('rating', 'desc'),
         limit(resultLimit)
       );
       
       const snapshot = await getDocs(q);
       console.log('Found', snapshot.size, 'nearby facilities');
-      return snapshot.docs.map(transformFacilityData);
+      
+      // Sort in memory instead of in query
+      const facilities = snapshot.docs.map(transformFacilityData)
+        .sort((a, b) => b.rating - a.rating);
+      
+      return facilities;
     } catch (error) {
       console.error('Error getting nearby facilities:', error);
       return [];
@@ -426,67 +581,25 @@ export const facilitiesService: FacilitiesService = {
       console.log('Fetching top rated facilities');
       
       const facilitiesRef = collection(db, FACILITIES_COLLECTION);
+      // Simplified query to avoid compound query errors
       const q = query(
         facilitiesRef,
         where('moderationStatus', '==', 'approved'),
-        orderBy('rating', 'desc'),
-        limit(resultLimit)
+        limit(resultLimit * 2) // Fetch more to account for sorting
       );
       
       const snapshot = await getDocs(q);
-      console.log('Found', snapshot.size, 'top rated facilities');
-      return snapshot.docs.map(transformFacilityData);
+      console.log('Found', snapshot.size, 'facilities');
+      
+      // Sort in memory and limit results
+      const facilities = snapshot.docs.map(transformFacilityData)
+        .sort((a, b) => b.rating - a.rating)
+        .slice(0, resultLimit);
+      
+      return facilities;
     } catch (error) {
       console.error('Error getting top rated facilities:', error);
       return [];
-    }
-  }
-};
-
-export const usersService = {
-  async createUser(userData: { email: string; role: string }) {
-    if (!auth.currentUser) throw new Error('No authenticated user');
-    
-    try {
-      console.log('Creating new user:', userData);
-      const userRef = doc(db, USERS_COLLECTION, auth.currentUser.uid);
-      const batch = writeBatch(db);
-      
-      batch.set(userRef, {
-        ...userData,
-        id: auth.currentUser.uid,
-        createdAt: serverTimestamp()
-      });
-
-      await batch.commit();
-      console.log('User created successfully');
-      return userData;
-    } catch (error) {
-      console.error('Error creating user:', error);
-      throw error;
-    }
-  },
-
-  async getUserById(userId: string) {
-    try {
-      console.log('Fetching user by ID:', userId);
-      const userDoc = await getDoc(doc(db, USERS_COLLECTION, userId));
-      if (!userDoc.exists()) {
-        console.log('No user found with ID:', userId);
-        return null;
-      }
-      
-      const data = userDoc.data();
-      const user = {
-        ...data,
-        id: userDoc.id,
-        createdAt: data.createdAt?.toDate?.()?.toISOString() || new Date().toISOString()
-      };
-      console.log('Found user:', user);
-      return user;
-    } catch (error) {
-      console.error('Error getting user:', error);
-      return null;
     }
   }
 };

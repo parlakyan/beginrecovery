@@ -12,7 +12,8 @@ import {
   AlertCircle,
   X,
   ShieldCheck,
-  ShieldAlert
+  ShieldAlert,
+  Star
 } from 'lucide-react';
 import { useNavigate } from 'react-router-dom';
 import { useAuthStore } from '../store/authStore';
@@ -135,6 +136,22 @@ export default function AdminDashboard() {
       await fetchFacilities();
     } catch (error) {
       console.error('Error rejecting facility:', error);
+    }
+  };
+
+  const handleFeature = async (id: string, isFeatured: boolean) => {
+    try {
+      setLoading(true);
+      if (isFeatured) {
+        await facilitiesService.unfeatureFacility(id);
+      } else {
+        await facilitiesService.featureFacility(id);
+      }
+      await fetchFacilities();
+    } catch (error) {
+      console.error('Error featuring/unfeaturing facility:', error);
+    } finally {
+      setLoading(false);
     }
   };
 
@@ -299,6 +316,15 @@ export default function AdminDashboard() {
                                   <XCircle className="w-5 h-5" />
                                 </button>
                               </>
+                            )}
+                            {!showArchived && facility.moderationStatus === 'approved' && (
+                              <button 
+                                onClick={() => handleFeature(facility.id, facility.isFeatured)}
+                                className={`p-1 rounded ${facility.isFeatured ? 'text-yellow-500 hover:bg-yellow-50' : 'text-gray-400 hover:bg-gray-50'}`}
+                                title={facility.isFeatured ? "Unfeature" : "Feature"}
+                              >
+                                <Star className="w-5 h-5" fill={facility.isFeatured ? "currentColor" : "none"} />
+                              </button>
                             )}
                             <button 
                               onClick={() => handleEdit(facility)}

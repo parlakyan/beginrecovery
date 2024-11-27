@@ -22,6 +22,7 @@ export interface Facility {
   phone?: string;
   tags: string[];
   isVerified: boolean;
+  isFeatured: boolean;
   moderationStatus: 'pending' | 'approved' | 'rejected' | 'archived';
 }
 
