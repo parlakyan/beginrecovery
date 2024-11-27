@@ -15,6 +15,8 @@ import {
   writeBatch,
   addDoc,
   updateDoc,
+  deleteDoc,
+  startAfter,
   Timestamp
 } from 'firebase/firestore';
 import { db, auth } from '../lib/firebase';
@@ -22,6 +24,7 @@ import { Facility } from '../types';
 
 const FACILITIES_COLLECTION = 'facilities';
 const USERS_COLLECTION = 'users';
+const FACILITIES_PER_PAGE = 12;
 
 export const networkService = {
   goOnline: async () => {
@@ -67,17 +70,27 @@ const transformFacilityData = (doc: QueryDocumentSnapshot<DocumentData>): Facili
 };
 
 export const facilitiesService = {
-  async getFacilities() {
+  async getFacilities(lastDoc?: QueryDocumentSnapshot<DocumentData>) {
     try {
       console.log('Fetching facilities from collection:', FACILITIES_COLLECTION);
       
       const facilitiesRef = collection(db, FACILITIES_COLLECTION);
-      const q = query(
+      let q = query(
         facilitiesRef,
         where('moderationStatus', '==', 'approved'),
         orderBy('createdAt', 'desc'),
-        limit(20)
+        limit(FACILITIES_PER_PAGE)
       );
+
+      if (lastDoc) {
+        q = query(
+          facilitiesRef,
+          where('moderationStatus', '==', 'approved'),
+          orderBy('createdAt', 'desc'),
+          startAfter(lastDoc),
+          limit(FACILITIES_PER_PAGE)
+        );
+      }
       
       console.log('Executing facilities query...');
       const snapshot = await getDocs(q);
@@ -89,7 +102,10 @@ export const facilitiesService = {
         return facility;
       });
 
-      return { facilities };
+      const lastVisible = snapshot.docs[snapshot.docs.length - 1];
+      const hasMore = snapshot.docs.length === FACILITIES_PER_PAGE;
+
+      return { facilities, lastVisible, hasMore };
     } catch (error) {
       console.error('Error getting facilities:', error);
       if (error instanceof Error) {
@@ -97,7 +113,7 @@ export const facilitiesService = {
         console.error('Error message:', error.message);
         console.error('Error stack:', error.stack);
       }
-      return { facilities: [] };
+      return { facilities: [], lastVisible: null, hasMore: false };
     }
   },
 
@@ -203,6 +219,38 @@ export const facilitiesService = {
     }
   },
 
+  async archiveFacility(id: string) {
+    try {
+      console.log('Archiving facility:', id);
+      const facilityRef = doc(db, FACILITIES_COLLECTION, id);
+      
+      await updateDoc(facilityRef, {
+        moderationStatus: 'archived',
+        updatedAt: serverTimestamp()
+      });
+
+      console.log('Facility archived successfully');
+      return true;
+    } catch (error) {
+      console.error('Error archiving facility:', error);
+      throw error;
+    }
+  },
+
+  async deleteFacility(id: string) {
+    try {
+      console.log('Deleting facility:', id);
+      const facilityRef = doc(db, FACILITIES_COLLECTION, id);
+      
+      await deleteDoc(facilityRef);
+      console.log('Facility deleted successfully');
+      return true;
+    } catch (error) {
+      console.error('Error deleting facility:', error);
+      throw error;
+    }
+  },
+
   async getUserListings(userId: string) {
     try {
       console.log('Fetching listings for user:', userId);
@@ -228,6 +276,8 @@ export const facilitiesService = {
       const facilitiesRef = collection(db, FACILITIES_COLLECTION);
       const q = query(
         facilitiesRef,
+        where('moderationStatus', '!=', 'archived'),
+        orderBy('moderationStatus'),
         orderBy('createdAt', 'desc')
       );
       
@@ -236,6 +286,25 @@ export const facilitiesService = {
       return snapshot.docs.map(transformFacilityData);
     } catch (error) {
       console.error('Error getting all listings:', error);
+      return [];
+    }
+  },
+
+  async getArchivedListings() {
+    try {
+      console.log('Fetching archived listings');
+      const facilitiesRef = collection(db, FACILITIES_COLLECTION);
+      const q = query(
+        facilitiesRef,
+        where('moderationStatus', '==', 'archived'),
+        orderBy('createdAt', 'desc')
+      );
+      
+      const snapshot = await getDocs(q);
+      console.log('Found', snapshot.size, 'archived listings');
+      return snapshot.docs.map(transformFacilityData);
+    } catch (error) {
+      console.error('Error getting archived listings:', error);
       return [];
     }
   }

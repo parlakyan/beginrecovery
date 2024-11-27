@@ -22,7 +22,7 @@ export interface Facility {
   phone?: string;
   tags: string[];
   isVerified: boolean;
-  moderationStatus: 'pending' | 'approved' | 'rejected';
+  moderationStatus: 'pending' | 'approved' | 'rejected' | 'archived';
 }
 
 export interface CreateUserData {

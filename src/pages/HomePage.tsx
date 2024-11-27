@@ -1,6 +1,7 @@
 import { useState, useEffect } from 'react';
 import { facilitiesService } from '../services/firebase';
 import { Facility } from '../types';
+import { QueryDocumentSnapshot, DocumentData } from 'firebase/firestore';
 import Header from '../components/Header';
 import Footer from '../components/Footer';
 import HeroSection from '../components/HeroSection';
@@ -22,8 +23,11 @@ interface SearchFiltersState {
 const HomePage = () => {
   const [facilities, setFacilities] = useState<Facility[]>([]);
   const [loading, setLoading] = useState(true);
+  const [loadingMore, setLoadingMore] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [isFiltersOpen, setIsFiltersOpen] = useState(false);
+  const [lastVisible, setLastVisible] = useState<QueryDocumentSnapshot<DocumentData> | undefined>(undefined);
+  const [hasMore, setHasMore] = useState(true);
   const [filters, setFilters] = useState<SearchFiltersState>({
     treatmentTypes: [],
     amenities: [],
@@ -32,21 +36,47 @@ const HomePage = () => {
     priceRange: null
   });
 
-  useEffect(() => {
-    const fetchFacilities = async () => {
-      try {
-        const { facilities: data } = await facilitiesService.getFacilities();
+  const fetchFacilities = async (isLoadMore = false) => {
+    try {
+      if (isLoadMore) {
+        setLoadingMore(true);
+      } else {
+        setLoading(true);
+      }
+
+      const { facilities: data, lastVisible: last, hasMore: more } = 
+        await facilitiesService.getFacilities(isLoadMore ? lastVisible : undefined);
+
+      if (isLoadMore) {
+        setFacilities(prev => [...prev, ...data]);
+      } else {
         setFacilities(data);
-      } catch (err) {
-        console.error('Error fetching facilities:', err);
-        setError('Error loading facilities');
-      } finally {
+      }
+
+      setLastVisible(last || undefined);
+      setHasMore(more);
+      setError(null);
+    } catch (err) {
+      console.error('Error fetching facilities:', err);
+      setError('Error loading facilities');
+    } finally {
+      if (isLoadMore) {
+        setLoadingMore(false);
+      } else {
         setLoading(false);
       }
-    };
+    }
+  };
 
+  useEffect(() => {
     fetchFacilities();
   }, []);
+
+  const handleLoadMore = () => {
+    if (!loadingMore && hasMore) {
+      fetchFacilities(true);
+    }
+  };
 
   const handleFilterChange = (newFilters: SearchFiltersState) => {
     setFilters(newFilters);
@@ -91,11 +121,32 @@ const HomePage = () => {
                 <p className="text-sm text-gray-500 mt-2">Please check back later for updates.</p>
               </div>
             ) : (
-              <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6 max-w-6xl mx-auto">
-                {facilities.map((facility) => (
-                  <RehabCard key={facility.id} facility={facility} />
-                ))}
-              </div>
+              <>
+                <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6 max-w-6xl mx-auto">
+                  {facilities.map((facility) => (
+                    <RehabCard key={facility.id} facility={facility} />
+                  ))}
+                </div>
+
+                {hasMore && (
+                  <div className="text-center mt-12">
+                    <button
+                      onClick={handleLoadMore}
+                      disabled={loadingMore}
+                      className="px-6 py-3 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
+                    >
+                      {loadingMore ? (
+                        <div className="flex items-center gap-2">
+                          <div className="w-4 h-4 border-2 border-white border-t-transparent rounded-full animate-spin"></div>
+                          Loading...
+                        </div>
+                      ) : (
+                        'Load More'
+                      )}
+                    </button>
+                  </div>
+                )}
+              </>
             )}
           </div>
         </section>

@@ -5,13 +5,15 @@ import {
   Plus, 
   Search, 
   Edit2, 
+  Archive, 
   Trash2, 
   CheckCircle, 
   XCircle,
   AlertCircle,
   X,
   ShieldCheck,
-  ShieldAlert
+  ShieldAlert,
+  ArchiveRestore
 } from 'lucide-react';
 import { useNavigate } from 'react-router-dom';
 import { useAuthStore } from '../store/authStore';
@@ -20,16 +22,29 @@ import { Facility } from '../types';
 import Header from '../components/Header';
 import Footer from '../components/Footer';
 import EditListingModal from '../components/EditListingModal';
+import ConfirmationDialog from '../components/ConfirmationDialog';
 
 export default function AdminDashboard() {
   const navigate = useNavigate();
   const { user } = useAuthStore();
   const [searchTerm, setSearchTerm] = useState('');
-  const [statusFilter, setStatusFilter] = useState('all');
+  const [statusFilter, setStatusFilter] = useState('active');
   const [facilities, setFacilities] = useState<Facility[]>([]);
+  const [archivedFacilities, setArchivedFacilities] = useState<Facility[]>([]);
   const [loading, setLoading] = useState(true);
   const [editingFacility, setEditingFacility] = useState<Facility | null>(null);
   const [isEditModalOpen, setIsEditModalOpen] = useState(false);
+  const [showArchived, setShowArchived] = useState(false);
+
+  // Confirmation dialogs
+  const [archiveDialog, setArchiveDialog] = useState<{ isOpen: boolean; facilityId: string | null }>({
+    isOpen: false,
+    facilityId: null
+  });
+  const [deleteDialog, setDeleteDialog] = useState<{ isOpen: boolean; facilityId: string | null }>({
+    isOpen: false,
+    facilityId: null
+  });
 
   // Redirect if not admin
   useEffect(() => {
@@ -39,23 +54,28 @@ export default function AdminDashboard() {
   }, [user, navigate]);
 
   // Fetch facilities
-  useEffect(() => {
-    const fetchFacilities = async () => {
-      try {
-        const listings = await facilitiesService.getAllListingsForAdmin();
-        setFacilities(listings);
-      } catch (error) {
-        console.error('Error fetching facilities:', error);
-      } finally {
-        setLoading(false);
-      }
-    };
+  const fetchFacilities = async () => {
+    try {
+      setLoading(true);
+      const [listings, archived] = await Promise.all([
+        facilitiesService.getAllListingsForAdmin(),
+        facilitiesService.getArchivedListings()
+      ]);
+      setFacilities(listings);
+      setArchivedFacilities(archived);
+    } catch (error) {
+      console.error('Error fetching facilities:', error);
+    } finally {
+      setLoading(false);
+    }
+  };
 
+  useEffect(() => {
     fetchFacilities();
   }, []);
 
   // Filter facilities based on search and status
-  const filteredFacilities = facilities.filter(facility => {
+  const filteredFacilities = (showArchived ? archivedFacilities : facilities).filter(facility => {
     const matchesSearch = facility.name.toLowerCase().includes(searchTerm.toLowerCase()) ||
                          facility.location.toLowerCase().includes(searchTerm.toLowerCase());
     const matchesStatus = statusFilter === 'all' || facility.moderationStatus === statusFilter;
@@ -67,6 +87,7 @@ export default function AdminDashboard() {
       case 'approved': return 'text-green-600 bg-green-50 border-green-200';
       case 'pending': return 'text-yellow-600 bg-yellow-50 border-yellow-200';
       case 'rejected': return 'text-red-600 bg-red-50 border-red-200';
+      case 'archived': return 'text-gray-600 bg-gray-50 border-gray-200';
       default: return 'text-gray-600 bg-gray-50 border-gray-200';
     }
   };
@@ -81,9 +102,7 @@ export default function AdminDashboard() {
     
     try {
       await facilitiesService.updateFacility(editingFacility.id, data);
-      // Refresh facilities list
-      const listings = await facilitiesService.getAllListingsForAdmin();
-      setFacilities(listings);
+      await fetchFacilities();
       setIsEditModalOpen(false);
       setEditingFacility(null);
     } catch (error) {
@@ -94,9 +113,7 @@ export default function AdminDashboard() {
   const handleApprove = async (id: string) => {
     try {
       await facilitiesService.approveFacility(id);
-      // Refresh facilities list
-      const listings = await facilitiesService.getAllListingsForAdmin();
-      setFacilities(listings);
+      await fetchFacilities();
     } catch (error) {
       console.error('Error approving facility:', error);
     }
@@ -105,11 +122,27 @@ export default function AdminDashboard() {
   const handleReject = async (id: string) => {
     try {
       await facilitiesService.rejectFacility(id);
-      // Refresh facilities list
-      const listings = await facilitiesService.getAllListingsForAdmin();
-      setFacilities(listings);
+      await fetchFacilities();
     } catch (error) {
       console.error('Error rejecting facility:', error);
+    }
+  };
+
+  const handleArchive = async (id: string) => {
+    try {
+      await facilitiesService.archiveFacility(id);
+      await fetchFacilities();
+    } catch (error) {
+      console.error('Error archiving facility:', error);
+    }
+  };
+
+  const handleDelete = async (id: string) => {
+    try {
+      await facilitiesService.deleteFacility(id);
+      await fetchFacilities();
+    } catch (error) {
+      console.error('Error deleting facility:', error);
     }
   };
 
@@ -120,7 +153,23 @@ export default function AdminDashboard() {
       <div className="container mx-auto px-4 py-8">
         <div className="bg-white rounded-xl shadow-sm">
           <div className="p-6 border-b">
-            <h1 className="text-2xl font-bold">Admin Dashboard</h1>
+            <div className="flex justify-between items-center">
+              <h1 className="text-2xl font-bold">Admin Dashboard</h1>
+              <div className="flex gap-2">
+                <button
+                  onClick={() => setShowArchived(false)}
+                  className={`px-4 py-2 rounded-lg transition-colors ${!showArchived ? 'bg-blue-600 text-white' : 'text-gray-600 hover:bg-gray-100'}`}
+                >
+                  Active Listings
+                </button>
+                <button
+                  onClick={() => setShowArchived(true)}
+                  className={`px-4 py-2 rounded-lg transition-colors ${showArchived ? 'bg-blue-600 text-white' : 'text-gray-600 hover:bg-gray-100'}`}
+                >
+                  Archived Listings
+                </button>
+              </div>
+            </div>
           </div>
 
           {/* Filters */}
@@ -138,22 +187,24 @@ export default function AdminDashboard() {
                   />
                 </div>
               </div>
-              <div className="flex gap-2">
-                <select
-                  className="px-4 py-2 border rounded-lg"
-                  value={statusFilter}
-                  onChange={(e) => setStatusFilter(e.target.value)}
-                >
-                  <option value="all">All Status</option>
-                  <option value="approved">Approved</option>
-                  <option value="pending">Pending</option>
-                  <option value="rejected">Rejected</option>
-                </select>
-                <button className="px-4 py-2 border rounded-lg flex items-center gap-2 hover:bg-gray-50">
-                  <ListFilter className="w-5 h-5" />
-                  <span>More Filters</span>
-                </button>
-              </div>
+              {!showArchived && (
+                <div className="flex gap-2">
+                  <select
+                    className="px-4 py-2 border rounded-lg"
+                    value={statusFilter}
+                    onChange={(e) => setStatusFilter(e.target.value)}
+                  >
+                    <option value="all">All Status</option>
+                    <option value="approved">Approved</option>
+                    <option value="pending">Pending</option>
+                    <option value="rejected">Rejected</option>
+                  </select>
+                  <button className="px-4 py-2 border rounded-lg flex items-center gap-2 hover:bg-gray-50">
+                    <ListFilter className="w-5 h-5" />
+                    <span>More Filters</span>
+                  </button>
+                </div>
+              )}
             </div>
           </div>
 
@@ -168,7 +219,7 @@ export default function AdminDashboard() {
                 <AlertCircle className="w-12 h-12 text-blue-600 mx-auto mb-4" />
                 <h2 className="text-xl font-semibold mb-2">No Facilities Found</h2>
                 <p className="text-gray-600">
-                  No facilities match your current filters.
+                  {showArchived ? 'No archived facilities found.' : 'No facilities match your current filters.'}
                 </p>
               </div>
             ) : (
@@ -213,7 +264,7 @@ export default function AdminDashboard() {
                         </td>
                         <td className="py-4 px-4">
                           <div className="flex items-center gap-2">
-                            {facility.moderationStatus === 'pending' && (
+                            {!showArchived && facility.moderationStatus === 'pending' && (
                               <>
                                 <button 
                                   onClick={() => handleApprove(facility.id)}
@@ -238,12 +289,23 @@ export default function AdminDashboard() {
                             >
                               <Edit2 className="w-5 h-5" />
                             </button>
-                            <button 
-                              className="p-1 text-red-600 hover:bg-red-50 rounded" 
-                              title="Delete"
-                            >
-                              <Trash2 className="w-5 h-5" />
-                            </button>
+                            {!showArchived ? (
+                              <button 
+                                onClick={() => setArchiveDialog({ isOpen: true, facilityId: facility.id })}
+                                className="p-1 text-gray-600 hover:bg-gray-50 rounded" 
+                                title="Archive"
+                              >
+                                <Archive className="w-5 h-5" />
+                              </button>
+                            ) : (
+                              <button 
+                                onClick={() => setDeleteDialog({ isOpen: true, facilityId: facility.id })}
+                                className="p-1 text-red-600 hover:bg-red-50 rounded" 
+                                title="Delete Permanently"
+                              >
+                                <Trash2 className="w-5 h-5" />
+                              </button>
+                            )}
                           </div>
                         </td>
                       </tr>
@@ -267,6 +329,32 @@ export default function AdminDashboard() {
           onSave={handleSave}
         />
       )}
+
+      <ConfirmationDialog
+        isOpen={archiveDialog.isOpen}
+        onClose={() => setArchiveDialog({ isOpen: false, facilityId: null })}
+        onConfirm={() => {
+          if (archiveDialog.facilityId) {
+            handleArchive(archiveDialog.facilityId);
+          }
+        }}
+        title="Archive Facility"
+        message="Are you sure you want to archive this facility? It will be moved to the archived listings section."
+        type="warning"
+      />
+
+      <ConfirmationDialog
+        isOpen={deleteDialog.isOpen}
+        onClose={() => setDeleteDialog({ isOpen: false, facilityId: null })}
+        onConfirm={() => {
+          if (deleteDialog.facilityId) {
+            handleDelete(deleteDialog.facilityId);
+          }
+        }}
+        title="Delete Facility"
+        message="Are you sure you want to permanently delete this facility? This action cannot be undone."
+        type="danger"
+      />
 
       <Footer />
     </div>
