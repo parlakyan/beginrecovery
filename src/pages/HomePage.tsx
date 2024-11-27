@@ -5,7 +5,7 @@ import Header from '../components/Header';
 import Footer from '../components/Footer';
 import HeroSection from '../components/HeroSection';
 import SearchFilters from '../components/SearchFilters';
-import ListingCard from '../components/ListingCard';
+import RehabCard from '../components/RehabCard';
 import TreatmentFinder from '../components/TreatmentFinder';
 import InsuranceSection from '../components/InsuranceSection';
 import CertificationsSection from '../components/CertificationsSection';
@@ -78,19 +78,20 @@ export default function HomePage() {
 
         {/* Featured Treatment Centers */}
         {featuredFacilities.length > 0 && (
-          <section className="bg-white">
-            <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-16">
-              <div className="text-center">
-                <h2 className="text-3xl font-extrabold text-gray-900 sm:text-4xl">
-                  Featured Treatment Centers
-                </h2>
-                <p className="mt-4 text-xl text-gray-600">
-                  Discover our highly-rated and trusted treatment facilities
-                </p>
+          <section className="py-20 bg-white">
+            <div className="container mx-auto px-4">
+              <div className="flex justify-between items-center mb-12">
+                <div className="text-center md:text-left">
+                  <h2 className="text-3xl font-bold mb-2">Featured Treatment Centers</h2>
+                  <p className="text-gray-600">Discover our highly-rated rehabilitation facilities</p>
+                </div>
+                <button className="text-blue-600 hover:text-blue-700 font-medium">
+                  View All
+                </button>
               </div>
-              <div className="mt-12 grid gap-8 sm:grid-cols-2 lg:grid-cols-3">
+              <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6 max-w-6xl mx-auto">
                 {featuredFacilities.map((facility) => (
-                  facility && <ListingCard key={facility.id} facility={facility} />
+                  facility && <RehabCard key={facility.id} facility={facility} />
                 ))}
               </div>
             </div>
@@ -101,86 +102,43 @@ export default function HomePage() {
         <TreatmentFinder />
 
         {/* Recent Treatment Centers */}
-        <section className="bg-white">
-          <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-16">
-            <div className="text-center">
-              <h2 className="text-3xl font-extrabold text-gray-900 sm:text-4xl">
-                Recent Treatment Centers
-              </h2>
-              <p className="mt-4 text-xl text-gray-600">
-                Browse our latest verified treatment facilities
-              </p>
+        <section className="py-20 bg-white">
+          <div className="container mx-auto px-4">
+            <div className="flex justify-between items-center mb-12">
+              <div className="text-center md:text-left">
+                <h2 className="text-3xl font-bold mb-2">Recent Treatment Centers</h2>
+                <p className="text-gray-600">Browse our latest verified rehabilitation facilities</p>
+              </div>
+              <button className="text-blue-600 hover:text-blue-700 font-medium">
+                View All
+              </button>
             </div>
-            <div className="mt-12">
+            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6 max-w-6xl mx-auto">
               {loading ? (
-                <div className="flex justify-center py-12">
+                <div className="col-span-3 flex justify-center py-12">
                   <div className="animate-spin rounded-full h-12 w-12 border-4 border-blue-600 border-t-transparent"></div>
                 </div>
               ) : facilities.length === 0 ? (
-                <div className="text-center py-12">
+                <div className="col-span-3 text-center py-12">
                   <p className="text-gray-600">No treatment centers found.</p>
                 </div>
               ) : (
-                <div className="grid gap-8 sm:grid-cols-2 lg:grid-cols-3">
-                  {facilities.map((facility) => (
-                    facility && <ListingCard key={facility.id} facility={facility} />
-                  ))}
-                </div>
+                facilities.map((facility) => (
+                  facility && <RehabCard key={facility.id} facility={facility} />
+                ))
               )}
             </div>
           </div>
         </section>
 
         {/* Insurance Section */}
-        <section className="bg-gray-50">
-          <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-16">
-            <div className="text-center">
-              <h2 className="text-3xl font-extrabold text-gray-900 sm:text-4xl">
-                Insurance Coverage
-              </h2>
-              <p className="mt-4 text-xl text-gray-600">
-                We work with major insurance providers
-              </p>
-            </div>
-            <div className="mt-12">
-              <InsuranceSection />
-            </div>
-          </div>
-        </section>
+        <InsuranceSection />
 
         {/* Certifications Section */}
-        <section className="bg-white">
-          <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-16">
-            <div className="text-center">
-              <h2 className="text-3xl font-extrabold text-gray-900 sm:text-4xl">
-                Certifications & Licenses
-              </h2>
-              <p className="mt-4 text-xl text-gray-600">
-                Our facilities meet the highest standards
-              </p>
-            </div>
-            <div className="mt-12">
-              <CertificationsSection />
-            </div>
-          </div>
-        </section>
+        <CertificationsSection />
 
         {/* Location Browser */}
-        <section className="bg-gray-50">
-          <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-16">
-            <div className="text-center">
-              <h2 className="text-3xl font-extrabold text-gray-900 sm:text-4xl">
-                Browse by Location
-              </h2>
-              <p className="mt-4 text-xl text-gray-600">
-                Find treatment centers in your area
-              </p>
-            </div>
-            <div className="mt-12">
-              <LocationBrowser />
-            </div>
-          </div>
-        </section>
+        <LocationBrowser />
       </main>
 
       <Footer />
