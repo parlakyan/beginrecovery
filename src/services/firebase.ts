@@ -132,7 +132,7 @@ export const facilitiesService = {
 };
 
 export const usersService = {
-  async createUser(userData: { email: string; role: string }) {
+  async createUser(userData: { email: string; role: 'user' | 'owner' | 'admin' }) {
     if (!auth.currentUser) throw new Error('No authenticated user');
     
     try {
@@ -166,7 +166,7 @@ export const usersService = {
       return {
         id: userDoc.id,
         email: data.email || null,
-        role: data.role || 'user'
+        role: (data.role || 'user') as 'user' | 'owner' | 'admin'
       };
     } catch (error) {
       console.error('Error getting user:', error);

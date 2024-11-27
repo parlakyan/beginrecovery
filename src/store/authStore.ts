@@ -54,24 +54,36 @@ const formatAuthError = (error: AuthError): string => {
 
 export const useAuthStore = create<AuthState>()(
   persist(
-    (set) => ({
+    (set, get) => ({
       user: null,
       loading: true,
       error: null,
       initialized: false,
 
-      setUser: (user) => set({ user }),
-      setLoading: (loading) => set({ loading }),
-      setInitialized: (initialized) => set({ initialized }),
+      setUser: (user) => {
+        console.log('Setting user in store:', user);
+        set({ user });
+      },
+      setLoading: (loading) => {
+        console.log('Setting loading state:', loading);
+        set({ loading });
+      },
+      setInitialized: (initialized) => {
+        console.log('Setting initialized state:', initialized);
+        set({ initialized });
+      },
 
       signIn: async (email: string, password: string) => {
         try {
           set({ loading: true, error: null });
           const userCredential = await signInWithEmailAndPassword(auth, email, password);
+          console.log('Sign in successful, user UID:', userCredential.user.uid);
           const userData = await usersService.getUserById(userCredential.user.uid);
+          console.log('User data retrieved:', userData);
           set({ user: userData });
         } catch (error: any) {
           const errorMessage = formatAuthError(error);
+          console.error('Sign in error:', errorMessage, error);
           set({ error: errorMessage });
           throw error;
         } finally {
@@ -93,11 +105,12 @@ export const useAuthStore = create<AuthState>()(
             user: {
               id: userCredential.user.uid,
               email: userCredential.user.email,
-              role
+              role: role as 'user' | 'owner' | 'admin'
             }
           });
         } catch (error: any) {
           const errorMessage = formatAuthError(error);
+          console.error('Sign up error:', errorMessage, error);
           set({ error: errorMessage });
           throw error;
         } finally {
@@ -110,6 +123,7 @@ export const useAuthStore = create<AuthState>()(
           await firebaseSignOut(auth);
           set({ user: null });
         } catch (error: any) {
+          console.error('Sign out error:', error);
           set({ error: 'Failed to sign out' });
           throw error;
         }
@@ -121,6 +135,7 @@ export const useAuthStore = create<AuthState>()(
           await sendPasswordResetEmail(auth, email);
         } catch (error: any) {
           const errorMessage = formatAuthError(error);
+          console.error('Reset password error:', errorMessage, error);
           set({ error: errorMessage });
           throw error;
         } finally {
@@ -143,43 +158,33 @@ onAuthStateChanged(auth, async (firebaseUser: FirebaseUser | null) => {
 
   try {
     store.setLoading(true);
+    console.log('Auth state changed:', firebaseUser ? firebaseUser.uid : 'No user');
 
     if (firebaseUser) {
       try {
+        console.log('Fetching user data for:', firebaseUser.uid);
         const userData = await usersService.getUserById(firebaseUser.uid);
         
         if (userData) {
-          const formattedUserData: User = {
-            id: userData.id,
-            email: userData.email || firebaseUser.email,
-            role: userData.role || 'user'
-          };
-          store.setUser(formattedUserData);
+          console.log('User data found:', userData);
+          store.setUser(userData);
         } else {
+          console.log('No user data found, creating new user');
           // If no user data found, create a default user entry
-          await usersService.createUser({
+          const newUser = await usersService.createUser({
             email: firebaseUser.email || '',
             role: 'user'
           });
           
-          // Retry fetching user data
-          const newUserData = await usersService.getUserById(firebaseUser.uid);
-          if (newUserData) {
-            const formattedNewUserData: User = {
-              id: newUserData.id,
-              email: newUserData.email || firebaseUser.email,
-              role: newUserData.role || 'user'
-            };
-            store.setUser(formattedNewUserData);
-          } else {
-            store.setUser(null);
-          }
+          console.log('New user created:', newUser);
+          store.setUser(newUser);
         }
       } catch (userFetchError) {
-        console.error('Error fetching user data:', userFetchError);
+        console.error('Error fetching/creating user data:', userFetchError);
         store.setUser(null);
       }
     } else {
+      console.log('No authenticated user');
       store.setUser(null);
     }
   } catch (error) {

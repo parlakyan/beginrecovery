@@ -5,7 +5,13 @@ import {
   persistentLocalCache,
   persistentSingleTabManager
 } from 'firebase/firestore';
-import { getAuth, setPersistence, browserLocalPersistence } from 'firebase/auth';
+import { 
+  getAuth, 
+  setPersistence, 
+  browserLocalPersistence,
+  connectAuthEmulator,
+  User
+} from 'firebase/auth';
 import { getAnalytics, isSupported } from 'firebase/analytics';
 
 // Initialize Firebase with environment variables
@@ -25,6 +31,15 @@ const app = initializeApp(firebaseConfig);
 // Initialize Auth first
 const auth = getAuth(app);
 
+// Add detailed error logging for authentication
+const unsubscribe = auth.onAuthStateChanged((user: User | null) => {
+  console.log('Firebase Auth State:', user ? 'Authenticated' : 'Not Authenticated');
+  if (user) {
+    console.log('User UID:', user.uid);
+    console.log('User Email:', user.email);
+  }
+});
+
 // Initialize Firestore with persistence
 const db = initializeFirestore(app, {
   localCache: persistentLocalCache({
@@ -33,7 +48,13 @@ const db = initializeFirestore(app, {
 });
 
 // Set auth persistence
-setPersistence(auth, browserLocalPersistence).catch(console.error);
+setPersistence(auth, browserLocalPersistence)
+  .then(() => {
+    console.log('Auth persistence set successfully');
+  })
+  .catch((error) => {
+    console.error('Error setting auth persistence:', error);
+  });
 
 // Initialize analytics only in production
 const analytics = async () => {
@@ -43,5 +64,5 @@ const analytics = async () => {
   return null;
 };
 
-export { db, auth, analytics };
+export { db, auth, analytics, unsubscribe };
 export default app;
