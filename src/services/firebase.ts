@@ -24,7 +24,7 @@ import { Facility } from '../types';
 
 const FACILITIES_COLLECTION = 'facilities';
 const USERS_COLLECTION = 'users';
-const FACILITIES_PER_PAGE = 12;
+const BATCH_SIZE = 12; // Number of facilities to load at a time
 
 export const networkService = {
   goOnline: async () => {
@@ -69,31 +69,50 @@ const transformFacilityData = (doc: QueryDocumentSnapshot<DocumentData>): Facili
   };
 };
 
-export const facilitiesService = {
+interface FacilitiesService {
+  getFacilities: (lastDoc?: QueryDocumentSnapshot<DocumentData>) => Promise<{
+    facilities: Facility[];
+    lastVisible: QueryDocumentSnapshot<DocumentData> | null;
+    hasMore: boolean;
+  }>;
+  getFacilityById: (id: string) => Promise<Facility | null>;
+  createFacility: (data: Partial<Facility>) => Promise<{ id: string }>;
+  updateFacility: (id: string, data: Partial<Facility>) => Promise<boolean>;
+  approveFacility: (id: string) => Promise<boolean>;
+  rejectFacility: (id: string) => Promise<boolean>;
+  archiveFacility: (id: string) => Promise<boolean>;
+  deleteFacility: (id: string) => Promise<boolean>;
+  getUserListings: (userId: string) => Promise<Facility[]>;
+  getAllListingsForAdmin: () => Promise<Facility[]>;
+  getArchivedListings: () => Promise<Facility[]>;
+}
+
+export const facilitiesService: FacilitiesService = {
   async getFacilities(lastDoc?: QueryDocumentSnapshot<DocumentData>) {
     try {
       console.log('Fetching facilities from collection:', FACILITIES_COLLECTION);
       
       const facilitiesRef = collection(db, FACILITIES_COLLECTION);
-      let q = query(
+      let baseQuery = query(
         facilitiesRef,
         where('moderationStatus', '==', 'approved'),
         orderBy('createdAt', 'desc'),
-        limit(FACILITIES_PER_PAGE)
+        limit(BATCH_SIZE)
       );
 
+      // If we have a last document, start after it
       if (lastDoc) {
-        q = query(
+        baseQuery = query(
           facilitiesRef,
           where('moderationStatus', '==', 'approved'),
           orderBy('createdAt', 'desc'),
           startAfter(lastDoc),
-          limit(FACILITIES_PER_PAGE)
+          limit(BATCH_SIZE)
         );
       }
       
       console.log('Executing facilities query...');
-      const snapshot = await getDocs(q);
+      const snapshot = await getDocs(baseQuery);
       console.log('Query returned:', snapshot.size, 'facilities');
       
       const facilities = snapshot.docs.map(doc => {
@@ -102,8 +121,10 @@ export const facilitiesService = {
         return facility;
       });
 
-      const lastVisible = snapshot.docs[snapshot.docs.length - 1];
-      const hasMore = snapshot.docs.length === FACILITIES_PER_PAGE;
+      // Get the last visible document for next batch
+      const lastVisible = snapshot.docs[snapshot.docs.length - 1] || null;
+      // Check if there might be more results
+      const hasMore = snapshot.docs.length === BATCH_SIZE;
 
       return { facilities, lastVisible, hasMore };
     } catch (error) {
