@@ -38,10 +38,18 @@ export default function HomePage() {
           facilitiesService.getFacilities(),
           facilitiesService.getFeaturedFacilities()
         ]);
-        setFacilities(allFacilities.facilities || []);
-        setFeaturedFacilities(featured);
+        
+        // Ensure we have valid facilities before setting state
+        const validFacilities = (allFacilities.facilities || []).filter(f => f && typeof f.rating === 'number');
+        const validFeatured = (featured || []).filter(f => f && typeof f.rating === 'number');
+        
+        setFacilities(validFacilities);
+        setFeaturedFacilities(validFeatured);
       } catch (error) {
         console.error('Error fetching facilities:', error);
+        // Set empty arrays on error to prevent null issues
+        setFacilities([]);
+        setFeaturedFacilities([]);
       } finally {
         setLoading(false);
       }
@@ -50,8 +58,8 @@ export default function HomePage() {
     fetchFacilities();
   }, []);
 
-  // Get the first facility for reviews and map
-  const firstFacility = facilities[0] || null;
+  // Get the first valid facility for reviews and map
+  const firstFacility = facilities.find(f => f && typeof f.rating === 'number') || null;
   const coordinates = firstFacility ? { lat: 34.0522, lng: -118.2437 } // Example coordinates for LA
                                   : { lat: 0, lng: 0 };
 
@@ -78,7 +86,7 @@ export default function HomePage() {
               <h2 className="text-3xl font-bold mb-8">Featured Treatment Centers</h2>
               <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
                 {featuredFacilities.map((facility) => (
-                  <ListingCard key={facility.id} facility={facility} />
+                  facility && <ListingCard key={facility.id} facility={facility} />
                 ))}
               </div>
             </div>
@@ -100,7 +108,7 @@ export default function HomePage() {
             ) : (
               <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
                 {facilities.map((facility) => (
-                  <ListingCard key={facility.id} facility={facility} />
+                  facility && <ListingCard key={facility.id} facility={facility} />
                 ))}
               </div>
             )}
@@ -111,7 +119,7 @@ export default function HomePage() {
         <InsuranceSection />
         <CertificationsSection />
         <CoreValues />
-        <ReviewsSection facility={firstFacility} />
+        {firstFacility && <ReviewsSection facility={firstFacility} />}
         <StaffSection />
         <MapSection coordinates={coordinates} />
         <LocationBrowser />
