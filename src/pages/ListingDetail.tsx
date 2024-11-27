@@ -1,85 +1,64 @@
-import React, { useState, useEffect } from 'react';
-import { useParams, useNavigate } from 'react-router-dom';
+import { useEffect, useState } from 'react';
+import { useParams } from 'react-router-dom';
 import { facilitiesService } from '../services/firebase';
-import SEOHead from '../components/SEOHead';
-import DetailCarousel from '../components/DetailCarousel';
-import TabSection from '../components/TabSection';
-import ContactBox from '../components/ContactBox';
-import StaffSection from '../components/StaffSection';
-import InsuranceSection from '../components/InsuranceSection';
-import CertificationsSection from '../components/CertificationsSection';
-import ReviewsSection from '../components/ReviewsSection';
-import MapSection from '../components/MapSection';
+import { Facility } from '../types';
 import Header from '../components/Header';
 import Footer from '../components/Footer';
-import { Loader2 } from 'lucide-react';
-import { Facility } from '../types';
+import ImageCarousel from '../components/ImageCarousel';
+import ContactBox from '../components/ContactBox';
+import ReviewsSection from '../components/ReviewsSection';
+import MapSection from '../components/MapSection';
+import StaffSection from '../components/StaffSection';
 
 export default function ListingDetail() {
-  const { id } = useParams();
-  const navigate = useNavigate();
-  const [loading, setLoading] = useState(true);
-  const [error, setError] = useState<string | null>(null);
+  const { id } = useParams<{ id: string }>();
   const [facility, setFacility] = useState<Facility | null>(null);
-  const [activeTab, setActiveTab] = useState('about');
+  const [loading, setLoading] = useState(true);
 
   useEffect(() => {
-    const loadFacility = async () => {
-      if (!id) {
-        navigate('/');
-        return;
-      }
-      
-      setLoading(true);
-      setError(null);
+    // Scroll to top on mount
+    window.scrollTo(0, 0);
+    
+    const fetchFacility = async () => {
+      if (!id) return;
       
       try {
-        const facilityData = await facilitiesService.getFacilityById(id);
-        if (facilityData) {
-          setFacility(facilityData);
-        } else {
-          setError('Facility not found');
+        setLoading(true);
+        const data = await facilitiesService.getFacilityById(id);
+        // Only show approved facilities
+        if (data && data.moderationStatus === 'approved') {
+          setFacility(data);
         }
-      } catch (err) {
-        console.error('Error loading facility:', err);
-        setError('Failed to load facility details');
+      } catch (error) {
+        console.error('Error fetching facility:', error);
       } finally {
         setLoading(false);
       }
     };
 
-    loadFacility();
-  }, [id, navigate]);
+    fetchFacility();
+  }, [id]);
 
   if (loading) {
     return (
       <div className="min-h-screen bg-gray-50">
         <Header />
-        <div className="flex items-center justify-center min-h-[calc(100vh-64px)]">
-          <div className="flex items-center gap-2">
-            <Loader2 className="w-6 h-6 animate-spin text-blue-600" />
-            <span>Loading facility details...</span>
-          </div>
+        <div className="flex justify-center items-center min-h-[60vh]">
+          <div className="animate-spin rounded-full h-12 w-12 border-4 border-blue-600 border-t-transparent"></div>
         </div>
         <Footer />
       </div>
     );
   }
 
-  if (error || !facility) {
+  if (!facility) {
     return (
       <div className="min-h-screen bg-gray-50">
         <Header />
-        <div className="flex items-center justify-center min-h-[calc(100vh-64px)]">
+        <div className="flex justify-center items-center min-h-[60vh]">
           <div className="text-center">
-            <h2 className="text-2xl font-bold text-gray-800 mb-2">Oops!</h2>
-            <p className="text-gray-600">{error || 'Facility not found'}</p>
-            <button 
-              onClick={() => navigate('/')}
-              className="mt-4 text-blue-600 hover:text-blue-700"
-            >
-              Return to Home
-            </button>
+            <h2 className="text-2xl font-bold text-gray-900">Facility Not Found</h2>
+            <p className="mt-2 text-gray-600">The facility you're looking for doesn't exist or isn't available.</p>
           </div>
         </div>
         <Footer />
@@ -87,62 +66,80 @@ export default function ListingDetail() {
     );
   }
 
+  const coordinates = { lat: 34.0522, lng: -118.2437 }; // Example coordinates for LA
+
   return (
     <div className="min-h-screen bg-gray-50">
-      <SEOHead
-        title={`${facility.name} - Recovery Center in ${facility.location}`}
-        description={`${facility.name} offers comprehensive addiction treatment in ${facility.location}. ${facility.description.slice(0, 150)}...`}
-        canonicalUrl={`${window.location.origin}/listing/${id}`}
-        type="article"
-      />
-
       <Header />
-
-      <DetailCarousel images={facility.images} />
-
-      <div className="container mx-auto px-4 -mt-16 relative z-10">
-        <div className="bg-white rounded-xl shadow-lg p-8 mb-8">
-          <div className="flex items-center justify-between mb-6">
-            <h1 className="text-3xl font-bold">{facility.name}</h1>
-            <div className="text-right">
-              <div className="text-2xl font-bold text-blue-600">{facility.rating}/5.0</div>
-              <div className="text-sm text-gray-600">{facility.reviewCount} Reviews</div>
-            </div>
-          </div>
-          <p className="text-gray-600 mb-6">{facility.description}</p>
-          <div className="flex flex-wrap gap-2">
-            {facility.tags.map((tag, index) => (
-              <span
-                key={`tag-${index}`}
-                className="px-3 py-1 bg-blue-50 text-blue-600 rounded-full text-sm font-medium"
-              >
-                {tag}
-              </span>
-            ))}
-          </div>
+      
+      <main className="relative">
+        {/* Hero Section with Image Carousel */}
+        <div className="relative h-[50vh] min-h-[400px] bg-gray-900">
+          <ImageCarousel 
+            images={facility.images} 
+            showNavigation={facility.images.length > 1}
+          />
         </div>
 
-        <div className="grid grid-cols-1 lg:grid-cols-3 gap-8">
-          <div className="lg:col-span-2 space-y-8">
-            <TabSection 
-              facility={facility} 
-              activeTab={activeTab} 
-              setActiveTab={setActiveTab} 
-            />
-            <StaffSection />
-            <InsuranceSection />
-            <CertificationsSection />
-            <ReviewsSection facility={{ rating: facility.rating, reviewCount: facility.reviewCount }} />
-            <MapSection coordinates={{ lat: 34.0522, lng: -118.2437 }} />
-          </div>
+        <div className="relative max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 -mt-16">
+          <div className="grid grid-cols-1 lg:grid-cols-3 gap-8">
+            {/* Main Content */}
+            <div className="lg:col-span-2">
+              <div className="bg-white rounded-lg shadow-lg p-6 mb-8">
+                <h1 className="text-3xl font-bold text-gray-900">{facility.name}</h1>
+                <p className="mt-2 text-gray-600">{facility.location}</p>
+                
+                {/* Tags */}
+                <div className="mt-4 flex flex-wrap gap-2">
+                  {facility.tags.map((tag, index) => (
+                    <span 
+                      key={index}
+                      className="inline-flex items-center px-3 py-1 rounded-full text-sm font-medium bg-blue-100 text-blue-800"
+                    >
+                      {tag}
+                    </span>
+                  ))}
+                </div>
 
-          <div className="lg:col-span-1">
-            <div className="sticky top-4">
-              <ContactBox facility={facility} />
+                {/* Description */}
+                <div className="mt-6 prose prose-blue max-w-none">
+                  <h2 className="text-xl font-semibold mb-4">About This Facility</h2>
+                  <p>{facility.description}</p>
+                </div>
+
+                {/* Amenities */}
+                <div className="mt-8">
+                  <h2 className="text-xl font-semibold mb-4">Amenities & Services</h2>
+                  <div className="grid grid-cols-2 md:grid-cols-3 gap-4">
+                    {facility.amenities.map((amenity, index) => (
+                      <div key={index} className="flex items-center gap-2">
+                        <div className="h-2 w-2 bg-blue-600 rounded-full"></div>
+                        <span>{amenity}</span>
+                      </div>
+                    ))}
+                  </div>
+                </div>
+              </div>
+
+              {/* Reviews Section */}
+              <ReviewsSection facility={facility} />
+
+              {/* Staff Section */}
+              <StaffSection />
+
+              {/* Map Section */}
+              <MapSection coordinates={coordinates} />
+            </div>
+
+            {/* Contact Box - Sticky */}
+            <div className="lg:col-span-1">
+              <div className="sticky top-24"> {/* Increased top spacing to avoid nav overlap */}
+                <ContactBox facility={facility} />
+              </div>
             </div>
           </div>
         </div>
-      </div>
+      </main>
 
       <Footer />
     </div>

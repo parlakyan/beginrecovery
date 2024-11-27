@@ -1,39 +1,66 @@
-import React from 'react';
-import { Phone, MessageSquare, Globe } from 'lucide-react';
+import { Phone, Mail } from 'lucide-react';
+import { Facility } from '../types';
 
 interface ContactBoxProps {
-  facility: {
-    phone: string;
-    name: string;
-  };
+  facility: Facility;
 }
 
 export default function ContactBox({ facility }: ContactBoxProps) {
   return (
-    <div className="bg-white rounded-xl shadow-lg p-6 sticky top-4">
-      <h2 className="text-xl font-bold mb-6">Contact {facility.name}</h2>
+    <div className="bg-white rounded-lg shadow-lg p-6">
+      <h3 className="text-xl font-semibold text-gray-900 mb-4">Contact Information</h3>
       
-      <div className="space-y-4">
-        <button className="w-full bg-blue-600 text-white py-3 px-6 rounded-lg font-semibold hover:bg-blue-700 transition-colors flex items-center justify-center gap-2">
-          <Phone className="w-5 h-5" />
-          {facility.phone}
-        </button>
+      {/* Phone */}
+      {facility.phone && (
+        <div className="flex items-center gap-3 mb-4">
+          <div className="flex-shrink-0">
+            <Phone className="w-5 h-5 text-blue-600" />
+          </div>
+          <div>
+            <p className="text-sm text-gray-500">Phone</p>
+            <a 
+              href={`tel:${facility.phone}`}
+              className="text-gray-900 hover:text-blue-600 transition-colors"
+            >
+              {facility.phone}
+            </a>
+          </div>
+        </div>
+      )}
 
-        <button className="w-full bg-gray-100 text-gray-800 py-3 px-6 rounded-lg font-semibold hover:bg-gray-200 transition-colors flex items-center justify-center gap-2">
-          <MessageSquare className="w-5 h-5" />
-          Message Center
-        </button>
+      {/* Email */}
+      <div className="flex items-center gap-3 mb-6">
+        <div className="flex-shrink-0">
+          <Mail className="w-5 h-5 text-blue-600" />
+        </div>
+        <div>
+          <p className="text-sm text-gray-500">Email</p>
+          <a 
+            href={`mailto:contact@${facility.name.toLowerCase().replace(/\s+/g, '')}.com`}
+            className="text-gray-900 hover:text-blue-600 transition-colors"
+          >
+            Send Email
+          </a>
+        </div>
+      </div>
 
-        <button className="w-full border border-gray-200 text-gray-800 py-3 px-6 rounded-lg font-semibold hover:bg-gray-50 transition-colors flex items-center justify-center gap-2">
-          <Globe className="w-5 h-5" />
-          Visit Website
+      {/* CTA Buttons */}
+      <div className="space-y-3">
+        <button className="w-full bg-blue-600 text-white py-3 px-4 rounded-lg hover:bg-blue-700 transition-colors">
+          Request Information
+        </button>
+        <button className="w-full bg-green-600 text-white py-3 px-4 rounded-lg hover:bg-green-700 transition-colors">
+          Check Insurance Coverage
         </button>
       </div>
 
-      <div className="mt-6 pt-6 border-t">
-        <p className="text-sm text-gray-500 text-center">
-          Your call is confidential. We'll connect you with a treatment specialist.
-        </p>
+      {/* Additional Info */}
+      <div className="mt-6 pt-6 border-t border-gray-200">
+        <h4 className="font-medium text-gray-900 mb-2">Facility Status</h4>
+        <div className="flex items-center gap-2 text-sm text-gray-600">
+          <div className="h-2 w-2 bg-green-500 rounded-full"></div>
+          <span>Currently accepting patients</span>
+        </div>
       </div>
     </div>
   );

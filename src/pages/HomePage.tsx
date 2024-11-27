@@ -9,10 +9,6 @@ import ListingCard from '../components/ListingCard';
 import TreatmentFinder from '../components/TreatmentFinder';
 import InsuranceSection from '../components/InsuranceSection';
 import CertificationsSection from '../components/CertificationsSection';
-import CoreValues from '../components/CoreValues';
-import ReviewsSection from '../components/ReviewsSection';
-import StaffSection from '../components/StaffSection';
-import MapSection from '../components/MapSection';
 import LocationBrowser from '../components/LocationBrowser';
 
 const defaultFilters = {
@@ -39,15 +35,21 @@ export default function HomePage() {
           facilitiesService.getFeaturedFacilities()
         ]);
         
-        // Ensure we have valid facilities before setting state
-        const validFacilities = (allFacilities.facilities || []).filter(f => f && typeof f.rating === 'number');
-        const validFeatured = (featured || []).filter(f => f && typeof f.rating === 'number');
+        // Ensure we have valid facilities and only show approved ones
+        const validFacilities = (allFacilities.facilities || [])
+          .filter(f => f && 
+                      typeof f.rating === 'number' && 
+                      f.moderationStatus === 'approved');
+        
+        const validFeatured = (featured || [])
+          .filter(f => f && 
+                      typeof f.rating === 'number' && 
+                      f.moderationStatus === 'approved');
         
         setFacilities(validFacilities);
         setFeaturedFacilities(validFeatured);
       } catch (error) {
         console.error('Error fetching facilities:', error);
-        // Set empty arrays on error to prevent null issues
         setFacilities([]);
         setFeaturedFacilities([]);
       } finally {
@@ -57,11 +59,6 @@ export default function HomePage() {
 
     fetchFacilities();
   }, []);
-
-  // Get the first valid facility for reviews and map
-  const firstFacility = facilities.find(f => f && typeof f.rating === 'number') || null;
-  const coordinates = firstFacility ? { lat: 34.0522, lng: -118.2437 } // Example coordinates for LA
-                                  : { lat: 0, lng: 0 };
 
   return (
     <div className="min-h-screen bg-gray-50">
@@ -79,12 +76,19 @@ export default function HomePage() {
           />
         </div>
 
-        {/* Featured Listings */}
+        {/* Featured Treatment Centers */}
         {featuredFacilities.length > 0 && (
-          <section className="bg-white py-12">
-            <div className="container mx-auto px-4">
-              <h2 className="text-3xl font-bold mb-8">Featured Treatment Centers</h2>
-              <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+          <section className="bg-white">
+            <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-16">
+              <div className="text-center">
+                <h2 className="text-3xl font-extrabold text-gray-900 sm:text-4xl">
+                  Featured Treatment Centers
+                </h2>
+                <p className="mt-4 text-xl text-gray-600">
+                  Discover our highly-rated and trusted treatment facilities
+                </p>
+              </div>
+              <div className="mt-12 grid gap-8 sm:grid-cols-2 lg:grid-cols-3">
                 {featuredFacilities.map((facility) => (
                   facility && <ListingCard key={facility.id} facility={facility} />
                 ))}
@@ -93,36 +97,90 @@ export default function HomePage() {
           </section>
         )}
 
-        {/* Recent Listings */}
-        <section className="py-12">
-          <div className="container mx-auto px-4">
-            <h2 className="text-3xl font-bold mb-8">Recent Treatment Centers</h2>
-            {loading ? (
-              <div className="flex justify-center py-12">
-                <div className="animate-spin rounded-full h-12 w-12 border-4 border-blue-600 border-t-transparent"></div>
-              </div>
-            ) : facilities.length === 0 ? (
-              <div className="text-center py-12">
-                <p className="text-gray-600">No treatment centers found.</p>
-              </div>
-            ) : (
-              <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
-                {facilities.map((facility) => (
-                  facility && <ListingCard key={facility.id} facility={facility} />
-                ))}
-              </div>
-            )}
+        {/* Find Treatment Section */}
+        <TreatmentFinder />
+
+        {/* Recent Treatment Centers */}
+        <section className="bg-white">
+          <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-16">
+            <div className="text-center">
+              <h2 className="text-3xl font-extrabold text-gray-900 sm:text-4xl">
+                Recent Treatment Centers
+              </h2>
+              <p className="mt-4 text-xl text-gray-600">
+                Browse our latest verified treatment facilities
+              </p>
+            </div>
+            <div className="mt-12">
+              {loading ? (
+                <div className="flex justify-center py-12">
+                  <div className="animate-spin rounded-full h-12 w-12 border-4 border-blue-600 border-t-transparent"></div>
+                </div>
+              ) : facilities.length === 0 ? (
+                <div className="text-center py-12">
+                  <p className="text-gray-600">No treatment centers found.</p>
+                </div>
+              ) : (
+                <div className="grid gap-8 sm:grid-cols-2 lg:grid-cols-3">
+                  {facilities.map((facility) => (
+                    facility && <ListingCard key={facility.id} facility={facility} />
+                  ))}
+                </div>
+              )}
+            </div>
           </div>
         </section>
 
-        <TreatmentFinder />
-        <InsuranceSection />
-        <CertificationsSection />
-        <CoreValues />
-        {firstFacility && <ReviewsSection facility={firstFacility} />}
-        <StaffSection />
-        <MapSection coordinates={coordinates} />
-        <LocationBrowser />
+        {/* Insurance Section */}
+        <section className="bg-gray-50">
+          <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-16">
+            <div className="text-center">
+              <h2 className="text-3xl font-extrabold text-gray-900 sm:text-4xl">
+                Insurance Coverage
+              </h2>
+              <p className="mt-4 text-xl text-gray-600">
+                We work with major insurance providers
+              </p>
+            </div>
+            <div className="mt-12">
+              <InsuranceSection />
+            </div>
+          </div>
+        </section>
+
+        {/* Certifications Section */}
+        <section className="bg-white">
+          <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-16">
+            <div className="text-center">
+              <h2 className="text-3xl font-extrabold text-gray-900 sm:text-4xl">
+                Certifications & Licenses
+              </h2>
+              <p className="mt-4 text-xl text-gray-600">
+                Our facilities meet the highest standards
+              </p>
+            </div>
+            <div className="mt-12">
+              <CertificationsSection />
+            </div>
+          </div>
+        </section>
+
+        {/* Location Browser */}
+        <section className="bg-gray-50">
+          <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-16">
+            <div className="text-center">
+              <h2 className="text-3xl font-extrabold text-gray-900 sm:text-4xl">
+                Browse by Location
+              </h2>
+              <p className="mt-4 text-xl text-gray-600">
+                Find treatment centers in your area
+              </p>
+            </div>
+            <div className="mt-12">
+              <LocationBrowser />
+            </div>
+          </div>
+        </section>
       </main>
 
       <Footer />
