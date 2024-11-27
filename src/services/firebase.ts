@@ -20,12 +20,16 @@ import {
   Timestamp,
   setDoc
 } from 'firebase/firestore';
-import { db, auth } from '../lib/firebase';
+import { getAuth } from 'firebase/auth';
+import { db } from '../lib/firebase';
 import { Facility, User } from '../types';
 
 const FACILITIES_COLLECTION = 'facilities';
 const USERS_COLLECTION = 'users';
 const BATCH_SIZE = 12;
+
+// Get auth instance directly
+const auth = getAuth();
 
 interface SearchParams {
   query?: string;

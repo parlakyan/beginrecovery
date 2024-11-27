@@ -1,8 +1,7 @@
 import { create } from 'zustand';
 import { User } from '../types';
 import { usersService } from '../services/firebase';
-import { auth } from '../lib/firebase';
-import { onAuthStateChanged } from 'firebase/auth';
+import { getAuth, onAuthStateChanged } from 'firebase/auth';
 
 interface AuthState {
   user: User | null;
@@ -27,6 +26,9 @@ const useAuthStore = create<AuthState>((set) => ({
   clearAuth: () => set({ user: null, loading: false, error: null }),
   setInitialized: (initialized) => set({ initialized })
 }));
+
+// Get auth instance directly
+const auth = getAuth();
 
 // Initialize auth state listener
 onAuthStateChanged(auth, async (firebaseUser) => {
