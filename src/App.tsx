@@ -1,4 +1,4 @@
-import { StrictMode } from 'react';
+import { useEffect } from 'react';
 import { BrowserRouter as Router, Routes, Route } from 'react-router-dom';
 import useAuthStore from './store/authStore';
 import HomePage from './pages/HomePage';
@@ -15,10 +15,23 @@ import NotFound from './pages/NotFound';
 import ProtectedRoute from './components/ProtectedRoute';
 
 export default function App() {
-  const user = useAuthStore(state => state.user);
   const loading = useAuthStore(state => state.loading);
+  const initialized = useAuthStore(state => state.initialized);
 
-  if (loading) {
+  // Add a timeout to prevent infinite loading
+  useEffect(() => {
+    const timeout = setTimeout(() => {
+      if (loading && !initialized) {
+        useAuthStore.getState().setLoading(false);
+        useAuthStore.getState().setInitialized(true);
+      }
+    }, 3000); // 3 second timeout
+
+    return () => clearTimeout(timeout);
+  }, [loading, initialized]);
+
+  // Only show loading spinner if we're loading and haven't initialized yet
+  if (loading && !initialized) {
     return (
       <div className="min-h-screen flex items-center justify-center">
         <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-blue-600"></div>
