@@ -5,6 +5,7 @@ import { createUserWithEmailAndPassword } from 'firebase/auth';
 import { auth } from '../lib/firebase';
 import useAuthStore from '../store/authStore';
 import { usersService } from '../services/firebase';
+import { User } from '../types';
 
 interface RegisterFormData {
   email: string;
@@ -37,20 +38,22 @@ export default function RegisterForm() {
       
       // Create user document in Firestore
       const userData = {
-        email: data.email,
-        role: 'user',
+        email: userCredential.user.email || 'anonymous@user.com',
+        role: 'user' as const, // Explicitly type as 'user'
         createdAt: new Date().toISOString()
       };
       
       await usersService.createUser(userData);
       
       // Update local state
-      setUser({
+      const newUser: User = {
         id: userCredential.user.uid,
-        email: userCredential.user.email,
-        role: 'user',
-        createdAt: new Date().toISOString()
-      });
+        email: userData.email,
+        role: userData.role,
+        createdAt: userData.createdAt
+      };
+      
+      setUser(newUser);
 
       // Redirect to account page
       navigate('/account');

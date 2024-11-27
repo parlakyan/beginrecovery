@@ -17,10 +17,11 @@ import {
   updateDoc,
   deleteDoc,
   startAfter,
-  Timestamp
+  Timestamp,
+  setDoc
 } from 'firebase/firestore';
 import { db, auth } from '../lib/firebase';
-import { Facility } from '../types';
+import { Facility, User } from '../types';
 
 const FACILITIES_COLLECTION = 'facilities';
 const USERS_COLLECTION = 'users';
@@ -34,11 +35,10 @@ interface SearchParams {
   rating?: number;
 }
 
-interface User {
-  id: string;
+interface CreateUserInput {
   email: string;
   role: 'user' | 'owner' | 'admin';
-  createdAt: any;
+  createdAt: string;
 }
 
 export const networkService = {
@@ -60,23 +60,30 @@ export const networkService = {
 };
 
 export const usersService = {
-  async createUser(userData: { email: string; role: string }) {
+  async createUser(userData: CreateUserInput) {
     if (!auth.currentUser) throw new Error('No authenticated user');
     
     try {
       console.log('Creating new user:', userData);
       const userRef = doc(db, USERS_COLLECTION, auth.currentUser.uid);
-      const batch = writeBatch(db);
       
-      batch.set(userRef, {
-        ...userData,
-        id: auth.currentUser.uid,
-        createdAt: serverTimestamp()
-      });
+      const userDoc = await getDoc(userRef);
+      if (userDoc.exists()) {
+        console.log('User already exists, returning existing data');
+        return userDoc.data() as User;
+      }
 
-      await batch.commit();
+      const newUserData: User = {
+        id: auth.currentUser.uid,
+        email: userData.email,
+        role: userData.role,
+        createdAt: userData.createdAt
+      };
+
+      await setDoc(userRef, newUserData);
       console.log('User created successfully');
-      return userData;
+      
+      return newUserData;
     } catch (error) {
       console.error('Error creating user:', error);
       throw error;
@@ -95,7 +102,7 @@ export const usersService = {
       const data = userDoc.data();
       const user: User = {
         id: userDoc.id,
-        email: data.email,
+        email: data.email || 'anonymous@user.com',
         role: data.role || 'user',
         createdAt: data.createdAt?.toDate?.()?.toISOString() || new Date().toISOString()
       };

@@ -1,6 +1,8 @@
 import { create } from 'zustand';
 import { User } from '../types';
 import { usersService } from '../services/firebase';
+import { auth } from '../lib/firebase';
+import { onAuthStateChanged } from 'firebase/auth';
 
 interface AuthState {
   user: User | null;
@@ -26,16 +28,67 @@ const useAuthStore = create<AuthState>((set) => ({
   setInitialized: (initialized) => set({ initialized })
 }));
 
+// Initialize auth state listener
+onAuthStateChanged(auth, async (firebaseUser) => {
+  try {
+    useAuthStore.getState().setLoading(true);
+    
+    if (firebaseUser) {
+      // Create default user data
+      const defaultUser: User = {
+        id: firebaseUser.uid,
+        email: firebaseUser.email || 'anonymous@user.com',
+        role: 'user',
+        createdAt: new Date().toISOString()
+      };
+
+      try {
+        // Try to get user from database
+        const user = await usersService.getUserById(firebaseUser.uid);
+        if (user) {
+          useAuthStore.getState().setUser({
+            ...user,
+            email: user.email || defaultUser.email
+          });
+        } else {
+          // If no user in database, create one with default data
+          const newUser = await usersService.createUser({
+            email: defaultUser.email,
+            role: defaultUser.role,
+            createdAt: defaultUser.createdAt
+          });
+          useAuthStore.getState().setUser(newUser);
+        }
+      } catch (error) {
+        console.error('Error getting/creating user:', error);
+        // Fall back to default user data
+        useAuthStore.getState().setUser(defaultUser);
+      }
+    } else {
+      useAuthStore.getState().clearAuth();
+    }
+  } catch (error) {
+    console.error('Error in auth state change:', error);
+    useAuthStore.getState().setError('Error initializing auth');
+    useAuthStore.getState().clearAuth();
+  } finally {
+    useAuthStore.getState().setLoading(false);
+    useAuthStore.getState().setInitialized(true);
+  }
+});
+
 export const initializeAuth = async (userId: string) => {
   if (useAuthStore.getState().initialized) return;
   
   try {
     useAuthStore.getState().setLoading(true);
     const user = await usersService.getUserById(userId);
-    useAuthStore.getState().setUser(user);
+    if (user) {
+      useAuthStore.getState().setUser(user);
+    }
   } catch (error) {
-    useAuthStore.getState().setError('Error initializing auth');
     console.error('Error initializing auth:', error);
+    useAuthStore.getState().setError('Error initializing auth');
     useAuthStore.getState().clearAuth();
   } finally {
     useAuthStore.getState().setLoading(false);

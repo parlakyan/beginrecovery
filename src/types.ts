@@ -1,6 +1,6 @@
 export interface User {
   id: string;
-  email: string | null;
+  email: string; // Changed from string | null to string
   role: 'user' | 'owner' | 'admin';
   createdAt: string;
 }
