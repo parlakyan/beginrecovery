@@ -14,6 +14,7 @@ import {
   disableNetwork,
   writeBatch,
   addDoc,
+  updateDoc,
   Timestamp
 } from 'firebase/firestore';
 import { db, auth } from '../lib/firebase';
@@ -60,7 +61,7 @@ const transformFacilityData = (doc: QueryDocumentSnapshot<DocumentData>): Facili
     subscriptionId: data.subscriptionId,
     phone: data.phone || '',
     tags: data.tags || [],
-    isVerified: Boolean(data.subscriptionId), // Paid listings are verified
+    isVerified: Boolean(data.subscriptionId),
     moderationStatus: data.moderationStatus || 'pending'
   };
 };
@@ -142,6 +143,62 @@ export const facilitiesService = {
       return { id: docRef.id };
     } catch (error) {
       console.error('Error creating facility:', error);
+      throw error;
+    }
+  },
+
+  async updateFacility(id: string, data: Partial<Facility>) {
+    try {
+      console.log('Updating facility:', id, 'with data:', data);
+      const facilityRef = doc(db, FACILITIES_COLLECTION, id);
+      
+      const updateData = {
+        ...data,
+        updatedAt: serverTimestamp()
+      };
+
+      await updateDoc(facilityRef, updateData);
+      console.log('Facility updated successfully');
+      
+      return true;
+    } catch (error) {
+      console.error('Error updating facility:', error);
+      throw error;
+    }
+  },
+
+  async approveFacility(id: string) {
+    try {
+      console.log('Approving facility:', id);
+      const facilityRef = doc(db, FACILITIES_COLLECTION, id);
+      
+      await updateDoc(facilityRef, {
+        moderationStatus: 'approved',
+        updatedAt: serverTimestamp()
+      });
+
+      console.log('Facility approved successfully');
+      return true;
+    } catch (error) {
+      console.error('Error approving facility:', error);
+      throw error;
+    }
+  },
+
+  async rejectFacility(id: string) {
+    try {
+      console.log('Rejecting facility:', id);
+      const facilityRef = doc(db, FACILITIES_COLLECTION, id);
+      
+      await updateDoc(facilityRef, {
+        moderationStatus: 'rejected',
+        updatedAt: serverTimestamp()
+      });
+
+      console.log('Facility rejected successfully');
+      return true;
+    } catch (error) {
+      console.error('Error rejecting facility:', error);
       throw error;
     }
   },

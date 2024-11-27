@@ -19,6 +19,7 @@ import { facilitiesService } from '../services/firebase';
 import { Facility } from '../types';
 import Header from '../components/Header';
 import Footer from '../components/Footer';
+import EditListingModal from '../components/EditListingModal';
 
 export default function AdminDashboard() {
   const navigate = useNavigate();
@@ -27,6 +28,8 @@ export default function AdminDashboard() {
   const [statusFilter, setStatusFilter] = useState('all');
   const [facilities, setFacilities] = useState<Facility[]>([]);
   const [loading, setLoading] = useState(true);
+  const [editingFacility, setEditingFacility] = useState<Facility | null>(null);
+  const [isEditModalOpen, setIsEditModalOpen] = useState(false);
 
   // Redirect if not admin
   useEffect(() => {
@@ -35,7 +38,7 @@ export default function AdminDashboard() {
     }
   }, [user, navigate]);
 
-  // Fetch all facilities
+  // Fetch facilities
   useEffect(() => {
     const fetchFacilities = async () => {
       try {
@@ -65,6 +68,48 @@ export default function AdminDashboard() {
       case 'pending': return 'text-yellow-600 bg-yellow-50 border-yellow-200';
       case 'rejected': return 'text-red-600 bg-red-50 border-red-200';
       default: return 'text-gray-600 bg-gray-50 border-gray-200';
+    }
+  };
+
+  const handleEdit = (facility: Facility) => {
+    setEditingFacility(facility);
+    setIsEditModalOpen(true);
+  };
+
+  const handleSave = async (data: Partial<Facility>) => {
+    if (!editingFacility) return;
+    
+    try {
+      await facilitiesService.updateFacility(editingFacility.id, data);
+      // Refresh facilities list
+      const listings = await facilitiesService.getAllListingsForAdmin();
+      setFacilities(listings);
+      setIsEditModalOpen(false);
+      setEditingFacility(null);
+    } catch (error) {
+      console.error('Error updating facility:', error);
+    }
+  };
+
+  const handleApprove = async (id: string) => {
+    try {
+      await facilitiesService.approveFacility(id);
+      // Refresh facilities list
+      const listings = await facilitiesService.getAllListingsForAdmin();
+      setFacilities(listings);
+    } catch (error) {
+      console.error('Error approving facility:', error);
+    }
+  };
+
+  const handleReject = async (id: string) => {
+    try {
+      await facilitiesService.rejectFacility(id);
+      // Refresh facilities list
+      const listings = await facilitiesService.getAllListingsForAdmin();
+      setFacilities(listings);
+    } catch (error) {
+      console.error('Error rejecting facility:', error);
     }
   };
 
@@ -170,18 +215,33 @@ export default function AdminDashboard() {
                           <div className="flex items-center gap-2">
                             {facility.moderationStatus === 'pending' && (
                               <>
-                                <button className="p-1 text-green-600 hover:bg-green-50 rounded" title="Approve">
+                                <button 
+                                  onClick={() => handleApprove(facility.id)}
+                                  className="p-1 text-green-600 hover:bg-green-50 rounded" 
+                                  title="Approve"
+                                >
                                   <CheckCircle className="w-5 h-5" />
                                 </button>
-                                <button className="p-1 text-red-600 hover:bg-red-50 rounded" title="Reject">
+                                <button 
+                                  onClick={() => handleReject(facility.id)}
+                                  className="p-1 text-red-600 hover:bg-red-50 rounded" 
+                                  title="Reject"
+                                >
                                   <XCircle className="w-5 h-5" />
                                 </button>
                               </>
                             )}
-                            <button className="p-1 text-blue-600 hover:bg-blue-50 rounded" title="Edit">
+                            <button 
+                              onClick={() => handleEdit(facility)}
+                              className="p-1 text-blue-600 hover:bg-blue-50 rounded" 
+                              title="Edit"
+                            >
                               <Edit2 className="w-5 h-5" />
                             </button>
-                            <button className="p-1 text-red-600 hover:bg-red-50 rounded" title="Delete">
+                            <button 
+                              className="p-1 text-red-600 hover:bg-red-50 rounded" 
+                              title="Delete"
+                            >
                               <Trash2 className="w-5 h-5" />
                             </button>
                           </div>
@@ -195,6 +255,18 @@ export default function AdminDashboard() {
           </div>
         </div>
       </div>
+
+      {editingFacility && (
+        <EditListingModal
+          facility={editingFacility}
+          isOpen={isEditModalOpen}
+          onClose={() => {
+            setIsEditModalOpen(false);
+            setEditingFacility(null);
+          }}
+          onSave={handleSave}
+        />
+      )}
 
       <Footer />
     </div>

@@ -1,114 +1,129 @@
-import React, { useState } from 'react';
-import { X, Plus, Trash2 } from 'lucide-react';
-import { AdminFacility } from '../types';
+import { useState, useEffect } from 'react';
+import { X, Plus, Trash } from 'lucide-react';
+import { Facility } from '../types';
 
 interface EditListingModalProps {
-  facility: AdminFacility;
+  facility: Facility;
+  isOpen: boolean;
   onClose: () => void;
-  onSave: (facility: AdminFacility) => void;
+  onSave: (data: Partial<Facility>) => Promise<void>;
 }
 
-export default function EditListingModal({ facility, onClose, onSave }: EditListingModalProps) {
-  const [formData, setFormData] = useState(facility);
+const EditListingModal = ({ facility, isOpen, onClose, onSave }: EditListingModalProps) => {
+  const [formData, setFormData] = useState<Partial<Facility>>({
+    name: '',
+    description: '',
+    location: '',
+    phone: '',
+    amenities: [],
+    images: [],
+    tags: []
+  });
+  const [newAmenity, setNewAmenity] = useState('');
+  const [newTag, setNewTag] = useState('');
+  const [loading, setLoading] = useState(false);
 
-  const handleSubmit = (e: React.FormEvent) => {
+  useEffect(() => {
+    if (facility) {
+      setFormData({
+        name: facility.name,
+        description: facility.description,
+        location: facility.location,
+        phone: facility.phone,
+        amenities: facility.amenities,
+        images: facility.images,
+        tags: facility.tags
+      });
+    }
+  }, [facility]);
+
+  const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
-    onSave(formData);
+    try {
+      setLoading(true);
+      await onSave(formData);
+      onClose();
+    } catch (error) {
+      console.error('Error saving facility:', error);
+    } finally {
+      setLoading(false);
+    }
   };
 
-  const handleImageAdd = () => {
-    setFormData({
-      ...formData,
-      images: [...formData.images, '']
-    });
+  const handleAddAmenity = () => {
+    if (newAmenity.trim()) {
+      setFormData(prev => ({
+        ...prev,
+        amenities: [...(prev.amenities || []), newAmenity.trim()]
+      }));
+      setNewAmenity('');
+    }
+  };
+
+  const handleRemoveAmenity = (index: number) => {
+    setFormData(prev => ({
+      ...prev,
+      amenities: prev.amenities?.filter((_, i) => i !== index)
+    }));
+  };
+
+  const handleAddTag = () => {
+    if (newTag.trim()) {
+      setFormData(prev => ({
+        ...prev,
+        tags: [...(prev.tags || []), newTag.trim()]
+      }));
+      setNewTag('');
+    }
+  };
+
+  const handleRemoveTag = (index: number) => {
+    setFormData(prev => ({
+      ...prev,
+      tags: prev.tags?.filter((_, i) => i !== index)
+    }));
   };
 
   const handleImageRemove = (index: number) => {
-    setFormData({
-      ...formData,
-      images: formData.images.filter((_, i) => i !== index)
-    });
+    setFormData(prev => ({
+      ...prev,
+      images: prev.images?.filter((_, i) => i !== index)
+    }));
   };
 
-  const handleImageChange = (index: number, value: string) => {
-    const newImages = [...formData.images];
-    newImages[index] = value;
-    setFormData({
-      ...formData,
-      images: newImages
-    });
-  };
+  if (!isOpen) return null;
 
   return (
-    <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50">
-      <div className="bg-white rounded-xl max-w-4xl w-full max-h-[90vh] overflow-hidden">
-        <div className="flex items-center justify-between p-6 border-b">
-          <h2 className="text-2xl font-bold">Edit Listing</h2>
-          <button
-            onClick={onClose}
-            className="p-2 hover:bg-gray-100 rounded-lg"
-          >
-            <X className="w-5 h-5" />
-          </button>
+    <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center p-4 z-50">
+      <div className="bg-white rounded-xl max-w-3xl w-full max-h-[90vh] overflow-y-auto">
+        <div className="p-6 border-b sticky top-0 bg-white z-10">
+          <div className="flex justify-between items-center">
+            <h2 className="text-2xl font-bold">Edit Facility</h2>
+            <button
+              onClick={onClose}
+              className="p-2 hover:bg-gray-100 rounded-lg transition-colors"
+            >
+              <X className="w-5 h-5" />
+            </button>
+          </div>
         </div>
 
-        <form onSubmit={handleSubmit} className="p-6 overflow-y-auto max-h-[calc(90vh-129px)]">
-          <div className="space-y-6">
-            {/* Basic Information */}
+        <form onSubmit={handleSubmit} className="p-6 space-y-6">
+          {/* Basic Information */}
+          <div className="space-y-4">
             <div>
-              <h3 className="text-lg font-semibold mb-4">Basic Information</h3>
-              <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                <div>
-                  <label className="block text-sm font-medium text-gray-700 mb-1">
-                    Facility Name
-                  </label>
-                  <input
-                    type="text"
-                    value={formData.name}
-                    onChange={(e) => setFormData({ ...formData, name: e.target.value })}
-                    className="w-full px-4 py-2 border rounded-lg focus:ring-2 focus:ring-blue-300 outline-none"
-                  />
-                </div>
-                <div>
-                  <label className="block text-sm font-medium text-gray-700 mb-1">
-                    Location
-                  </label>
-                  <input
-                    type="text"
-                    value={formData.location}
-                    onChange={(e) => setFormData({ ...formData, location: e.target.value })}
-                    className="w-full px-4 py-2 border rounded-lg focus:ring-2 focus:ring-blue-300 outline-none"
-                  />
-                </div>
-                <div>
-                  <label className="block text-sm font-medium text-gray-700 mb-1">
-                    Phone
-                  </label>
-                  <input
-                    type="text"
-                    value={formData.phone}
-                    onChange={(e) => setFormData({ ...formData, phone: e.target.value })}
-                    className="w-full px-4 py-2 border rounded-lg focus:ring-2 focus:ring-blue-300 outline-none"
-                  />
-                </div>
-                <div>
-                  <label className="block text-sm font-medium text-gray-700 mb-1">
-                    Status
-                  </label>
-                  <select
-                    value={formData.status}
-                    onChange={(e) => setFormData({ ...formData, status: e.target.value as any })}
-                    className="w-full px-4 py-2 border rounded-lg focus:ring-2 focus:ring-blue-300 outline-none"
-                  >
-                    <option value="active">Active</option>
-                    <option value="pending">Pending</option>
-                    <option value="suspended">Suspended</option>
-                  </select>
-                </div>
-              </div>
+              <label className="block text-sm font-medium text-gray-700 mb-1">
+                Facility Name
+              </label>
+              <input
+                type="text"
+                value={formData.name}
+                onChange={(e) => setFormData({ ...formData, name: e.target.value })}
+                className="w-full px-3 py-2 border rounded-lg focus:ring-2 focus:ring-blue-500 outline-none"
+                required
+              />
             </div>
 
-            {/* Description */}
             <div>
               <label className="block text-sm font-medium text-gray-700 mb-1">
                 Description
@@ -116,83 +131,164 @@ export default function EditListingModal({ facility, onClose, onSave }: EditList
               <textarea
                 value={formData.description}
                 onChange={(e) => setFormData({ ...formData, description: e.target.value })}
+                className="w-full px-3 py-2 border rounded-lg focus:ring-2 focus:ring-blue-500 outline-none"
                 rows={4}
-                className="w-full px-4 py-2 border rounded-lg focus:ring-2 focus:ring-blue-300 outline-none"
+                required
               />
             </div>
 
-            {/* Images */}
-            <div>
-              <div className="flex items-center justify-between mb-4">
-                <h3 className="text-lg font-semibold">Facility Images</h3>
-                <button
-                  type="button"
-                  onClick={handleImageAdd}
-                  className="flex items-center gap-2 text-blue-600 hover:text-blue-700"
-                >
-                  <Plus className="w-4 h-4" />
-                  Add Image
-                </button>
-              </div>
-              <div className="space-y-4">
-                {formData.images.map((image, index) => (
-                  <div key={index} className="flex gap-4 items-start">
-                    <div className="flex-1">
-                      <input
-                        type="url"
-                        value={image}
-                        onChange={(e) => handleImageChange(index, e.target.value)}
-                        placeholder="Image URL"
-                        className="w-full px-4 py-2 border rounded-lg focus:ring-2 focus:ring-blue-300 outline-none"
-                      />
-                    </div>
-                    <button
-                      type="button"
-                      onClick={() => handleImageRemove(index)}
-                      className="p-2 text-red-600 hover:bg-red-50 rounded-lg"
-                    >
-                      <Trash2 className="w-5 h-5" />
-                    </button>
-                  </div>
-                ))}
-              </div>
-            </div>
-
-            {/* Tags */}
             <div>
               <label className="block text-sm font-medium text-gray-700 mb-1">
-                Tags (comma-separated)
+                Location
               </label>
               <input
                 type="text"
-                value={formData.tags.join(', ')}
-                onChange={(e) => setFormData({ 
-                  ...formData, 
-                  tags: e.target.value.split(',').map(tag => tag.trim()) 
-                })}
-                className="w-full px-4 py-2 border rounded-lg focus:ring-2 focus:ring-blue-300 outline-none"
+                value={formData.location}
+                onChange={(e) => setFormData({ ...formData, location: e.target.value })}
+                className="w-full px-3 py-2 border rounded-lg focus:ring-2 focus:ring-blue-500 outline-none"
+                required
+              />
+            </div>
+
+            <div>
+              <label className="block text-sm font-medium text-gray-700 mb-1">
+                Phone
+              </label>
+              <input
+                type="tel"
+                value={formData.phone}
+                onChange={(e) => setFormData({ ...formData, phone: e.target.value })}
+                className="w-full px-3 py-2 border rounded-lg focus:ring-2 focus:ring-blue-500 outline-none"
+                required
               />
             </div>
           </div>
 
-          {/* Form Actions */}
-          <div className="mt-8 flex justify-end gap-4">
+          {/* Amenities */}
+          <div>
+            <label className="block text-sm font-medium text-gray-700 mb-2">
+              Amenities
+            </label>
+            <div className="flex gap-2 mb-2">
+              <input
+                type="text"
+                value={newAmenity}
+                onChange={(e) => setNewAmenity(e.target.value)}
+                className="flex-1 px-3 py-2 border rounded-lg focus:ring-2 focus:ring-blue-500 outline-none"
+                placeholder="Add amenity..."
+              />
+              <button
+                type="button"
+                onClick={handleAddAmenity}
+                className="px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700"
+              >
+                <Plus className="w-5 h-5" />
+              </button>
+            </div>
+            <div className="flex flex-wrap gap-2">
+              {formData.amenities?.map((amenity, index) => (
+                <span
+                  key={index}
+                  className="px-3 py-1 bg-blue-50 text-blue-600 rounded-full flex items-center gap-1"
+                >
+                  {amenity}
+                  <button
+                    type="button"
+                    onClick={() => handleRemoveAmenity(index)}
+                    className="hover:text-blue-800"
+                  >
+                    <X className="w-4 h-4" />
+                  </button>
+                </span>
+              ))}
+            </div>
+          </div>
+
+          {/* Tags */}
+          <div>
+            <label className="block text-sm font-medium text-gray-700 mb-2">
+              Tags
+            </label>
+            <div className="flex gap-2 mb-2">
+              <input
+                type="text"
+                value={newTag}
+                onChange={(e) => setNewTag(e.target.value)}
+                className="flex-1 px-3 py-2 border rounded-lg focus:ring-2 focus:ring-blue-500 outline-none"
+                placeholder="Add tag..."
+              />
+              <button
+                type="button"
+                onClick={handleAddTag}
+                className="px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700"
+              >
+                <Plus className="w-5 h-5" />
+              </button>
+            </div>
+            <div className="flex flex-wrap gap-2">
+              {formData.tags?.map((tag, index) => (
+                <span
+                  key={index}
+                  className="px-3 py-1 bg-gray-100 text-gray-600 rounded-full flex items-center gap-1"
+                >
+                  {tag}
+                  <button
+                    type="button"
+                    onClick={() => handleRemoveTag(index)}
+                    className="hover:text-gray-800"
+                  >
+                    <X className="w-4 h-4" />
+                  </button>
+                </span>
+              ))}
+            </div>
+          </div>
+
+          {/* Images */}
+          <div>
+            <label className="block text-sm font-medium text-gray-700 mb-2">
+              Images
+            </label>
+            <div className="grid grid-cols-2 md:grid-cols-3 gap-4">
+              {formData.images?.map((image, index) => (
+                <div key={index} className="relative">
+                  <img
+                    src={image}
+                    alt={`Facility ${index + 1}`}
+                    className="w-full h-32 object-cover rounded-lg"
+                  />
+                  <button
+                    type="button"
+                    onClick={() => handleImageRemove(index)}
+                    className="absolute top-2 right-2 p-1 bg-red-600 text-white rounded-full hover:bg-red-700"
+                  >
+                    <Trash className="w-4 h-4" />
+                  </button>
+                </div>
+              ))}
+            </div>
+          </div>
+
+          <div className="flex justify-end gap-4 pt-4 border-t">
             <button
               type="button"
               onClick={onClose}
-              className="px-6 py-2 border rounded-lg hover:bg-gray-50"
+              className="px-4 py-2 text-gray-600 hover:text-gray-800"
             >
               Cancel
             </button>
             <button
               type="submit"
-              className="px-6 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700"
+              disabled={loading}
+              className="px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 disabled:opacity-50 disabled:cursor-not-allowed"
             >
-              Save Changes
+              {loading ? 'Saving...' : 'Save Changes'}
             </button>
           </div>
         </form>
       </div>
     </div>
   );
-}
+};
+
+export default EditListingModal;
