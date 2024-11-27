@@ -56,13 +56,18 @@ export default function AdminDashboard() {
   const fetchFacilities = async () => {
     try {
       setLoading(true);
-      const [allListings, archivedListings] = await Promise.all([
+      
+      // Fetch active and archived facilities separately
+      const [activeListings, archivedListings] = await Promise.all([
         facilitiesService.getAllListingsForAdmin(),
         facilitiesService.getArchivedListings()
       ]);
       
-      // Filter out archived facilities from allListings
-      const activeFacilities = allListings.filter(f => f.moderationStatus !== 'archived');
+      console.log('Active listings:', activeListings);
+      console.log('Archived listings:', archivedListings);
+      
+      // Filter out archived facilities from active listings
+      const activeFacilities = activeListings.filter(facility => facility.moderationStatus !== 'archived');
       
       setFacilities(activeFacilities);
       setArchivedFacilities(archivedListings);
@@ -111,30 +116,39 @@ export default function AdminDashboard() {
     if (!editingFacility) return;
     
     try {
+      setLoading(true);
       await facilitiesService.updateFacility(editingFacility.id, data);
       await fetchFacilities();
       setIsEditModalOpen(false);
       setEditingFacility(null);
     } catch (error) {
       console.error('Error updating facility:', error);
+    } finally {
+      setLoading(false);
     }
   };
 
   const handleApprove = async (id: string) => {
     try {
+      setLoading(true);
       await facilitiesService.approveFacility(id);
       await fetchFacilities();
     } catch (error) {
       console.error('Error approving facility:', error);
+    } finally {
+      setLoading(false);
     }
   };
 
   const handleReject = async (id: string) => {
     try {
+      setLoading(true);
       await facilitiesService.rejectFacility(id);
       await fetchFacilities();
     } catch (error) {
       console.error('Error rejecting facility:', error);
+    } finally {
+      setLoading(false);
     }
   };
 

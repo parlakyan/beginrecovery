@@ -46,8 +46,11 @@ const HomePage = () => {
         setLoading(true);
       }
 
+      console.log('Fetching facilities for homepage...');
       const { facilities: data, lastVisible: last, hasMore: more } = 
         await facilitiesService.getFacilities(isLoadMore ? lastVisible : undefined);
+      
+      console.log('Received facilities:', data);
 
       if (isLoadMore) {
         setFacilities(prev => [...prev, ...data]);
@@ -72,7 +75,9 @@ const HomePage = () => {
 
   const fetchTopRated = async () => {
     try {
+      console.log('Fetching top rated facilities...');
       const topRated = await facilitiesService.getTopRatedFacilities(6);
+      console.log('Received top rated facilities:', topRated);
       setTopRatedFacilities(topRated);
     } catch (error) {
       console.error('Error fetching top rated facilities:', error);
@@ -81,8 +86,9 @@ const HomePage = () => {
 
   const fetchNearbyFacilities = async () => {
     try {
-      // For demo purposes, using a fixed location - in production, use user's actual location
+      console.log('Fetching nearby facilities...');
       const nearby = await facilitiesService.getNearbyFacilities('California', 6);
+      console.log('Received nearby facilities:', nearby);
       setNearbyFacilities(nearby);
     } catch (error) {
       console.error('Error fetching nearby facilities:', error);

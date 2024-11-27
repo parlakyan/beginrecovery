@@ -17,7 +17,9 @@ import {
   updateDoc,
   deleteDoc,
   startAfter,
-  Timestamp
+  Timestamp,
+  or,
+  and
 } from 'firebase/firestore';
 import { db, auth } from '../lib/firebase';
 import { Facility } from '../types';
@@ -101,7 +103,7 @@ export const networkService = {
 export const facilitiesService: FacilitiesService = {
   async getFacilities(lastDoc?: QueryDocumentSnapshot<DocumentData>) {
     try {
-      console.log('Fetching facilities from collection:', FACILITIES_COLLECTION);
+      console.log('Fetching approved facilities from collection:', FACILITIES_COLLECTION);
       
       const facilitiesRef = collection(db, FACILITIES_COLLECTION);
       let baseQuery = query(
@@ -122,14 +124,19 @@ export const facilitiesService: FacilitiesService = {
       }
       
       const snapshot = await getDocs(baseQuery);
-      console.log('Query returned:', snapshot.size, 'facilities');
+      console.log('Query returned:', snapshot.size, 'approved facilities');
       
-      const facilities = snapshot.docs.map(doc => {
-        const facility = transformFacilityData(doc);
-        console.log('Transformed facility:', facility);
-        return facility;
+      snapshot.docs.forEach((doc: QueryDocumentSnapshot<DocumentData>) => {
+        const data = doc.data();
+        console.log('Facility data:', {
+          id: doc.id,
+          name: data.name,
+          moderationStatus: data.moderationStatus,
+          isVerified: Boolean(data.subscriptionId)
+        });
       });
-
+      
+      const facilities = snapshot.docs.map(transformFacilityData);
       const lastVisible = snapshot.docs[snapshot.docs.length - 1] || null;
       const hasMore = snapshot.docs.length === BATCH_SIZE;
 
@@ -300,15 +307,27 @@ export const facilitiesService: FacilitiesService = {
 
   async getAllListingsForAdmin() {
     try {
-      console.log('Fetching all listings for admin');
+      console.log('Fetching all non-archived listings for admin');
       const facilitiesRef = collection(db, FACILITIES_COLLECTION);
       const q = query(
         facilitiesRef,
+        where('moderationStatus', 'in', ['pending', 'approved', 'rejected']),
         orderBy('createdAt', 'desc')
       );
       
       const snapshot = await getDocs(q);
-      console.log('Found', snapshot.size, 'total listings');
+      console.log('Found', snapshot.size, 'total active listings');
+      
+      snapshot.docs.forEach((doc: QueryDocumentSnapshot<DocumentData>) => {
+        const data = doc.data();
+        console.log('Active listing data:', {
+          id: doc.id,
+          name: data.name,
+          moderationStatus: data.moderationStatus,
+          isVerified: Boolean(data.subscriptionId)
+        });
+      });
+
       return snapshot.docs.map(transformFacilityData);
     } catch (error) {
       console.error('Error getting all listings:', error);
@@ -328,6 +347,16 @@ export const facilitiesService: FacilitiesService = {
       
       const snapshot = await getDocs(q);
       console.log('Found', snapshot.size, 'archived listings');
+      
+      snapshot.docs.forEach((doc: QueryDocumentSnapshot<DocumentData>) => {
+        const data = doc.data();
+        console.log('Archived listing data:', {
+          id: doc.id,
+          name: data.name,
+          moderationStatus: data.moderationStatus
+        });
+      });
+
       return snapshot.docs.map(transformFacilityData);
     } catch (error) {
       console.error('Error getting archived listings:', error);
@@ -346,7 +375,6 @@ export const facilitiesService: FacilitiesService = {
         orderBy('createdAt', 'desc')
       );
 
-      // Add search filters
       if (params.location) {
         baseQuery = query(
           baseQuery,
@@ -362,14 +390,11 @@ export const facilitiesService: FacilitiesService = {
         );
       }
 
-      // Execute query
       const snapshot = await getDocs(baseQuery);
       console.log('Search returned:', snapshot.size, 'facilities');
       
-      // Transform and filter results
       let facilities = snapshot.docs.map(transformFacilityData);
 
-      // Apply additional filters that can't be done in query
       if (params.query) {
         const searchTerm = params.query.toLowerCase();
         facilities = facilities.filter(facility => 
