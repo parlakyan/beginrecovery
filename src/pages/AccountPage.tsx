@@ -1,5 +1,5 @@
 import React from 'react';
-import { Link } from 'react-router-dom';
+import { Link, useNavigate } from 'react-router-dom';
 import { 
   User, 
   Settings, 
@@ -17,9 +17,10 @@ import { facilitiesService } from '../services/firebase';
 import { Facility } from '../types';
 import Header from '../components/Header';
 import Footer from '../components/Footer';
-import ListingCard from '../components/ListingCard';
+import RehabCard from '../components/RehabCard';
 
 export default function AccountPage() {
+  const navigate = useNavigate();
   const { user, loading, signOut } = useAuthStore();
   const [activeTab, setActiveTab] = React.useState('profile');
   const [userListings, setUserListings] = React.useState<Facility[]>([]);
@@ -210,11 +211,10 @@ export default function AccountPage() {
                     </div>
                   ) : (
                     <div className="grid gap-6">
-                      {userListings.map((listing) => (
-                        <ListingCard 
-                          key={listing.id} 
-                          listing={listing}
-                          onEdit={() => navigate(`/listing/${listing.id}/edit`)}
+                      {userListings.map((facility) => (
+                        <RehabCard 
+                          key={facility.id} 
+                          facility={facility}
                         />
                       ))}
                     </div>

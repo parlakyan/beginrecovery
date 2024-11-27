@@ -11,12 +11,7 @@ import {
 } from 'firebase/auth';
 import { auth } from '../lib/firebase';
 import { usersService } from '../services/firebase';
-
-interface User {
-  id: string;
-  email: string | null;
-  role: 'user' | 'owner' | 'admin';
-}
+import { User } from '../types';
 
 interface AuthState {
   user: User | null;
@@ -84,18 +79,13 @@ export const useAuthStore = create<AuthState>()(
           set({ loading: true, error: null });
           const userCredential = await createUserWithEmailAndPassword(auth, email, password);
           
-          await usersService.createUser({
+          const newUser = await usersService.createUser({
             email,
-            role
+            role,
+            createdAt: new Date().toISOString()
           });
 
-          set({ 
-            user: {
-              id: userCredential.user.uid,
-              email: userCredential.user.email,
-              role
-            }
-          });
+          set({ user: newUser });
         } catch (error: any) {
           const errorMessage = formatAuthError(error);
           set({ error: errorMessage });
