@@ -4,8 +4,7 @@ import {
   initializeFirestore,
   persistentLocalCache,
   persistentSingleTabManager,
-  type PersistentSingleTabManagerSettings,
-  enableIndexedDbPersistence
+  type PersistentSingleTabManagerSettings
 } from 'firebase/firestore';
 import { getAuth, setPersistence, browserLocalPersistence, onAuthStateChanged } from 'firebase/auth';
 import { getAnalytics, isSupported } from 'firebase/analytics';
@@ -30,21 +29,13 @@ const app = initializeApp(firebaseConfig);
 // Initialize Auth first
 const auth = getAuth(app);
 
-// Initialize Firestore with persistence
+// Initialize Firestore with modern persistence settings
 const settings: PersistentSingleTabManagerSettings = {};
+
 const db = initializeFirestore(app, {
   localCache: persistentLocalCache({
     tabManager: persistentSingleTabManager(settings)
   })
-});
-
-// Enable Firestore persistence
-enableIndexedDbPersistence(db).catch((err) => {
-  if (err.code === 'failed-precondition') {
-    console.warn('Multiple tabs open, persistence can only be enabled in one tab at a time.');
-  } else if (err.code === 'unimplemented') {
-    console.warn('The current browser does not support persistence.');
-  }
 });
 
 // Set auth persistence and initialize auth state listener
