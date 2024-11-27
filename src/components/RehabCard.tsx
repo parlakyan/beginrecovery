@@ -1,5 +1,5 @@
 import React from 'react';
-import { Star, MapPin, Phone, ArrowRight } from 'lucide-react';
+import { Star, MapPin, Phone, ArrowRight, ShieldCheck, ShieldAlert } from 'lucide-react';
 import { useNavigate } from 'react-router-dom';
 import ImageCarousel from './ImageCarousel';
 import { Facility } from '../types';
@@ -11,6 +11,22 @@ export default function RehabCard({ facility }: { facility: Facility }) {
     navigate(`/listing/${facility.id}`);
   };
 
+  const VerificationBadge = () => (
+    <div className={`absolute top-4 left-4 ${facility.isVerified ? 'bg-green-50' : 'bg-gray-50'} backdrop-blur-sm px-3 py-1.5 rounded-full flex items-center gap-2 shadow-lg border ${facility.isVerified ? 'border-green-200' : 'border-gray-200'}`}>
+      {facility.isVerified ? (
+        <>
+          <ShieldCheck className={`w-4 h-4 text-green-600`} />
+          <span className="text-sm font-medium text-green-700">Verified</span>
+        </>
+      ) : (
+        <>
+          <ShieldAlert className={`w-4 h-4 text-gray-600`} />
+          <span className="text-sm font-medium text-gray-700">Unverified</span>
+        </>
+      )}
+    </div>
+  );
+
   return (
     <div 
       onClick={handleClick}
@@ -18,6 +34,7 @@ export default function RehabCard({ facility }: { facility: Facility }) {
     >
       <div className="relative">
         <ImageCarousel images={facility.images} />
+        <VerificationBadge />
         <div className="absolute top-4 right-4 bg-white/90 backdrop-blur-sm px-3 py-1 rounded-full flex items-center gap-1 shadow-lg">
           <Star className="w-4 h-4 text-yellow-400 fill-current" />
           <span className="font-semibold">{facility.rating}</span>

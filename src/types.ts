@@ -21,6 +21,8 @@ export interface Facility {
   subscriptionId?: string;
   phone?: string;
   tags: string[];
+  isVerified: boolean;
+  moderationStatus: 'pending' | 'approved' | 'rejected';
 }
 
 export interface CreateUserData {

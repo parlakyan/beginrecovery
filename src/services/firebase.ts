@@ -42,7 +42,7 @@ export const networkService = {
 
 const transformFacilityData = (doc: QueryDocumentSnapshot<DocumentData>): Facility => {
   const data = doc.data();
-  console.log('Raw facility data:', { id: doc.id, ...data }); // Debug log
+  console.log('Raw facility data:', { id: doc.id, ...data });
   
   return {
     id: doc.id,
@@ -59,7 +59,9 @@ const transformFacilityData = (doc: QueryDocumentSnapshot<DocumentData>): Facili
     updatedAt: data.updatedAt?.toDate?.()?.toISOString() || new Date().toISOString(),
     subscriptionId: data.subscriptionId,
     phone: data.phone || '',
-    tags: data.tags || []
+    tags: data.tags || [],
+    isVerified: Boolean(data.subscriptionId), // Paid listings are verified
+    moderationStatus: data.moderationStatus || 'pending'
   };
 };
 
@@ -68,17 +70,10 @@ export const facilitiesService = {
     try {
       console.log('Fetching facilities from collection:', FACILITIES_COLLECTION);
       
-      // First get all facilities to check what's available
-      const allFacilitiesRef = collection(db, FACILITIES_COLLECTION);
-      const allSnapshot = await getDocs(allFacilitiesRef);
-      console.log('Total facilities found:', allSnapshot.size);
-      
-      // Then get active facilities
       const facilitiesRef = collection(db, FACILITIES_COLLECTION);
       const q = query(
         facilitiesRef,
-        // Temporarily remove status filter for testing
-        // where('status', '==', 'active'),
+        where('moderationStatus', '==', 'approved'),
         orderBy('createdAt', 'desc'),
         limit(20)
       );
@@ -96,7 +91,6 @@ export const facilitiesService = {
       return { facilities };
     } catch (error) {
       console.error('Error getting facilities:', error);
-      // Log more details about the error
       if (error instanceof Error) {
         console.error('Error name:', error.name);
         console.error('Error message:', error.message);
@@ -138,7 +132,9 @@ export const facilitiesService = {
         rating: 0,
         reviewCount: 0,
         createdAt: serverTimestamp(),
-        updatedAt: serverTimestamp()
+        updatedAt: serverTimestamp(),
+        moderationStatus: 'pending',
+        isVerified: false
       };
 
       const docRef = await addDoc(collection(db, FACILITIES_COLLECTION), facilityData);
@@ -165,6 +161,24 @@ export const facilitiesService = {
       return snapshot.docs.map(transformFacilityData);
     } catch (error) {
       console.error('Error getting user listings:', error);
+      return [];
+    }
+  },
+
+  async getAllListingsForAdmin() {
+    try {
+      console.log('Fetching all listings for admin');
+      const facilitiesRef = collection(db, FACILITIES_COLLECTION);
+      const q = query(
+        facilitiesRef,
+        orderBy('createdAt', 'desc')
+      );
+      
+      const snapshot = await getDocs(q);
+      console.log('Found', snapshot.size, 'total listings');
+      return snapshot.docs.map(transformFacilityData);
+    } catch (error) {
+      console.error('Error getting all listings:', error);
       return [];
     }
   }
