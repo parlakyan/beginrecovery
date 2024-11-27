@@ -1,4 +1,4 @@
-import { Handler } from '@netlify/functions';
+import { Handler, HandlerEvent } from '@netlify/functions';
 import { initializeApp, cert } from 'firebase-admin/app';
 import { getFirestore } from 'firebase-admin/firestore';
 import { getAuth } from 'firebase-admin/auth';
@@ -16,15 +16,15 @@ if (!process.env.FIREBASE_SERVICE_ACCOUNT) {
 const app = initializeApp({
   credential: cert(JSON.parse(process.env.FIREBASE_SERVICE_ACCOUNT)),
   databaseURL: process.env.FIREBASE_DATABASE_URL
-});
+}, 'api-app');
 
 const db = getFirestore(app);
 const auth = getAuth(app);
 const stripe = new Stripe(process.env.STRIPE_SECRET_KEY, {
-  apiVersion: '2023-10-16'
+  apiVersion: '2024-11-20.acacia' as const
 });
 
-export const handler: Handler = async (event, context) => {
+const handler: Handler = async (event: HandlerEvent) => {
   const headers = {
     'Access-Control-Allow-Origin': '*',
     'Access-Control-Allow-Headers': 'Content-Type, Authorization',
@@ -51,22 +51,36 @@ export const handler: Handler = async (event, context) => {
         throw new Error('Missing STRIPE_WEBHOOK_SECRET');
       }
 
+      if (!sig) {
+        throw new Error('Missing stripe-signature header');
+      }
+
+      if (!event.body) {
+        throw new Error('Missing request body');
+      }
+
       try {
         const stripeEvent = stripe.webhooks.constructEvent(
-          event.body || '',
-          sig || '',
+          event.body,
+          sig,
           webhookSecret
         );
 
         switch (stripeEvent.type) {
           case 'checkout.session.completed': {
             const session = stripeEvent.data.object;
+            const facilityId = session.metadata?.facilityId;
+            
+            if (!facilityId) {
+              throw new Error('Missing facilityId in session metadata');
+            }
+
             await db.collection('facilities')
-              .doc(session.metadata?.facilityId)
+              .doc(facilityId)
               .update({
                 status: 'active',
                 subscriptionId: session.subscription,
-                updatedAt: new Date()
+                updatedAt: new Date().toISOString()
               });
             break;
           }
@@ -81,7 +95,7 @@ export const handler: Handler = async (event, context) => {
             if (!snapshot.empty) {
               await snapshot.docs[0].ref.update({
                 status: 'inactive',
-                updatedAt: new Date()
+                updatedAt: new Date().toISOString()
               });
             }
             break;
@@ -98,7 +112,7 @@ export const handler: Handler = async (event, context) => {
         return {
           statusCode: 400,
           headers,
-          body: JSON.stringify({ error: `Webhook Error: ${err.message}` })
+          body: JSON.stringify({ error: `Webhook Error: ${(err as Error).message}` })
         };
       }
     }
@@ -119,7 +133,15 @@ export const handler: Handler = async (event, context) => {
       await auth.verifyIdToken(token);
 
       // Parse request body
-      const { facilityId } = JSON.parse(event.body || '{}');
+      if (!event.body) {
+        return {
+          statusCode: 400,
+          headers,
+          body: JSON.stringify({ error: 'Missing request body' })
+        };
+      }
+
+      const { facilityId } = JSON.parse(event.body);
       
       if (!facilityId) {
         return {
@@ -159,15 +181,17 @@ export const handler: Handler = async (event, context) => {
       headers,
       body: JSON.stringify({ error: 'Not found' })
     };
-  } catch (error) {
-    console.error('API error:', error);
+  } catch (err) {
+    console.error('API error:', err);
     return {
       statusCode: 500,
       headers,
       body: JSON.stringify({ 
         error: 'Internal server error',
-        message: error instanceof Error ? error.message : 'An unexpected error occurred'
+        message: (err as Error).message
       })
     };
   }
 };
+
+export { handler };

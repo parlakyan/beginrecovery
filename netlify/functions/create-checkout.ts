@@ -1,4 +1,4 @@
-import { Handler } from '@netlify/functions';
+import { Handler, HandlerEvent } from '@netlify/functions';
 import { initializeApp, cert } from 'firebase-admin/app';
 import { getFirestore } from 'firebase-admin/firestore';
 import { getAuth } from 'firebase-admin/auth';
@@ -13,15 +13,15 @@ if (!process.env.STRIPE_SECRET_KEY) {
 
 const app = initializeApp({
   credential: cert(serviceAccount)
-});
+}, 'checkout-app');
 
 const db = getFirestore(app);
 const auth = getAuth(app);
 const stripe = new Stripe(process.env.STRIPE_SECRET_KEY, {
-  apiVersion: '2023-10-16'
+  apiVersion: '2024-11-20.acacia' as const
 });
 
-export const handler: Handler = async (event) => {
+const handler: Handler = async (event: HandlerEvent) => {
   // Enable CORS
   const headers = {
     'Access-Control-Allow-Origin': '*',
@@ -90,8 +90,9 @@ export const handler: Handler = async (event) => {
       headers,
       body: JSON.stringify({ sessionId: session.id })
     };
-  } catch (error) {
-    console.error('Checkout error:', error);
+  } catch (err) {
+    console.error('Checkout error:', err);
+    const error = err as Error;
     return {
       statusCode: 500,
       headers,
@@ -102,3 +103,5 @@ export const handler: Handler = async (event) => {
     };
   }
 };
+
+export { handler };

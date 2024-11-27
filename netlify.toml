@@ -11,6 +11,10 @@
 [build.environment]
   NODE_VERSION = "18"
 
+[functions]
+  node_bundler = "esbuild"
+  external_node_modules = ["stripe", "firebase-admin"]
+
 [[headers]]
   for = "/*"
   [headers.values]
