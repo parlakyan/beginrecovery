@@ -73,26 +73,16 @@ export const handler: Handler = async (event) => {
       };
     }
 
-    // Fetch facility details to get pricing information
-    const facilityDoc = await db.collection('facilities').doc(facilityId).get();
-    const facilityData = facilityDoc.data();
-
-    if (!facilityData) {
-      return {
-        statusCode: 404,
-        headers,
-        body: JSON.stringify({ error: 'Facility not found' })
-      };
-    }
-
-    // Create Stripe checkout session with dynamic pricing
+    // Create Stripe checkout session
     const session = await stripe.checkout.sessions.create({
       payment_method_types: ['card'],
       mode: 'subscription',
-      line_items: [{
-        price: process.env.STRIPE_PRICE_ID,
-        quantity: 1,
-      }],
+      line_items: [
+        {
+          price: process.env.STRIPE_PRICE_ID,
+          quantity: 1
+        }
+      ],
       success_url: `${process.env.URL}/payment/success?session_id={CHECKOUT_SESSION_ID}`,
       cancel_url: `${process.env.URL}/payment/cancel`,
       metadata: {
@@ -106,7 +96,7 @@ export const handler: Handler = async (event) => {
       headers,
       body: JSON.stringify({ 
         sessionId: session.id,
-        facilityName: facilityData.name 
+        url: session.url
       })
     };
   } catch (error) {

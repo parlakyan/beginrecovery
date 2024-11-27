@@ -18,7 +18,7 @@ export const paymentsService = {
 
     try {
       const idToken = await auth.currentUser.getIdToken();
-      const response = await fetch('/.netlify/functions/api/create-checkout', {
+      const response = await fetch('/.netlify/functions/create-checkout', {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
@@ -35,10 +35,11 @@ export const paymentsService = {
       const data = await response.json();
       return data as CheckoutResponse;
     } catch (error) {
+      console.error('Payment error:', error);
       if (error instanceof Error) {
-        throw error;
+        throw new Error(`Payment error: ${error.message}`);
       }
-      throw new Error('An unexpected error occurred');
+      throw new Error('An unexpected error occurred during payment');
     }
   }
 };

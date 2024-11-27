@@ -41,6 +41,7 @@ export const handler: Handler = async (event, context) => {
 
   try {
     const path = event.path.replace('/.netlify/functions/api/', '');
+    console.log('API Request:', { path, method: event.httpMethod });
 
     // Stripe webhook endpoint
     if (path === 'webhook' && event.httpMethod === 'POST') {
@@ -48,31 +49,43 @@ export const handler: Handler = async (event, context) => {
       const webhookSecret = process.env.STRIPE_WEBHOOK_SECRET;
 
       if (!webhookSecret) {
+        console.error('Missing STRIPE_WEBHOOK_SECRET');
         throw new Error('Missing STRIPE_WEBHOOK_SECRET');
       }
 
+      if (!sig) {
+        console.error('Missing Stripe signature');
+        throw new Error('Missing Stripe signature');
+      }
+
       try {
+        console.log('Processing Stripe webhook');
         const stripeEvent = stripe.webhooks.constructEvent(
           event.body || '',
-          sig || '',
+          sig,
           webhookSecret
         );
+        console.log('Stripe event:', stripeEvent.type);
 
         switch (stripeEvent.type) {
           case 'checkout.session.completed': {
             const session = stripeEvent.data.object;
-            await db.collection('facilities')
-              .doc(session.metadata?.facilityId)
-              .update({
-                status: 'active',
-                subscriptionId: session.subscription,
-                updatedAt: new Date()
-              });
+            console.log('Processing completed checkout:', session.id);
+            if (session.metadata?.facilityId) {
+              await db.collection('facilities')
+                .doc(session.metadata.facilityId)
+                .update({
+                  status: 'active',
+                  subscriptionId: session.subscription,
+                  updatedAt: new Date()
+                });
+            }
             break;
           }
 
           case 'customer.subscription.deleted': {
             const subscription = stripeEvent.data.object;
+            console.log('Processing subscription deletion:', subscription.id);
             const facilitiesRef = db.collection('facilities');
             const snapshot = await facilitiesRef
               .where('subscriptionId', '==', subscription.id)
@@ -101,57 +114,6 @@ export const handler: Handler = async (event, context) => {
           body: JSON.stringify({ error: `Webhook Error: ${err.message}` })
         };
       }
-    }
-
-    // Create checkout session endpoint
-    if (path === 'create-checkout' && event.httpMethod === 'POST') {
-      // Verify Firebase auth token
-      const authHeader = event.headers.authorization;
-      if (!authHeader?.startsWith('Bearer ')) {
-        return {
-          statusCode: 401,
-          headers,
-          body: JSON.stringify({ error: 'Unauthorized' })
-        };
-      }
-
-      const token = authHeader.split('Bearer ')[1];
-      await auth.verifyIdToken(token);
-
-      // Parse request body
-      const { facilityId } = JSON.parse(event.body || '{}');
-      
-      if (!facilityId) {
-        return {
-          statusCode: 400,
-          headers,
-          body: JSON.stringify({ error: 'Missing facilityId' })
-        };
-      }
-
-      // Create Stripe checkout session
-      const session = await stripe.checkout.sessions.create({
-        payment_method_types: ['card'],
-        mode: 'subscription',
-        line_items: [{
-          price: process.env.STRIPE_PRICE_ID,
-          quantity: 1,
-        }],
-        success_url: `${process.env.URL}/payment/success?session_id={CHECKOUT_SESSION_ID}`,
-        cancel_url: `${process.env.URL}/payment/cancel`,
-        metadata: {
-          facilityId
-        }
-      });
-
-      return {
-        statusCode: 200,
-        headers,
-        body: JSON.stringify({ 
-          sessionId: session.id,
-          url: session.url 
-        })
-      };
     }
 
     return {

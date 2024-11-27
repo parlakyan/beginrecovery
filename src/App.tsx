@@ -1,10 +1,10 @@
 import { StrictMode } from 'react';
 import { 
-  Routes, 
-  Route, 
-  RouterProvider, 
   createBrowserRouter, 
-  createRoutesFromElements 
+  RouterProvider,
+  createRoutesFromElements,
+  Route,
+  Outlet
 } from 'react-router-dom';
 import HomePage from './pages/HomePage';
 import ListingDetail from './pages/ListingDetail';
@@ -19,54 +19,57 @@ import NotFound from './pages/NotFound';
 import ProtectedRoute from './components/ProtectedRoute';
 import NetworkStatus from './components/NetworkStatus';
 import { useAuthStore } from './store/authStore';
-import { Loader2 } from 'lucide-react';
 
-const LoadingIndicator = () => (
-  <div className="min-h-screen flex items-center justify-center">
-    <div className="flex items-center gap-2">
-      <Loader2 className="w-6 h-6 animate-spin text-blue-600" />
-      <span>Loading application...</span>
-    </div>
-  </div>
+const AppLayout = () => {
+  return (
+    <>
+      <NetworkStatus />
+      <Outlet />
+    </>
+  );
+};
+
+const router = createBrowserRouter(
+  createRoutesFromElements(
+    <Route element={<AppLayout />}>
+      <Route index element={<HomePage />} />
+      <Route path="listing/:id" element={<ListingDetail />} />
+      <Route path="login" element={<Login />} />
+      <Route path="register" element={<Register />} />
+      <Route path="reset-password" element={<ResetPassword />} />
+      <Route path="create-listing" element={<CreateListing />} />
+      <Route path="payment/*" element={<Payment />} />
+      <Route 
+        path="account/*" 
+        element={
+          <ProtectedRoute>
+            <AccountPage />
+          </ProtectedRoute>
+        } 
+      />
+      <Route 
+        path="admin/*" 
+        element={
+          <ProtectedRoute requiredRole="admin">
+            <AdminDashboard />
+          </ProtectedRoute>
+        } 
+      />
+      <Route path="*" element={<NotFound />} />
+    </Route>
+  )
 );
 
 export default function App() {
   const { initialized } = useAuthStore();
 
   if (!initialized) {
-    return <LoadingIndicator />;
+    return (
+      <div className="min-h-screen flex items-center justify-center">
+        <div className="animate-spin h-8 w-8 border-4 border-blue-600 rounded-full border-t-transparent"></div>
+      </div>
+    );
   }
-
-  const router = createBrowserRouter(
-    createRoutesFromElements(
-      <Route path="/" element={<NetworkStatus />}>
-        <Route index element={<HomePage />} />
-        <Route path="listing/:id" element={<ListingDetail />} />
-        <Route path="login" element={<Login />} />
-        <Route path="register" element={<Register />} />
-        <Route path="reset-password" element={<ResetPassword />} />
-        <Route path="create-listing" element={<CreateListing />} />
-        <Route path="payment" element={<Payment />} />
-        <Route 
-          path="account/*" 
-          element={
-            <ProtectedRoute>
-              <AccountPage />
-            </ProtectedRoute>
-          } 
-        />
-        <Route 
-          path="admin/*" 
-          element={
-            <ProtectedRoute requiredRole="admin">
-              <AdminDashboard />
-            </ProtectedRoute>
-          } 
-        />
-        <Route path="*" element={<NotFound />} />
-      </Route>
-    )
-  );
 
   return <RouterProvider router={router} />;
 }
