@@ -4,15 +4,23 @@ import { getFirestore } from 'firebase-admin/firestore';
 import { getAuth } from 'firebase-admin/auth';
 import Stripe from 'stripe';
 
-// Initialize Firebase Admin
-const serviceAccount = JSON.parse(process.env.FIREBASE_SERVICE_ACCOUNT || '{}');
-
 if (!process.env.STRIPE_SECRET_KEY) {
   throw new Error('Missing STRIPE_SECRET_KEY environment variable');
 }
 
+if (!process.env.FIREBASE_CLIENT_EMAIL || !process.env.FIREBASE_PRIVATE_KEY) {
+  throw new Error('Missing Firebase service account credentials');
+}
+
+// Initialize Firebase Admin
 const app = initializeApp({
-  credential: cert(serviceAccount)
+  credential: cert({
+    projectId: process.env.VITE_FIREBASE_PROJECT_ID,
+    clientEmail: process.env.FIREBASE_CLIENT_EMAIL,
+    // Replace escaped newlines with actual newlines
+    privateKey: process.env.FIREBASE_PRIVATE_KEY?.replace(/\\n/g, '\n')
+  }),
+  databaseURL: process.env.VITE_FIREBASE_DATABASE_URL
 }, 'checkout-app');
 
 const db = getFirestore(app);
@@ -60,7 +68,15 @@ const handler: Handler = async (event: HandlerEvent) => {
     const decodedToken = await auth.verifyIdToken(token);
 
     // Parse request body
-    const { facilityId } = JSON.parse(event.body || '{}');
+    if (!event.body) {
+      return {
+        statusCode: 400,
+        headers,
+        body: JSON.stringify({ error: 'Missing request body' })
+      };
+    }
+
+    const { facilityId } = JSON.parse(event.body);
     if (!facilityId) {
       return {
         statusCode: 400,
