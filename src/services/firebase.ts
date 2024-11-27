@@ -26,6 +26,14 @@ const FACILITIES_COLLECTION = 'facilities';
 const USERS_COLLECTION = 'users';
 const BATCH_SIZE = 12;
 
+interface SearchParams {
+  query?: string;
+  location?: string;
+  tags?: string[];
+  insurance?: string[];
+  rating?: number;
+}
+
 interface FacilitiesService {
   getFacilities: (lastDoc?: QueryDocumentSnapshot<DocumentData>) => Promise<{
     facilities: Facility[];
@@ -42,6 +50,9 @@ interface FacilitiesService {
   getUserListings: (userId: string) => Promise<Facility[]>;
   getAllListingsForAdmin: () => Promise<Facility[]>;
   getArchivedListings: () => Promise<Facility[]>;
+  searchFacilities: (params: SearchParams) => Promise<Facility[]>;
+  getNearbyFacilities: (location: string, limit?: number) => Promise<Facility[]>;
+  getTopRatedFacilities: (limit?: number) => Promise<Facility[]>;
 }
 
 const transformFacilityData = (doc: QueryDocumentSnapshot<DocumentData>): Facility => {
@@ -320,6 +331,113 @@ export const facilitiesService: FacilitiesService = {
       return snapshot.docs.map(transformFacilityData);
     } catch (error) {
       console.error('Error getting archived listings:', error);
+      return [];
+    }
+  },
+
+  async searchFacilities(params: SearchParams) {
+    try {
+      console.log('Searching facilities with params:', params);
+      
+      const facilitiesRef = collection(db, FACILITIES_COLLECTION);
+      let baseQuery = query(
+        facilitiesRef,
+        where('moderationStatus', '==', 'approved'),
+        orderBy('createdAt', 'desc')
+      );
+
+      // Add search filters
+      if (params.location) {
+        baseQuery = query(
+          baseQuery,
+          where('location', '>=', params.location.toLowerCase()),
+          where('location', '<=', params.location.toLowerCase() + '\uf8ff')
+        );
+      }
+
+      if (params.rating) {
+        baseQuery = query(
+          baseQuery,
+          where('rating', '>=', params.rating)
+        );
+      }
+
+      // Execute query
+      const snapshot = await getDocs(baseQuery);
+      console.log('Search returned:', snapshot.size, 'facilities');
+      
+      // Transform and filter results
+      let facilities = snapshot.docs.map(transformFacilityData);
+
+      // Apply additional filters that can't be done in query
+      if (params.query) {
+        const searchTerm = params.query.toLowerCase();
+        facilities = facilities.filter(facility => 
+          facility.name.toLowerCase().includes(searchTerm) ||
+          facility.description.toLowerCase().includes(searchTerm)
+        );
+      }
+
+      if (params.tags?.length) {
+        facilities = facilities.filter(facility =>
+          params.tags!.some(tag => facility.tags.includes(tag))
+        );
+      }
+
+      if (params.insurance?.length) {
+        facilities = facilities.filter(facility =>
+          params.insurance!.some(insurance => facility.amenities.includes(insurance))
+        );
+      }
+
+      return facilities;
+    } catch (error) {
+      console.error('Error searching facilities:', error);
+      return [];
+    }
+  },
+
+  async getNearbyFacilities(location: string, resultLimit = 6) {
+    try {
+      console.log('Fetching nearby facilities for location:', location);
+      
+      const facilitiesRef = collection(db, FACILITIES_COLLECTION);
+      const q = query(
+        facilitiesRef,
+        where('moderationStatus', '==', 'approved'),
+        where('location', '>=', location.toLowerCase()),
+        where('location', '<=', location.toLowerCase() + '\uf8ff'),
+        orderBy('location'),
+        orderBy('rating', 'desc'),
+        limit(resultLimit)
+      );
+      
+      const snapshot = await getDocs(q);
+      console.log('Found', snapshot.size, 'nearby facilities');
+      return snapshot.docs.map(transformFacilityData);
+    } catch (error) {
+      console.error('Error getting nearby facilities:', error);
+      return [];
+    }
+  },
+
+  async getTopRatedFacilities(resultLimit = 6) {
+    try {
+      console.log('Fetching top rated facilities');
+      
+      const facilitiesRef = collection(db, FACILITIES_COLLECTION);
+      const q = query(
+        facilitiesRef,
+        where('moderationStatus', '==', 'approved'),
+        orderBy('rating', 'desc'),
+        limit(resultLimit)
+      );
+      
+      const snapshot = await getDocs(q);
+      console.log('Found', snapshot.size, 'top rated facilities');
+      return snapshot.docs.map(transformFacilityData);
+    } catch (error) {
+      console.error('Error getting top rated facilities:', error);
       return [];
     }
   }

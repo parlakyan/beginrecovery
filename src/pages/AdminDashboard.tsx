@@ -60,7 +60,11 @@ export default function AdminDashboard() {
         facilitiesService.getAllListingsForAdmin(),
         facilitiesService.getArchivedListings()
       ]);
-      setFacilities(allListings);
+      
+      // Filter out archived facilities from allListings
+      const activeFacilities = allListings.filter(f => f.moderationStatus !== 'archived');
+      
+      setFacilities(activeFacilities);
       setArchivedFacilities(archivedListings);
     } catch (error) {
       console.error('Error fetching facilities:', error);
@@ -136,19 +140,27 @@ export default function AdminDashboard() {
 
   const handleArchive = async (id: string) => {
     try {
+      setLoading(true);
       await facilitiesService.archiveFacility(id);
       await fetchFacilities();
+      setArchiveDialog({ isOpen: false, facilityId: null });
     } catch (error) {
       console.error('Error archiving facility:', error);
+    } finally {
+      setLoading(false);
     }
   };
 
   const handleDelete = async (id: string) => {
     try {
+      setLoading(true);
       await facilitiesService.deleteFacility(id);
       await fetchFacilities();
+      setDeleteDialog({ isOpen: false, facilityId: null });
     } catch (error) {
       console.error('Error deleting facility:', error);
+    } finally {
+      setLoading(false);
     }
   };
 

@@ -22,6 +22,8 @@ interface SearchFiltersState {
 
 const HomePage = () => {
   const [facilities, setFacilities] = useState<Facility[]>([]);
+  const [topRatedFacilities, setTopRatedFacilities] = useState<Facility[]>([]);
+  const [nearbyFacilities, setNearbyFacilities] = useState<Facility[]>([]);
   const [loading, setLoading] = useState(true);
   const [loadingMore, setLoadingMore] = useState(false);
   const [error, setError] = useState<string | null>(null);
@@ -68,8 +70,31 @@ const HomePage = () => {
     }
   };
 
+  const fetchTopRated = async () => {
+    try {
+      const topRated = await facilitiesService.getTopRatedFacilities(6);
+      setTopRatedFacilities(topRated);
+    } catch (error) {
+      console.error('Error fetching top rated facilities:', error);
+    }
+  };
+
+  const fetchNearbyFacilities = async () => {
+    try {
+      // For demo purposes, using a fixed location - in production, use user's actual location
+      const nearby = await facilitiesService.getNearbyFacilities('California', 6);
+      setNearbyFacilities(nearby);
+    } catch (error) {
+      console.error('Error fetching nearby facilities:', error);
+    }
+  };
+
   useEffect(() => {
-    fetchFacilities();
+    Promise.all([
+      fetchFacilities(),
+      fetchTopRated(),
+      fetchNearbyFacilities()
+    ]);
   }, []);
 
   const handleLoadMore = () => {
@@ -78,10 +103,41 @@ const HomePage = () => {
     }
   };
 
-  const handleFilterChange = (newFilters: SearchFiltersState) => {
+  const handleFilterChange = async (newFilters: SearchFiltersState) => {
     setFilters(newFilters);
-    // TODO: Implement filter logic
+    try {
+      setLoading(true);
+      const searchResults = await facilitiesService.searchFacilities({
+        query: '',
+        tags: newFilters.treatmentTypes,
+        insurance: newFilters.insurance,
+        rating: newFilters.rating || undefined
+      });
+      setFacilities(searchResults);
+      setHasMore(false); // Disable load more when filters are applied
+    } catch (error) {
+      console.error('Error applying filters:', error);
+      setError('Error filtering facilities');
+    } finally {
+      setLoading(false);
+    }
   };
+
+  const renderFacilitySection = (title: string, subtitle: string, items: Facility[]) => (
+    <div className="mb-12">
+      <div className="flex justify-between items-center mb-6">
+        <div>
+          <h3 className="text-2xl font-bold text-gray-900">{title}</h3>
+          <p className="text-gray-600">{subtitle}</p>
+        </div>
+      </div>
+      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+        {items.map((facility) => (
+          <RehabCard key={facility.id} facility={facility} />
+        ))}
+      </div>
+    </div>
+  );
 
   return (
     <div className="min-h-screen flex flex-col bg-gray-50">
@@ -121,12 +177,28 @@ const HomePage = () => {
                 <p className="text-sm text-gray-500 mt-2">Please check back later for updates.</p>
               </div>
             ) : (
-              <>
+              <div className="space-y-20">
                 <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6 max-w-6xl mx-auto">
                   {facilities.map((facility) => (
                     <RehabCard key={facility.id} facility={facility} />
                   ))}
                 </div>
+
+                {topRatedFacilities.length > 0 && (
+                  renderFacilitySection(
+                    'Top Rated Facilities',
+                    'Highest rated treatment centers',
+                    topRatedFacilities
+                  )
+                )}
+
+                {nearbyFacilities.length > 0 && (
+                  renderFacilitySection(
+                    'Nearby Facilities',
+                    'Treatment centers in your area',
+                    nearbyFacilities
+                  )
+                )}
 
                 {hasMore && (
                   <div className="text-center mt-12">
@@ -146,7 +218,7 @@ const HomePage = () => {
                     </button>
                   </div>
                 )}
-              </>
+              </div>
             )}
           </div>
         </section>
