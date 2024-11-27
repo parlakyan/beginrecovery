@@ -1,93 +1,92 @@
 import React from 'react';
-import { Link, useNavigate, useLocation } from 'react-router-dom';
-import { Menu, LogOut, User, Loader2, LayoutGrid } from 'lucide-react';
-import { useAuthStore } from '../store/authStore';
+import { Link, useNavigate } from 'react-router-dom';
+import { Menu } from 'lucide-react';
+import useAuthStore from '../store/authStore';
 import Logo from './Logo';
 
 export default function Header() {
-  const { user, loading, signOut } = useAuthStore();
   const navigate = useNavigate();
-  const location = useLocation();
+  const user = useAuthStore(state => state.user);
+  const clearAuth = useAuthStore(state => state.clearAuth);
 
-  const handleLogout = async () => {
-    try {
-      await signOut();
-      navigate('/login');
-    } catch (error) {
-      console.error('Logout error:', error);
-    }
-  };
-
-  const handleAuthAction = () => {
-    if (user) {
-      navigate('/account');
-    } else {
-      navigate('/login', { state: { from: location } });
-    }
+  const handleSignOut = () => {
+    clearAuth();
+    navigate('/login');
   };
 
   return (
-    <header className="bg-white border-b sticky top-0 z-50">
-      <div className="container mx-auto px-4">
-        <div className="flex items-center justify-between h-16">
-          {/* Logo */}
-          <Link to="/" className="flex items-center">
-            <Logo />
-          </Link>
-
-          {/* Navigation */}
-          <nav className="hidden md:flex items-center gap-6">
-            <Link to="/" className="text-gray-600 hover:text-blue-600">Find Treatment</Link>
-            <Link to="/resources" className="text-gray-600 hover:text-blue-600">Resources</Link>
-            <Link to="/insurance" className="text-gray-600 hover:text-blue-600">Insurance</Link>
-            <Link to="/about" className="text-gray-600 hover:text-blue-600">About Us</Link>
-            {user?.role === 'admin' && (
-              <Link 
-                to="/admin" 
-                className="flex items-center gap-2 text-blue-600 hover:text-blue-700 font-medium"
+    <header className="bg-white shadow-sm">
+      <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
+        <div className="flex justify-between items-center h-16">
+          <div className="flex items-center">
+            <Link to="/" className="flex-shrink-0">
+              <Logo />
+            </Link>
+            <nav className="hidden md:ml-6 md:flex space-x-8">
+              <Link
+                to="/find-treatment"
+                className="text-gray-900 hover:text-blue-600 px-3 py-2 rounded-md text-sm font-medium"
               >
-                <LayoutGrid className="w-4 h-4" />
-                Admin Dashboard
+                Find Treatment
+              </Link>
+              <Link
+                to="/resources"
+                className="text-gray-900 hover:text-blue-600 px-3 py-2 rounded-md text-sm font-medium"
+              >
+                Resources
+              </Link>
+              <Link
+                to="/insurance"
+                className="text-gray-900 hover:text-blue-600 px-3 py-2 rounded-md text-sm font-medium"
+              >
+                Insurance
+              </Link>
+              <Link
+                to="/about-us"
+                className="text-gray-900 hover:text-blue-600 px-3 py-2 rounded-md text-sm font-medium"
+              >
+                About Us
+              </Link>
+            </nav>
+          </div>
+
+          <div className="flex items-center">
+            {user ? (
+              <div className="relative ml-3">
+                <div className="flex items-center space-x-4">
+                  {user.role === 'admin' && (
+                    <Link
+                      to="/admin"
+                      className="text-gray-900 hover:text-blue-600 px-3 py-2 rounded-md text-sm font-medium"
+                    >
+                      Admin
+                    </Link>
+                  )}
+                  <Link
+                    to="/account"
+                    className="text-gray-900 hover:text-blue-600 px-3 py-2 rounded-md text-sm font-medium"
+                  >
+                    Account
+                  </Link>
+                  <button
+                    onClick={handleSignOut}
+                    className="text-gray-900 hover:text-blue-600 px-3 py-2 rounded-md text-sm font-medium"
+                  >
+                    Sign Out
+                  </button>
+                </div>
+              </div>
+            ) : (
+              <Link
+                to="/login"
+                className="inline-flex items-center px-4 py-2 border border-transparent text-sm font-medium rounded-md text-white bg-blue-600 hover:bg-blue-700"
+              >
+                Sign In
               </Link>
             )}
-          </nav>
-
-          {/* Actions */}
-          <div className="flex items-center gap-4">
-            {loading ? (
-              <Loader2 className="w-5 h-5 animate-spin text-blue-600" />
-            ) : (
-              <>
-                {user ? (
-                  <div className="flex items-center gap-4">
-                    <button
-                      onClick={handleAuthAction}
-                      className="flex items-center gap-2 text-gray-600 hover:text-blue-600"
-                    >
-                      <span className="hidden md:block">My Account</span>
-                      <User className="w-5 h-5" />
-                    </button>
-                    <button
-                      onClick={handleLogout}
-                      className="text-gray-600 hover:text-blue-600 md:flex items-center gap-2 hidden"
-                    >
-                      <span>Sign Out</span>
-                      <LogOut className="w-5 h-5" />
-                    </button>
-                  </div>
-                ) : (
-                  <button
-                    onClick={handleAuthAction}
-                    className="bg-blue-600 text-white px-4 py-2 rounded-lg font-medium hidden md:block hover:bg-blue-700"
-                  >
-                    Sign In
-                  </button>
-                )}
-                <button className="p-2 text-gray-600 hover:text-blue-600 md:hidden">
-                  <Menu className="w-5 h-5" />
-                </button>
-              </>
-            )}
+            <button className="ml-4 md:hidden p-2 rounded-md text-gray-400 hover:text-gray-500 hover:bg-gray-100">
+              <Menu className="h-6 w-6" />
+            </button>
           </div>
         </div>
       </div>

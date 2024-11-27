@@ -42,3 +42,11 @@ export interface SearchFiltersState {
   rating: number | null;
   priceRange: [number, number] | null;
 }
+
+export interface SearchParams {
+  query?: string;
+  location?: string;
+  tags?: string[];
+  insurance?: string[];
+  rating?: number;
+}

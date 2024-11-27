@@ -1,13 +1,10 @@
-import React from 'react';
+import { useState } from 'react';
 import { useForm } from 'react-hook-form';
-import { useNavigate, Link } from 'react-router-dom';
-import { Heart, Mail, Lock, Building2 } from 'lucide-react';
-import { useAuthStore } from '../store/authStore';
-
-interface RegisterFormProps {
-  redirectTo?: string;
-  userType?: 'user' | 'owner';
-}
+import { useNavigate } from 'react-router-dom';
+import { createUserWithEmailAndPassword } from 'firebase/auth';
+import { auth } from '../lib/firebase';
+import useAuthStore from '../store/authStore';
+import { usersService } from '../services/firebase';
 
 interface RegisterFormData {
   email: string;
@@ -15,141 +12,143 @@ interface RegisterFormData {
   confirmPassword: string;
 }
 
-export default function RegisterForm({ redirectTo = '/', userType = 'user' }: RegisterFormProps) {
-  const { register, handleSubmit, watch, formState: { errors } } = useForm<RegisterFormData>();
+export default function RegisterForm() {
   const navigate = useNavigate();
-  const { signUp, error, loading, clearError } = useAuthStore();
+  const [loading, setLoading] = useState(false);
+  const [error, setError] = useState<string | null>(null);
+  const setUser = useAuthStore(state => state.setUser);
 
-  React.useEffect(() => {
-    clearError();
-  }, [clearError]);
+  const {
+    register,
+    handleSubmit,
+    watch,
+    formState: { errors }
+  } = useForm<RegisterFormData>();
 
-  const onSubmit = async (data: RegisterFormData) => {
+  const password = watch('password');
+
+  const handleRegister = async (data: RegisterFormData) => {
     try {
-      await signUp(data.email, data.password, userType);
-      navigate(redirectTo);
-    } catch (err) {
-      console.error('Registration error:', err);
+      setLoading(true);
+      setError(null);
+
+      // Create user in Firebase Auth
+      const userCredential = await createUserWithEmailAndPassword(auth, data.email, data.password);
+      
+      // Create user document in Firestore
+      const userData = {
+        email: data.email,
+        role: 'user',
+        createdAt: new Date().toISOString()
+      };
+      
+      await usersService.createUser(userData);
+      
+      // Update local state
+      setUser({
+        id: userCredential.user.uid,
+        email: userCredential.user.email,
+        role: 'user',
+        createdAt: new Date().toISOString()
+      });
+
+      // Redirect to account page
+      navigate('/account');
+    } catch (error) {
+      console.error('Error registering:', error);
+      setError('Error creating account. Please try again.');
+    } finally {
+      setLoading(false);
     }
   };
 
   return (
-    <div className="min-h-screen bg-gray-50 flex flex-col justify-center py-12 sm:px-6 lg:px-8">
-      <div className="sm:mx-auto sm:w-full sm:max-w-md">
-        <div className="flex justify-center">
-          <Heart className="w-12 h-12 text-blue-600" />
+    <form onSubmit={handleSubmit(handleRegister)} className="space-y-6">
+      {error && (
+        <div className="bg-red-50 border border-red-200 text-red-600 px-4 py-3 rounded">
+          {error}
         </div>
-        <h2 className="mt-6 text-center text-3xl font-bold text-gray-900">
-          Create your account
-        </h2>
-        <p className="mt-2 text-center text-sm text-gray-600">
-          Already have an account?{' '}
-          <Link to="/login" className="font-medium text-blue-600 hover:text-blue-500">
-            Sign in
-          </Link>
-        </p>
-      </div>
+      )}
 
-      <div className="mt-8 sm:mx-auto sm:w-full sm:max-w-md">
-        <div className="bg-white py-8 px-4 shadow sm:rounded-lg sm:px-10">
-          {error && (
-            <div className="mb-4 bg-red-50 border border-red-200 text-red-600 px-4 py-3 rounded-lg">
-              {error}
-            </div>
+      <div>
+        <label htmlFor="email" className="block text-sm font-medium text-gray-700">
+          Email address
+        </label>
+        <div className="mt-1">
+          <input
+            {...register('email', {
+              required: 'Email is required',
+              pattern: {
+                value: /^[A-Z0-9._%+-]+@[A-Z0-9.-]+\.[A-Z]{2,}$/i,
+                message: 'Invalid email address'
+              }
+            })}
+            type="email"
+            className="appearance-none block w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm placeholder-gray-400 focus:outline-none focus:ring-blue-500 focus:border-blue-500"
+          />
+          {errors.email && (
+            <p className="mt-2 text-sm text-red-600">{errors.email.message}</p>
           )}
-
-          <form className="space-y-6" onSubmit={handleSubmit(onSubmit)}>
-            <div>
-              <label htmlFor="email" className="block text-sm font-medium text-gray-700">
-                Email address
-              </label>
-              <div className="mt-1 relative">
-                <div className="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none">
-                  <Mail className="h-5 w-5 text-gray-400" />
-                </div>
-                <input
-                  {...register('email', { 
-                    required: 'Email is required',
-                    pattern: {
-                      value: /^[A-Z0-9._%+-]+@[A-Z0-9.-]+\.[A-Z]{2,}$/i,
-                      message: 'Invalid email address'
-                    }
-                  })}
-                  type="email"
-                  className="appearance-none block w-full pl-10 pr-3 py-2 border border-gray-300 rounded-md shadow-sm placeholder-gray-400 focus:outline-none focus:ring-blue-500 focus:border-blue-500"
-                />
-              </div>
-              {errors.email && (
-                <p className="mt-2 text-sm text-red-600">{errors.email.message}</p>
-              )}
-            </div>
-
-            <div>
-              <label htmlFor="password" className="block text-sm font-medium text-gray-700">
-                Password
-              </label>
-              <div className="mt-1 relative">
-                <div className="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none">
-                  <Lock className="h-5 w-5 text-gray-400" />
-                </div>
-                <input
-                  {...register('password', { 
-                    required: 'Password is required',
-                    minLength: {
-                      value: 6,
-                      message: 'Password must be at least 6 characters'
-                    }
-                  })}
-                  type="password"
-                  className="appearance-none block w-full pl-10 pr-3 py-2 border border-gray-300 rounded-md shadow-sm placeholder-gray-400 focus:outline-none focus:ring-blue-500 focus:border-blue-500"
-                />
-              </div>
-              {errors.password && (
-                <p className="mt-2 text-sm text-red-600">{errors.password.message}</p>
-              )}
-            </div>
-
-            <div>
-              <label htmlFor="confirmPassword" className="block text-sm font-medium text-gray-700">
-                Confirm Password
-              </label>
-              <div className="mt-1 relative">
-                <div className="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none">
-                  <Lock className="h-5 w-5 text-gray-400" />
-                </div>
-                <input
-                  {...register('confirmPassword', { 
-                    required: 'Please confirm your password',
-                    validate: value => value === watch('password') || 'Passwords do not match'
-                  })}
-                  type="password"
-                  className="appearance-none block w-full pl-10 pr-3 py-2 border border-gray-300 rounded-md shadow-sm placeholder-gray-400 focus:outline-none focus:ring-blue-500 focus:border-blue-500"
-                />
-              </div>
-              {errors.confirmPassword && (
-                <p className="mt-2 text-sm text-red-600">{errors.confirmPassword.message}</p>
-              )}
-            </div>
-
-            <div>
-              <button
-                type="submit"
-                disabled={loading}
-                className="w-full flex justify-center py-2 px-4 border border-transparent rounded-md shadow-sm text-sm font-medium text-white bg-blue-600 hover:bg-blue-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-blue-500 disabled:opacity-50"
-              >
-                {loading ? 'Creating Account...' : 'Create Account'}
-              </button>
-            </div>
-
-            {userType === 'owner' && (
-              <div className="flex items-center gap-2 p-4 bg-blue-50 rounded-lg text-sm text-blue-700">
-                <Building2 className="w-5 h-5 flex-shrink-0" />
-                <p>You're registering as a facility owner. You'll be able to create and manage your listing after registration.</p>
-              </div>
-            )}
-          </form>
         </div>
       </div>
-    </div>
+
+      <div>
+        <label htmlFor="password" className="block text-sm font-medium text-gray-700">
+          Password
+        </label>
+        <div className="mt-1">
+          <input
+            {...register('password', {
+              required: 'Password is required',
+              minLength: {
+                value: 8,
+                message: 'Password must be at least 8 characters'
+              }
+            })}
+            type="password"
+            className="appearance-none block w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm placeholder-gray-400 focus:outline-none focus:ring-blue-500 focus:border-blue-500"
+          />
+          {errors.password && (
+            <p className="mt-2 text-sm text-red-600">{errors.password.message}</p>
+          )}
+        </div>
+      </div>
+
+      <div>
+        <label htmlFor="confirmPassword" className="block text-sm font-medium text-gray-700">
+          Confirm Password
+        </label>
+        <div className="mt-1">
+          <input
+            {...register('confirmPassword', {
+              required: 'Please confirm your password',
+              validate: value => value === password || 'Passwords do not match'
+            })}
+            type="password"
+            className="appearance-none block w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm placeholder-gray-400 focus:outline-none focus:ring-blue-500 focus:border-blue-500"
+          />
+          {errors.confirmPassword && (
+            <p className="mt-2 text-sm text-red-600">{errors.confirmPassword.message}</p>
+          )}
+        </div>
+      </div>
+
+      <div>
+        <button
+          type="submit"
+          disabled={loading}
+          className="w-full flex justify-center py-2 px-4 border border-transparent rounded-md shadow-sm text-sm font-medium text-white bg-blue-600 hover:bg-blue-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-blue-500 disabled:opacity-50"
+        >
+          {loading ? (
+            <div className="flex items-center">
+              <div className="w-4 h-4 border-2 border-white border-t-transparent rounded-full animate-spin mr-2"></div>
+              Creating Account...
+            </div>
+          ) : (
+            'Create Account'
+          )}
+        </button>
+      </div>
+    </form>
   );
 }

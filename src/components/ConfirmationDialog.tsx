@@ -1,63 +1,60 @@
-import React from 'react';
-import { AlertTriangle, AlertOctagon } from 'lucide-react';
-
 interface ConfirmationDialogProps {
   isOpen: boolean;
-  onClose: () => void;
-  onConfirm: () => void;
   title: string;
   message: string;
-  type?: 'warning' | 'danger';
+  confirmLabel?: string;
+  confirmStyle?: 'danger' | 'warning' | 'primary';
+  onConfirm: () => void;
+  onCancel: () => void;
 }
 
-const ConfirmationDialog = ({ 
-  isOpen, 
-  onClose, 
-  onConfirm, 
-  title, 
-  message, 
-  type = 'warning' 
-}: ConfirmationDialogProps) => {
+export default function ConfirmationDialog({
+  isOpen,
+  title,
+  message,
+  confirmLabel = 'Confirm',
+  confirmStyle = 'primary',
+  onConfirm,
+  onCancel
+}: ConfirmationDialogProps) {
   if (!isOpen) return null;
 
-  const Icon = type === 'danger' ? AlertOctagon : AlertTriangle;
-  const colorClass = type === 'danger' ? 'text-red-600' : 'text-yellow-600';
-  const buttonClass = type === 'danger' 
-    ? 'bg-red-600 hover:bg-red-700 focus:ring-red-500' 
-    : 'bg-yellow-600 hover:bg-yellow-700 focus:ring-yellow-500';
+  const getButtonStyle = () => {
+    switch (confirmStyle) {
+      case 'danger':
+        return 'bg-red-600 hover:bg-red-700';
+      case 'warning':
+        return 'bg-yellow-600 hover:bg-yellow-700';
+      default:
+        return 'bg-blue-600 hover:bg-blue-700';
+    }
+  };
 
   return (
-    <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center p-4 z-50">
-      <div className="bg-white rounded-lg max-w-md w-full p-6">
-        <div className="flex items-center gap-4 mb-4">
-          <Icon className={`w-8 h-8 ${colorClass}`} />
-          <h2 className="text-xl font-semibold">{title}</h2>
+    <div className="fixed inset-0 bg-gray-500 bg-opacity-75 flex items-center justify-center p-4">
+      <div className="bg-white rounded-lg max-w-md w-full">
+        <div className="px-6 py-4">
+          <h3 className="text-lg font-medium text-gray-900">{title}</h3>
+          <p className="mt-2 text-sm text-gray-500">{message}</p>
         </div>
-        
-        <p className="text-gray-600 mb-6">
-          {message}
-        </p>
 
-        <div className="flex justify-end gap-3">
+        <div className="px-6 py-4 bg-gray-50 flex justify-end space-x-3 rounded-b-lg">
           <button
-            onClick={onClose}
-            className="px-4 py-2 text-gray-600 hover:text-gray-800"
+            type="button"
+            onClick={onCancel}
+            className="px-4 py-2 border border-gray-300 rounded-md text-sm font-medium text-gray-700 hover:bg-gray-50"
           >
             Cancel
           </button>
           <button
-            onClick={() => {
-              onConfirm();
-              onClose();
-            }}
-            className={`px-4 py-2 text-white rounded-lg ${buttonClass} focus:outline-none focus:ring-2 focus:ring-offset-2`}
+            type="button"
+            onClick={onConfirm}
+            className={`px-4 py-2 border border-transparent rounded-md shadow-sm text-sm font-medium text-white ${getButtonStyle()}`}
           >
-            Confirm
+            {confirmLabel}
           </button>
         </div>
       </div>
     </div>
   );
-};
-
-export default ConfirmationDialog;
+}

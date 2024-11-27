@@ -1,394 +1,270 @@
-import React, { useState, useEffect } from 'react';
+import { useState, useEffect } from 'react';
 import { 
   LayoutGrid, 
-  ListFilter, 
-  Plus, 
-  Search, 
-  Edit2, 
   Archive, 
-  Trash2, 
+  Plus, 
   CheckCircle, 
-  XCircle,
-  AlertCircle,
-  X,
-  ShieldCheck,
-  ShieldAlert
+  XCircle, 
+  Trash2,
+  AlertCircle
 } from 'lucide-react';
-import { useNavigate } from 'react-router-dom';
-import { useAuthStore } from '../store/authStore';
-import { facilitiesService } from '../services/firebase';
 import { Facility } from '../types';
-import Header from '../components/Header';
-import Footer from '../components/Footer';
+import { facilitiesService } from '../services/firebase';
+import useAuthStore from '../store/authStore';
 import EditListingModal from '../components/EditListingModal';
 import ConfirmationDialog from '../components/ConfirmationDialog';
 
 export default function AdminDashboard() {
-  const navigate = useNavigate();
-  const { user } = useAuthStore();
-  const [searchTerm, setSearchTerm] = useState('');
-  const [statusFilter, setStatusFilter] = useState('all');
+  const user = useAuthStore(state => state.user);
   const [facilities, setFacilities] = useState<Facility[]>([]);
   const [archivedFacilities, setArchivedFacilities] = useState<Facility[]>([]);
   const [loading, setLoading] = useState(true);
-  const [editingFacility, setEditingFacility] = useState<Facility | null>(null);
-  const [isEditModalOpen, setIsEditModalOpen] = useState(false);
+  const [error, setError] = useState<string | null>(null);
   const [showArchived, setShowArchived] = useState(false);
-
-  // Confirmation dialogs
-  const [archiveDialog, setArchiveDialog] = useState<{ isOpen: boolean; facilityId: string | null }>({
-    isOpen: false,
-    facilityId: null
-  });
-  const [deleteDialog, setDeleteDialog] = useState<{ isOpen: boolean; facilityId: string | null }>({
-    isOpen: false,
-    facilityId: null
-  });
-
-  // Redirect if not admin
-  useEffect(() => {
-    if (user?.role !== 'admin') {
-      navigate('/');
-    }
-  }, [user, navigate]);
-
-  // Fetch facilities
-  const fetchFacilities = async () => {
-    try {
-      setLoading(true);
-      
-      // Fetch active and archived facilities separately
-      const [activeListings, archivedListings] = await Promise.all([
-        facilitiesService.getAllListingsForAdmin(),
-        facilitiesService.getArchivedListings()
-      ]);
-      
-      console.log('Active listings:', activeListings);
-      console.log('Archived listings:', archivedListings);
-      
-      // Filter out archived facilities from active listings
-      const activeFacilities = activeListings.filter(facility => facility.moderationStatus !== 'archived');
-      
-      setFacilities(activeFacilities);
-      setArchivedFacilities(archivedListings);
-    } catch (error) {
-      console.error('Error fetching facilities:', error);
-    } finally {
-      setLoading(false);
-    }
-  };
+  const [selectedFacility, setSelectedFacility] = useState<Facility | null>(null);
+  const [showEditModal, setShowEditModal] = useState(false);
+  const [showDeleteDialog, setShowDeleteDialog] = useState(false);
+  const [showArchiveDialog, setShowArchiveDialog] = useState(false);
 
   useEffect(() => {
     fetchFacilities();
   }, []);
 
-  // Filter facilities based on search and status
-  const filteredFacilities = facilities.filter(facility => {
-    const matchesSearch = facility.name.toLowerCase().includes(searchTerm.toLowerCase()) ||
-                         facility.location.toLowerCase().includes(searchTerm.toLowerCase());
-    const matchesStatus = statusFilter === 'all' || facility.moderationStatus === statusFilter;
-    return matchesSearch && matchesStatus;
-  });
+  const fetchFacilities = async () => {
+    try {
+      setLoading(true);
+      const [active, archived] = await Promise.all([
+        facilitiesService.getAllListingsForAdmin(),
+        facilitiesService.getArchivedListings()
+      ]);
+      setFacilities(active);
+      setArchivedFacilities(archived);
+    } catch (error) {
+      console.error('Error fetching facilities:', error);
+      setError('Error loading facilities');
+    } finally {
+      setLoading(false);
+    }
+  };
 
-  const filteredArchivedFacilities = archivedFacilities.filter(facility => {
-    return facility.name.toLowerCase().includes(searchTerm.toLowerCase()) ||
-           facility.location.toLowerCase().includes(searchTerm.toLowerCase());
-  });
-
-  const displayedFacilities = showArchived ? filteredArchivedFacilities : filteredFacilities;
-
-  const getStatusColor = (status: string) => {
-    switch (status) {
-      case 'approved': return 'text-green-600 bg-green-50 border-green-200';
-      case 'pending': return 'text-yellow-600 bg-yellow-50 border-yellow-200';
-      case 'rejected': return 'text-red-600 bg-red-50 border-red-200';
-      case 'archived': return 'text-gray-600 bg-gray-50 border-gray-200';
-      default: return 'text-gray-600 bg-gray-50 border-gray-200';
+  const handleStatusChange = async (facility: Facility, action: 'approve' | 'reject' | 'archive') => {
+    try {
+      switch (action) {
+        case 'approve':
+          await facilitiesService.approveFacility(facility.id);
+          break;
+        case 'reject':
+          await facilitiesService.rejectFacility(facility.id);
+          break;
+        case 'archive':
+          await facilitiesService.archiveFacility(facility.id);
+          break;
+      }
+      await fetchFacilities();
+    } catch (error) {
+      console.error('Error updating facility:', error);
+      setError('Error updating facility');
     }
   };
 
   const handleEdit = (facility: Facility) => {
-    setEditingFacility(facility);
-    setIsEditModalOpen(true);
+    setSelectedFacility(facility);
+    setShowEditModal(true);
   };
 
-  const handleSave = async (data: Partial<Facility>) => {
-    if (!editingFacility) return;
-    
+  const handleDelete = async () => {
+    if (!selectedFacility) return;
     try {
-      setLoading(true);
-      await facilitiesService.updateFacility(editingFacility.id, data);
+      await facilitiesService.deleteFacility(selectedFacility.id);
+      setShowDeleteDialog(false);
+      setSelectedFacility(null);
       await fetchFacilities();
-      setIsEditModalOpen(false);
-      setEditingFacility(null);
-    } catch (error) {
-      console.error('Error updating facility:', error);
-    } finally {
-      setLoading(false);
-    }
-  };
-
-  const handleApprove = async (id: string) => {
-    try {
-      setLoading(true);
-      await facilitiesService.approveFacility(id);
-      await fetchFacilities();
-    } catch (error) {
-      console.error('Error approving facility:', error);
-    } finally {
-      setLoading(false);
-    }
-  };
-
-  const handleReject = async (id: string) => {
-    try {
-      setLoading(true);
-      await facilitiesService.rejectFacility(id);
-      await fetchFacilities();
-    } catch (error) {
-      console.error('Error rejecting facility:', error);
-    } finally {
-      setLoading(false);
-    }
-  };
-
-  const handleArchive = async (id: string) => {
-    try {
-      setLoading(true);
-      await facilitiesService.archiveFacility(id);
-      await fetchFacilities();
-      setArchiveDialog({ isOpen: false, facilityId: null });
-    } catch (error) {
-      console.error('Error archiving facility:', error);
-    } finally {
-      setLoading(false);
-    }
-  };
-
-  const handleDelete = async (id: string) => {
-    try {
-      setLoading(true);
-      await facilitiesService.deleteFacility(id);
-      await fetchFacilities();
-      setDeleteDialog({ isOpen: false, facilityId: null });
     } catch (error) {
       console.error('Error deleting facility:', error);
-    } finally {
-      setLoading(false);
+      setError('Error deleting facility');
     }
   };
 
-  return (
-    <div className="min-h-screen bg-gray-50">
-      <Header />
-      
-      <div className="container mx-auto px-4 py-8">
-        <div className="bg-white rounded-xl shadow-sm">
-          <div className="p-6 border-b">
-            <div className="flex justify-between items-center">
-              <h1 className="text-2xl font-bold">Admin Dashboard</h1>
-              <div className="flex gap-2">
-                <button
-                  onClick={() => setShowArchived(false)}
-                  className={`px-4 py-2 rounded-lg transition-colors ${!showArchived ? 'bg-blue-600 text-white' : 'text-gray-600 hover:bg-gray-100'}`}
-                >
-                  Active Listings
-                </button>
-                <button
-                  onClick={() => setShowArchived(true)}
-                  className={`px-4 py-2 rounded-lg transition-colors ${showArchived ? 'bg-blue-600 text-white' : 'text-gray-600 hover:bg-gray-100'}`}
-                >
-                  Archived Listings
-                </button>
-              </div>
-            </div>
-          </div>
+  const handleArchive = async () => {
+    if (!selectedFacility) return;
+    try {
+      await handleStatusChange(selectedFacility, 'archive');
+      setShowArchiveDialog(false);
+      setSelectedFacility(null);
+    } catch (error) {
+      console.error('Error archiving facility:', error);
+      setError('Error archiving facility');
+    }
+  };
 
-          {/* Filters */}
-          <div className="p-4 border-b">
-            <div className="flex gap-4 flex-wrap">
-              <div className="flex-1 min-w-[240px]">
-                <div className="relative">
-                  <Search className="absolute left-3 top-1/2 -translate-y-1/2 text-gray-400 w-5 h-5" />
-                  <input
-                    type="text"
-                    placeholder="Search facilities..."
-                    className="w-full pl-10 pr-4 py-2 border rounded-lg focus:ring-2 focus:ring-blue-300 outline-none"
-                    value={searchTerm}
-                    onChange={(e) => setSearchTerm(e.target.value)}
-                  />
-                </div>
-              </div>
-              {!showArchived && (
-                <div className="flex gap-2">
-                  <select
-                    className="px-4 py-2 border rounded-lg"
-                    value={statusFilter}
-                    onChange={(e) => setStatusFilter(e.target.value)}
-                  >
-                    <option value="all">All Status</option>
-                    <option value="approved">Approved</option>
-                    <option value="pending">Pending</option>
-                    <option value="rejected">Rejected</option>
-                  </select>
-                  <button className="px-4 py-2 border rounded-lg flex items-center gap-2 hover:bg-gray-50">
-                    <ListFilter className="w-5 h-5" />
-                    <span>More Filters</span>
-                  </button>
-                </div>
-              )}
-            </div>
-          </div>
+  const displayedFacilities = showArchived ? archivedFacilities : facilities;
 
-          {/* Content */}
-          <div className="p-6">
-            {loading ? (
-              <div className="flex justify-center py-8">
-                <div className="animate-spin h-8 w-8 border-4 border-blue-600 rounded-full border-t-transparent"></div>
-              </div>
-            ) : displayedFacilities.length === 0 ? (
-              <div className="text-center py-8">
-                <AlertCircle className="w-12 h-12 text-blue-600 mx-auto mb-4" />
-                <h2 className="text-xl font-semibold mb-2">No Facilities Found</h2>
-                <p className="text-gray-600">
-                  {showArchived ? 'No archived facilities found.' : 'No facilities match your current filters.'}
-                </p>
-              </div>
-            ) : (
-              <div className="overflow-x-auto">
-                <table className="w-full">
-                  <thead>
-                    <tr className="border-b">
-                      <th className="text-left py-4 px-4 font-semibold">Facility</th>
-                      <th className="text-left py-4 px-4 font-semibold">Location</th>
-                      <th className="text-left py-4 px-4 font-semibold">Status</th>
-                      <th className="text-left py-4 px-4 font-semibold">Verification</th>
-                      <th className="text-left py-4 px-4 font-semibold">Actions</th>
-                    </tr>
-                  </thead>
-                  <tbody>
-                    {displayedFacilities.map((facility) => (
-                      <tr key={facility.id} className="border-b hover:bg-gray-50">
-                        <td className="py-4 px-4">
-                          <div className="font-medium">{facility.name}</div>
-                          <div className="text-sm text-gray-500">{facility.phone}</div>
-                        </td>
-                        <td className="py-4 px-4 text-gray-600">{facility.location}</td>
-                        <td className="py-4 px-4">
-                          <span className={`inline-flex items-center px-3 py-1 rounded-full text-sm font-medium border ${getStatusColor(facility.moderationStatus)}`}>
-                            {facility.moderationStatus.charAt(0).toUpperCase() + facility.moderationStatus.slice(1)}
-                          </span>
-                        </td>
-                        <td className="py-4 px-4">
-                          <span className={`inline-flex items-center gap-1.5 px-3 py-1 rounded-full text-sm font-medium border ${facility.isVerified ? 'text-green-600 bg-green-50 border-green-200' : 'text-gray-600 bg-gray-50 border-gray-200'}`}>
-                            {facility.isVerified ? (
-                              <>
-                                <ShieldCheck className="w-4 h-4" />
-                                Verified
-                              </>
-                            ) : (
-                              <>
-                                <ShieldAlert className="w-4 h-4" />
-                                Unverified
-                              </>
-                            )}
-                          </span>
-                        </td>
-                        <td className="py-4 px-4">
-                          <div className="flex items-center gap-2">
-                            {!showArchived && facility.moderationStatus === 'pending' && (
-                              <>
-                                <button 
-                                  onClick={() => handleApprove(facility.id)}
-                                  className="p-1 text-green-600 hover:bg-green-50 rounded" 
-                                  title="Approve"
-                                >
-                                  <CheckCircle className="w-5 h-5" />
-                                </button>
-                                <button 
-                                  onClick={() => handleReject(facility.id)}
-                                  className="p-1 text-red-600 hover:bg-red-50 rounded" 
-                                  title="Reject"
-                                >
-                                  <XCircle className="w-5 h-5" />
-                                </button>
-                              </>
-                            )}
-                            <button 
-                              onClick={() => handleEdit(facility)}
-                              className="p-1 text-blue-600 hover:bg-blue-50 rounded" 
-                              title="Edit"
-                            >
-                              <Edit2 className="w-5 h-5" />
-                            </button>
-                            {!showArchived ? (
-                              <button 
-                                onClick={() => setArchiveDialog({ isOpen: true, facilityId: facility.id })}
-                                className="p-1 text-gray-600 hover:bg-gray-50 rounded" 
-                                title="Archive"
-                              >
-                                <Archive className="w-5 h-5" />
-                              </button>
-                            ) : (
-                              <button 
-                                onClick={() => setDeleteDialog({ isOpen: true, facilityId: facility.id })}
-                                className="p-1 text-red-600 hover:bg-red-50 rounded" 
-                                title="Delete Permanently"
-                              >
-                                <Trash2 className="w-5 h-5" />
-                              </button>
-                            )}
-                          </div>
-                        </td>
-                      </tr>
-                    ))}
-                  </tbody>
-                </table>
-              </div>
-            )}
-          </div>
+  if (!user || user.role !== 'admin') {
+    return (
+      <div className="min-h-screen bg-gray-50 flex items-center justify-center">
+        <div className="text-center">
+          <AlertCircle className="mx-auto h-12 w-12 text-red-500" />
+          <h3 className="mt-2 text-lg font-medium text-gray-900">Access Denied</h3>
+          <p className="mt-1 text-sm text-gray-500">You do not have permission to access this page.</p>
         </div>
       </div>
+    );
+  }
 
-      {editingFacility && (
+  return (
+    <div className="min-h-screen bg-gray-50 py-8">
+      <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
+        <div className="flex justify-between items-center mb-8">
+          <h1 className="text-2xl font-bold text-gray-900">Admin Dashboard</h1>
+          <div className="flex gap-4">
+            <button
+              onClick={() => setShowArchived(!showArchived)}
+              className={`inline-flex items-center px-4 py-2 border rounded-md shadow-sm text-sm font-medium ${
+                showArchived
+                  ? 'bg-gray-100 text-gray-700 border-gray-300 hover:bg-gray-50'
+                  : 'bg-white text-gray-700 border-gray-300 hover:bg-gray-50'
+              }`}
+            >
+              {showArchived ? <LayoutGrid className="w-4 h-4 mr-2" /> : <Archive className="w-4 h-4 mr-2" />}
+              {showArchived ? 'Show Active' : 'Show Archived'}
+            </button>
+            <button
+              onClick={() => {}}
+              className="inline-flex items-center px-4 py-2 border border-transparent rounded-md shadow-sm text-sm font-medium text-white bg-blue-600 hover:bg-blue-700"
+            >
+              <Plus className="w-4 h-4 mr-2" />
+              Add Facility
+            </button>
+          </div>
+        </div>
+
+        {error && (
+          <div className="mb-4 bg-red-50 border border-red-200 text-red-600 px-4 py-3 rounded">
+            {error}
+          </div>
+        )}
+
+        {loading ? (
+          <div className="flex justify-center py-12">
+            <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-blue-600"></div>
+          </div>
+        ) : displayedFacilities.length === 0 ? (
+          <div className="text-center py-12">
+            <p className="text-gray-500">No facilities found.</p>
+          </div>
+        ) : (
+          <div className="bg-white shadow overflow-hidden sm:rounded-md">
+            <ul className="divide-y divide-gray-200">
+              {displayedFacilities.map((facility) => (
+                <li key={facility.id}>
+                  <div className="px-4 py-4 sm:px-6">
+                    <div className="flex items-center justify-between">
+                      <div className="flex-1 min-w-0">
+                        <h3 className="text-lg font-medium text-gray-900 truncate">{facility.name}</h3>
+                        <p className="mt-1 text-sm text-gray-500">{facility.location}</p>
+                      </div>
+                      <div className="flex gap-2">
+                        {!showArchived && (
+                          <>
+                            <button
+                              onClick={() => handleStatusChange(facility, 'approve')}
+                              className="inline-flex items-center p-2 border border-transparent rounded-full shadow-sm text-white bg-green-600 hover:bg-green-700"
+                            >
+                              <CheckCircle className="h-5 w-5" />
+                            </button>
+                            <button
+                              onClick={() => handleStatusChange(facility, 'reject')}
+                              className="inline-flex items-center p-2 border border-transparent rounded-full shadow-sm text-white bg-red-600 hover:bg-red-700"
+                            >
+                              <XCircle className="h-5 w-5" />
+                            </button>
+                          </>
+                        )}
+                        <button
+                          onClick={() => handleEdit(facility)}
+                          className="inline-flex items-center p-2 border border-gray-300 rounded-full shadow-sm text-gray-700 bg-white hover:bg-gray-50"
+                        >
+                          <svg className="h-5 w-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M11 5H6a2 2 0 00-2 2v11a2 2 0 002 2h11a2 2 0 002-2v-5m-1.414-9.414a2 2 0 112.828 2.828L11.828 15H9v-2.828l8.586-8.586z" />
+                          </svg>
+                        </button>
+                        {!showArchived && (
+                          <button
+                            onClick={() => {
+                              setSelectedFacility(facility);
+                              setShowArchiveDialog(true);
+                            }}
+                            className="inline-flex items-center p-2 border border-gray-300 rounded-full shadow-sm text-gray-700 bg-white hover:bg-gray-50"
+                          >
+                            <Archive className="h-5 w-5" />
+                          </button>
+                        )}
+                        <button
+                          onClick={() => {
+                            setSelectedFacility(facility);
+                            setShowDeleteDialog(true);
+                          }}
+                          className="inline-flex items-center p-2 border border-gray-300 rounded-full shadow-sm text-gray-700 bg-white hover:bg-gray-50"
+                        >
+                          <Trash2 className="h-5 w-5" />
+                        </button>
+                      </div>
+                    </div>
+                  </div>
+                </li>
+              ))}
+            </ul>
+          </div>
+        )}
+      </div>
+
+      {selectedFacility && (
         <EditListingModal
-          facility={editingFacility}
-          isOpen={isEditModalOpen}
+          isOpen={showEditModal}
+          facility={selectedFacility}
           onClose={() => {
-            setIsEditModalOpen(false);
-            setEditingFacility(null);
+            setShowEditModal(false);
+            setSelectedFacility(null);
           }}
-          onSave={handleSave}
+          onSave={async (updatedFacility) => {
+            try {
+              await facilitiesService.updateFacility(selectedFacility.id, updatedFacility);
+              setShowEditModal(false);
+              setSelectedFacility(null);
+              await fetchFacilities();
+            } catch (error) {
+              console.error('Error updating facility:', error);
+              setError('Error updating facility');
+            }
+          }}
         />
       )}
 
       <ConfirmationDialog
-        isOpen={archiveDialog.isOpen}
-        onClose={() => setArchiveDialog({ isOpen: false, facilityId: null })}
-        onConfirm={() => {
-          if (archiveDialog.facilityId) {
-            handleArchive(archiveDialog.facilityId);
-          }
+        isOpen={showDeleteDialog}
+        title="Delete Facility"
+        message="Are you sure you want to delete this facility? This action cannot be undone."
+        confirmLabel="Delete"
+        confirmStyle="danger"
+        onConfirm={handleDelete}
+        onCancel={() => {
+          setShowDeleteDialog(false);
+          setSelectedFacility(null);
         }}
-        title="Archive Facility"
-        message="Are you sure you want to archive this facility? It will be moved to the archived listings section."
-        type="warning"
       />
 
       <ConfirmationDialog
-        isOpen={deleteDialog.isOpen}
-        onClose={() => setDeleteDialog({ isOpen: false, facilityId: null })}
-        onConfirm={() => {
-          if (deleteDialog.facilityId) {
-            handleDelete(deleteDialog.facilityId);
-          }
+        isOpen={showArchiveDialog}
+        title="Archive Facility"
+        message="Are you sure you want to archive this facility? It will no longer be visible to users."
+        confirmLabel="Archive"
+        confirmStyle="warning"
+        onConfirm={handleArchive}
+        onCancel={() => {
+          setShowArchiveDialog(false);
+          setSelectedFacility(null);
         }}
-        title="Delete Facility"
-        message="Are you sure you want to permanently delete this facility? This action cannot be undone."
-        type="danger"
       />
-
-      <Footer />
     </div>
   );
 }

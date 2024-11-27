@@ -78,9 +78,12 @@ const HomePage = () => {
       console.log('Fetching top rated facilities...');
       const topRated = await facilitiesService.getTopRatedFacilities(6);
       console.log('Received top rated facilities:', topRated);
-      setTopRatedFacilities(topRated);
+      if (topRated && topRated.length > 0) {
+        setTopRatedFacilities(topRated);
+      }
     } catch (error) {
       console.error('Error fetching top rated facilities:', error);
+      // Don't set error state here to allow main facilities list to still show
     }
   };
 
@@ -89,18 +92,22 @@ const HomePage = () => {
       console.log('Fetching nearby facilities...');
       const nearby = await facilitiesService.getNearbyFacilities('California', 6);
       console.log('Received nearby facilities:', nearby);
-      setNearbyFacilities(nearby);
+      if (nearby && nearby.length > 0) {
+        setNearbyFacilities(nearby);
+      }
     } catch (error) {
       console.error('Error fetching nearby facilities:', error);
+      // Don't set error state here to allow main facilities list to still show
     }
   };
 
   useEffect(() => {
-    Promise.all([
-      fetchFacilities(),
-      fetchTopRated(),
-      fetchNearbyFacilities()
-    ]);
+    // Fetch main facilities first
+    fetchFacilities().then(() => {
+      // Only fetch additional sections after main facilities are loaded
+      fetchTopRated();
+      fetchNearbyFacilities();
+    });
   }, []);
 
   const handleLoadMore = () => {
@@ -129,21 +136,25 @@ const HomePage = () => {
     }
   };
 
-  const renderFacilitySection = (title: string, subtitle: string, items: Facility[]) => (
-    <div className="mb-12">
-      <div className="flex justify-between items-center mb-6">
-        <div>
-          <h3 className="text-2xl font-bold text-gray-900">{title}</h3>
-          <p className="text-gray-600">{subtitle}</p>
+  const renderFacilitySection = (title: string, subtitle: string, items: Facility[]) => {
+    if (!items || items.length === 0) return null;
+    
+    return (
+      <div className="mb-12">
+        <div className="flex justify-between items-center mb-6">
+          <div>
+            <h3 className="text-2xl font-bold text-gray-900">{title}</h3>
+            <p className="text-gray-600">{subtitle}</p>
+          </div>
+        </div>
+        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+          {items.map((facility) => (
+            <RehabCard key={facility.id} facility={facility} />
+          ))}
         </div>
       </div>
-      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
-        {items.map((facility) => (
-          <RehabCard key={facility.id} facility={facility} />
-        ))}
-      </div>
-    </div>
-  );
+    );
+  };
 
   return (
     <div className="min-h-screen flex flex-col bg-gray-50">
@@ -190,20 +201,16 @@ const HomePage = () => {
                   ))}
                 </div>
 
-                {topRatedFacilities.length > 0 && (
-                  renderFacilitySection(
-                    'Top Rated Facilities',
-                    'Highest rated treatment centers',
-                    topRatedFacilities
-                  )
+                {renderFacilitySection(
+                  'Top Rated Facilities',
+                  'Highest rated treatment centers',
+                  topRatedFacilities
                 )}
 
-                {nearbyFacilities.length > 0 && (
-                  renderFacilitySection(
-                    'Nearby Facilities',
-                    'Treatment centers in your area',
-                    nearbyFacilities
-                  )
+                {renderFacilitySection(
+                  'Nearby Facilities',
+                  'Treatment centers in your area',
+                  nearbyFacilities
                 )}
 
                 {hasMore && (

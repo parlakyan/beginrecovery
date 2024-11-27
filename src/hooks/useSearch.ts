@@ -1,4 +1,4 @@
-import { useState, useEffect } from 'react';
+import { useState } from 'react';
 import { facilitiesService } from '../services/firebase';
 import { Facility } from '../types';
 
@@ -10,38 +10,36 @@ interface SearchFilters {
   priceRange: [number, number] | null;
 }
 
-export function useSearch(query: string, filters: SearchFilters) {
+export function useSearch() {
   const [results, setResults] = useState<Facility[]>([]);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
 
-  useEffect(() => {
-    const searchFacilities = async () => {
-      try {
-        setLoading(true);
-        setError(null);
-        
-        const facilities = await facilitiesService.searchFacilities({
-          query,
-          treatmentTypes: filters.treatmentTypes,
-          amenities: filters.amenities,
-          insurance: filters.insurance,
-          rating: filters.rating
-        });
-        
-        setResults(facilities);
-      } catch (err) {
-        console.error('Error searching facilities:', err);
-        setError('Failed to fetch results');
-        setResults([]);
-      } finally {
-        setLoading(false);
-      }
-    };
+  const search = async (query: string, filters: SearchFilters) => {
+    try {
+      setLoading(true);
+      setError(null);
 
-    const timeoutId = setTimeout(searchFacilities, 300);
-    return () => clearTimeout(timeoutId);
-  }, [query, filters]);
+      const searchResults = await facilitiesService.searchFacilities({
+        query,
+        tags: filters.treatmentTypes,
+        insurance: filters.insurance,
+        rating: filters.rating ?? undefined
+      });
 
-  return { results, loading, error };
+      setResults(searchResults);
+    } catch (error) {
+      console.error('Search error:', error);
+      setError('Error performing search');
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  return {
+    results,
+    loading,
+    error,
+    search
+  };
 }

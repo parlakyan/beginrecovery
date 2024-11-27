@@ -1,334 +1,117 @@
-import React from 'react';
-import { Link } from 'react-router-dom';
-import { 
-  User, 
-  Settings, 
-  Heart, 
-  Bell, 
-  Shield, 
-  LogOut,
-  Edit2,
-  Loader2,
-  Building2,
-  Plus
-} from 'lucide-react';
-import { useAuthStore } from '../store/authStore';
-import { facilitiesService } from '../services/firebase';
+import { useState, useEffect } from 'react';
+import { useNavigate } from 'react-router-dom';
 import { Facility } from '../types';
-import Header from '../components/Header';
-import Footer from '../components/Footer';
+import { facilitiesService } from '../services/firebase';
+import useAuthStore from '../store/authStore';
 import ListingCard from '../components/ListingCard';
 
 export default function AccountPage() {
-  const { user, loading, signOut } = useAuthStore();
-  const [activeTab, setActiveTab] = React.useState('profile');
-  const [userListings, setUserListings] = React.useState<Facility[]>([]);
-  const [listingsLoading, setListingsLoading] = React.useState(false);
+  const navigate = useNavigate();
+  const user = useAuthStore(state => state.user);
+  const [listings, setListings] = useState<Facility[]>([]);
+  const [loading, setLoading] = useState(true);
+  const [error, setError] = useState<string | null>(null);
 
-  React.useEffect(() => {
-    const loadUserListings = async () => {
-      if (!user?.id) return;
-      
+  useEffect(() => {
+    if (!user) {
+      navigate('/login');
+      return;
+    }
+
+    const fetchListings = async () => {
       try {
-        setListingsLoading(true);
-        const listings = await facilitiesService.getUserListings(user.id);
-        setUserListings(listings);
+        setLoading(true);
+        const userListings = await facilitiesService.getUserListings(user.id);
+        setListings(userListings);
       } catch (error) {
-        console.error('Error loading user listings:', error);
+        console.error('Error fetching listings:', error);
+        setError('Error loading your listings');
       } finally {
-        setListingsLoading(false);
+        setLoading(false);
       }
     };
 
-    if (activeTab === 'listings') {
-      loadUserListings();
-    }
-  }, [user?.id, activeTab]);
+    fetchListings();
+  }, [user, navigate]);
 
-  if (loading) {
-    return (
-      <div className="min-h-screen flex items-center justify-center">
-        <Loader2 className="w-6 h-6 animate-spin text-blue-600" />
-      </div>
-    );
-  }
+  if (!user) return null;
 
   return (
-    <div className="min-h-screen bg-gray-50">
-      <Header />
-      
-      <div className="container mx-auto px-4 py-8">
-        <div className="max-w-6xl mx-auto">
-          <div className="flex flex-col md:flex-row gap-8">
-            {/* Sidebar */}
-            <div className="w-full md:w-64 space-y-2">
-              <button
-                onClick={() => setActiveTab('profile')}
-                className={`w-full flex items-center gap-3 px-4 py-2 rounded-lg text-left ${
-                  activeTab === 'profile'
-                    ? 'bg-blue-50 text-blue-600'
-                    : 'hover:bg-gray-100'
-                }`}
-              >
-                <User className="w-5 h-5" />
-                Profile
-              </button>
-              
-              {user?.role === 'owner' && (
-                <button
-                  onClick={() => setActiveTab('listings')}
-                  className={`w-full flex items-center gap-3 px-4 py-2 rounded-lg text-left ${
-                    activeTab === 'listings'
-                      ? 'bg-blue-50 text-blue-600'
-                      : 'hover:bg-gray-100'
-                  }`}
-                >
-                  <Building2 className="w-5 h-5" />
-                  My Listings
-                </button>
-              )}
-              
-              <button
-                onClick={() => setActiveTab('settings')}
-                className={`w-full flex items-center gap-3 px-4 py-2 rounded-lg text-left ${
-                  activeTab === 'settings'
-                    ? 'bg-blue-50 text-blue-600'
-                    : 'hover:bg-gray-100'
-                }`}
-              >
-                <Settings className="w-5 h-5" />
-                Settings
-              </button>
-              
-              <button
-                onClick={() => setActiveTab('saved')}
-                className={`w-full flex items-center gap-3 px-4 py-2 rounded-lg text-left ${
-                  activeTab === 'saved'
-                    ? 'bg-blue-50 text-blue-600'
-                    : 'hover:bg-gray-100'
-                }`}
-              >
-                <Heart className="w-5 h-5" />
-                Saved Facilities
-              </button>
-              
-              <button
-                onClick={() => setActiveTab('notifications')}
-                className={`w-full flex items-center gap-3 px-4 py-2 rounded-lg text-left ${
-                  activeTab === 'notifications'
-                    ? 'bg-blue-50 text-blue-600'
-                    : 'hover:bg-gray-100'
-                }`}
-              >
-                <Bell className="w-5 h-5" />
-                Notifications
-              </button>
-              
-              <button
-                onClick={() => setActiveTab('privacy')}
-                className={`w-full flex items-center gap-3 px-4 py-2 rounded-lg text-left ${
-                  activeTab === 'privacy'
-                    ? 'bg-blue-50 text-blue-600'
-                    : 'hover:bg-gray-100'
-                }`}
-              >
-                <Shield className="w-5 h-5" />
-                Privacy & Security
-              </button>
-              
-              <button
-                onClick={signOut}
-                className="w-full flex items-center gap-3 px-4 py-2 rounded-lg text-left text-red-600 hover:bg-red-50"
-              >
-                <LogOut className="w-5 h-5" />
-                Sign Out
-              </button>
-            </div>
+    <div className="min-h-screen bg-gray-50 py-8">
+      <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
+        <div className="flex justify-between items-center mb-8">
+          <div>
+            <h1 className="text-2xl font-bold text-gray-900">Account Settings</h1>
+            <p className="mt-1 text-sm text-gray-500">Manage your account and listings</p>
+          </div>
+          <button
+            onClick={() => navigate('/create-listing')}
+            className="inline-flex items-center px-4 py-2 border border-transparent rounded-md shadow-sm text-sm font-medium text-white bg-blue-600 hover:bg-blue-700"
+          >
+            Create Listing
+          </button>
+        </div>
 
-            {/* Main Content */}
-            <div className="flex-1">
-              {activeTab === 'profile' && (
-                <div className="bg-white rounded-xl shadow-sm p-6">
-                  <div className="flex items-center justify-between mb-6">
-                    <h2 className="text-2xl font-bold">Profile Information</h2>
-                    <button className="flex items-center gap-2 text-blue-600 hover:text-blue-700">
-                      <Edit2 className="w-4 h-4" />
-                      Edit Profile
-                    </button>
-                  </div>
-
-                  <div className="space-y-6">
-                    <div>
-                      <label className="block text-sm font-medium text-gray-700">Email</label>
-                      <div className="mt-1 text-gray-900">{user?.email}</div>
-                    </div>
-
-                    <div>
-                      <label className="block text-sm font-medium text-gray-700">Account Type</label>
-                      <div className="mt-1 text-gray-900 capitalize">{user?.role}</div>
-                    </div>
-
-                    <div>
-                      <label className="block text-sm font-medium text-gray-700">Member Since</label>
-                      <div className="mt-1 text-gray-900">
-                        {new Date(user?.createdAt || Date.now()).toLocaleDateString()}
-                      </div>
-                    </div>
-                  </div>
-                </div>
-              )}
-
-              {activeTab === 'listings' && (
-                <div className="space-y-6">
-                  <div className="flex items-center justify-between">
-                    <h2 className="text-2xl font-bold">My Listings</h2>
-                    <Link
-                      to="/create-listing"
-                      className="bg-blue-600 text-white px-4 py-2 rounded-lg hover:bg-blue-700 flex items-center gap-2"
-                    >
-                      <Plus className="w-4 h-4" />
-                      Add New Listing
-                    </Link>
-                  </div>
-
-                  {listingsLoading ? (
-                    <div className="flex justify-center py-12">
-                      <Loader2 className="w-6 h-6 animate-spin text-blue-600" />
-                    </div>
-                  ) : userListings.length === 0 ? (
-                    <div className="bg-white rounded-xl shadow-sm p-12 text-center">
-                      <Building2 className="w-12 h-12 text-gray-400 mx-auto mb-4" />
-                      <h3 className="text-lg font-semibold mb-2">No Listings Yet</h3>
-                      <p className="text-gray-600 mb-6">Create your first facility listing to get started</p>
-                      <Link
-                        to="/create-listing"
-                        className="inline-flex items-center gap-2 bg-blue-600 text-white px-6 py-3 rounded-lg hover:bg-blue-700"
-                      >
-                        <Plus className="w-4 h-4" />
-                        Create Listing
-                      </Link>
-                    </div>
-                  ) : (
-                    <div className="grid gap-6">
-                      {userListings.map((listing) => (
-                        <ListingCard 
-                          key={listing.id} 
-                          listing={listing}
-                          onEdit={() => navigate(`/listing/${listing.id}/edit`)}
-                        />
-                      ))}
-                    </div>
-                  )}
-                </div>
-              )}
-
-              {activeTab === 'settings' && (
-                <div className="bg-white rounded-xl shadow-sm p-6">
-                  <h2 className="text-2xl font-bold mb-6">Account Settings</h2>
-                  
-                  <div className="space-y-6">
-                    <div>
-                      <h3 className="text-lg font-semibold mb-4">Email Preferences</h3>
-                      <div className="space-y-4">
-                        <label className="flex items-center gap-3">
-                          <input type="checkbox" className="rounded text-blue-600" />
-                          <span>Receive updates about saved facilities</span>
-                        </label>
-                        <label className="flex items-center gap-3">
-                          <input type="checkbox" className="rounded text-blue-600" />
-                          <span>Receive newsletter</span>
-                        </label>
-                        <label className="flex items-center gap-3">
-                          <input type="checkbox" className="rounded text-blue-600" />
-                          <span>Receive promotional emails</span>
-                        </label>
-                      </div>
-                    </div>
-
-                    <div>
-                      <h3 className="text-lg font-semibold mb-4">Communication Settings</h3>
-                      <div className="space-y-4">
-                        <label className="flex items-center gap-3">
-                          <input type="checkbox" className="rounded text-blue-600" />
-                          <span>Enable SMS notifications</span>
-                        </label>
-                        <label className="flex items-center gap-3">
-                          <input type="checkbox" className="rounded text-blue-600" />
-                          <span>Enable browser notifications</span>
-                        </label>
-                      </div>
-                    </div>
-                  </div>
-                </div>
-              )}
-
-              {activeTab === 'saved' && (
-                <div className="bg-white rounded-xl shadow-sm p-6">
-                  <h2 className="text-2xl font-bold mb-6">Saved Facilities</h2>
-                  
-                  <div className="text-center py-8 text-gray-500">
-                    <Heart className="w-12 h-12 mx-auto mb-4 stroke-current" />
-                    <p>You haven't saved any facilities yet.</p>
-                    <Link 
-                      to="/"
-                      className="mt-4 inline-block text-blue-600 hover:text-blue-700"
-                    >
-                      Browse Facilities
-                    </Link>
-                  </div>
-                </div>
-              )}
-
-              {activeTab === 'notifications' && (
-                <div className="bg-white rounded-xl shadow-sm p-6">
-                  <h2 className="text-2xl font-bold mb-6">Notifications</h2>
-                  
-                  <div className="text-center py-8 text-gray-500">
-                    <Bell className="w-12 h-12 mx-auto mb-4 stroke-current" />
-                    <p>No new notifications</p>
-                  </div>
-                </div>
-              )}
-
-              {activeTab === 'privacy' && (
-                <div className="bg-white rounded-xl shadow-sm p-6">
-                  <h2 className="text-2xl font-bold mb-6">Privacy & Security</h2>
-                  
-                  <div className="space-y-6">
-                    <div>
-                      <h3 className="text-lg font-semibold mb-4">Password</h3>
-                      <button className="bg-blue-600 text-white px-4 py-2 rounded-lg hover:bg-blue-700">
-                        Change Password
-                      </button>
-                    </div>
-
-                    <div>
-                      <h3 className="text-lg font-semibold mb-4">Two-Factor Authentication</h3>
-                      <button className="bg-gray-100 text-gray-800 px-4 py-2 rounded-lg hover:bg-gray-200">
-                        Enable 2FA
-                      </button>
-                    </div>
-
-                    <div>
-                      <h3 className="text-lg font-semibold mb-4">Data & Privacy</h3>
-                      <div className="space-y-4">
-                        <button className="text-blue-600 hover:text-blue-700">
-                          Download my data
-                        </button>
-                        <button className="block text-red-600 hover:text-red-700">
-                          Delete account
-                        </button>
-                      </div>
-                    </div>
-                  </div>
-                </div>
-              )}
-            </div>
+        <div className="bg-white shadow overflow-hidden sm:rounded-lg">
+          <div className="px-4 py-5 sm:px-6">
+            <h3 className="text-lg leading-6 font-medium text-gray-900">Profile Information</h3>
+          </div>
+          <div className="border-t border-gray-200">
+            <dl>
+              <div className="bg-gray-50 px-4 py-5 sm:grid sm:grid-cols-3 sm:gap-4 sm:px-6">
+                <dt className="text-sm font-medium text-gray-500">Email address</dt>
+                <dd className="mt-1 text-sm text-gray-900 sm:mt-0 sm:col-span-2">{user.email}</dd>
+              </div>
+              <div className="bg-white px-4 py-5 sm:grid sm:grid-cols-3 sm:gap-4 sm:px-6">
+                <dt className="text-sm font-medium text-gray-500">Account type</dt>
+                <dd className="mt-1 text-sm text-gray-900 capitalize sm:mt-0 sm:col-span-2">{user.role}</dd>
+              </div>
+              <div className="bg-gray-50 px-4 py-5 sm:grid sm:grid-cols-3 sm:gap-4 sm:px-6">
+                <dt className="text-sm font-medium text-gray-500">Member since</dt>
+                <dd className="mt-1 text-sm text-gray-900 sm:mt-0 sm:col-span-2">
+                  {new Date(user.createdAt).toLocaleDateString()}
+                </dd>
+              </div>
+            </dl>
           </div>
         </div>
-      </div>
 
-      <Footer />
+        <div className="mt-8">
+          <h2 className="text-xl font-bold text-gray-900 mb-4">Your Listings</h2>
+          {error && (
+            <div className="mb-4 bg-red-50 border border-red-200 text-red-600 px-4 py-3 rounded">
+              {error}
+            </div>
+          )}
+
+          {loading ? (
+            <div className="flex justify-center py-12">
+              <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-blue-600"></div>
+            </div>
+          ) : listings.length === 0 ? (
+            <div className="text-center py-12 bg-white rounded-lg shadow">
+              <h3 className="text-lg font-medium text-gray-900 mb-2">No listings yet</h3>
+              <p className="text-gray-500 mb-4">Create your first listing to get started</p>
+              <button
+                onClick={() => navigate('/create-listing')}
+                className="inline-flex items-center px-4 py-2 border border-transparent rounded-md shadow-sm text-sm font-medium text-white bg-blue-600 hover:bg-blue-700"
+              >
+                Create Listing
+              </button>
+            </div>
+          ) : (
+            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+              {listings.map((listing) => (
+                <ListingCard
+                  key={listing.id}
+                  facility={listing}
+                  onEdit={() => navigate(`/listing/${listing.id}/edit`)}
+                />
+              ))}
+            </div>
+          )}
+        </div>
+      </div>
     </div>
   );
 }

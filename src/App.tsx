@@ -1,64 +1,87 @@
 import { StrictMode } from 'react';
-import { Routes, Route } from 'react-router-dom';
+import { BrowserRouter as Router, Routes, Route } from 'react-router-dom';
+import useAuthStore from './store/authStore';
 import HomePage from './pages/HomePage';
-import ListingDetail from './pages/ListingDetail';
 import Login from './pages/Login';
 import Register from './pages/Register';
-import AdminDashboard from './pages/AdminDashboard';
-import AddListing from './pages/AddListing';
-import CreateListing from './pages/CreateListing';
-import Payment from './pages/Payment';
 import ResetPassword from './pages/ResetPassword';
 import AccountPage from './pages/AccountPage';
+import AddListing from './pages/AddListing';
+import CreateListing from './pages/CreateListing';
+import ListingDetail from './pages/ListingDetail';
+import AdminDashboard from './pages/AdminDashboard';
+import Payment from './pages/Payment';
 import NotFound from './pages/NotFound';
 import ProtectedRoute from './components/ProtectedRoute';
-import NetworkStatus from './components/NetworkStatus';
-import { useAuthStore } from './store/authStore';
-import { Loader2 } from 'lucide-react';
 
 export default function App() {
-  const { initialized } = useAuthStore();
+  const user = useAuthStore(state => state.user);
+  const loading = useAuthStore(state => state.loading);
 
-  if (!initialized) {
+  if (loading) {
     return (
       <div className="min-h-screen flex items-center justify-center">
-        <div className="flex items-center gap-2">
-          <Loader2 className="w-6 h-6 animate-spin text-blue-600" />
-          <span>Loading application...</span>
-        </div>
+        <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-blue-600"></div>
       </div>
     );
   }
 
   return (
-    <>
+    <Router>
       <Routes>
         <Route path="/" element={<HomePage />} />
-        <Route path="/listing/:id" element={<ListingDetail />} />
         <Route path="/login" element={<Login />} />
         <Route path="/register" element={<Register />} />
         <Route path="/reset-password" element={<ResetPassword />} />
-        <Route path="/create-listing" element={<CreateListing />} />
-        <Route path="/payment" element={<Payment />} />
-        <Route 
-          path="/account/*" 
+        <Route path="/listing/:id" element={<ListingDetail />} />
+        
+        <Route
+          path="/account"
           element={
             <ProtectedRoute>
               <AccountPage />
             </ProtectedRoute>
-          } 
+          }
         />
-        <Route 
-          path="/admin/*" 
+        
+        <Route
+          path="/add-listing"
           element={
-            <ProtectedRoute requiredRole="admin">
+            <ProtectedRoute>
+              <AddListing />
+            </ProtectedRoute>
+          }
+        />
+        
+        <Route
+          path="/create-listing"
+          element={
+            <ProtectedRoute>
+              <CreateListing />
+            </ProtectedRoute>
+          }
+        />
+        
+        <Route
+          path="/admin"
+          element={
+            <ProtectedRoute>
               <AdminDashboard />
             </ProtectedRoute>
-          } 
+          }
         />
+        
+        <Route
+          path="/payment"
+          element={
+            <ProtectedRoute>
+              <Payment />
+            </ProtectedRoute>
+          }
+        />
+        
         <Route path="*" element={<NotFound />} />
       </Routes>
-      <NetworkStatus />
-    </>
+    </Router>
   );
 }
