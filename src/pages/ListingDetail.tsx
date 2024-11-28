@@ -1,5 +1,5 @@
 import { useEffect, useState } from 'react';
-import { useParams } from 'react-router-dom';
+import { useParams, useNavigate } from 'react-router-dom';
 import { Edit2, ShieldCheck, ShieldAlert, CheckCircle, XCircle, Clock, MapPin, Star } from 'lucide-react';
 import { facilitiesService } from '../services/firebase';
 import { useAuthStore } from '../store/authStore';
@@ -16,7 +16,8 @@ import { Button, Tag } from '../components/ui';
 import EditListingModal from '../components/EditListingModal';
 
 export default function ListingDetail() {
-  const { id } = useParams<{ id: string }>();
+  const { slug } = useParams<{ slug: string }>();
+  const navigate = useNavigate();
   const { user } = useAuthStore();
   const [facility, setFacility] = useState<Facility | null>(null);
   const [loading, setLoading] = useState(true);
@@ -27,11 +28,11 @@ export default function ListingDetail() {
     window.scrollTo(0, 0);
     
     const fetchFacility = async () => {
-      if (!id) return;
+      if (!slug) return;
       
       try {
         setLoading(true);
-        const data = await facilitiesService.getFacilityById(id);
+        const data = await facilitiesService.getFacilityBySlug(slug);
         if (data) {
           setFacility(data);
         }
@@ -43,14 +44,20 @@ export default function ListingDetail() {
     };
 
     fetchFacility();
-  }, [id]);
+  }, [slug]);
 
   const handleApprove = async () => {
     if (!facility) return;
     try {
       await facilitiesService.approveFacility(facility.id);
       const updatedFacility = await facilitiesService.getFacilityById(facility.id);
-      if (updatedFacility) setFacility(updatedFacility);
+      if (updatedFacility) {
+        setFacility(updatedFacility);
+        // Update URL if slug changed
+        if (updatedFacility.slug !== slug) {
+          navigate(`/${updatedFacility.slug}`, { replace: true });
+        }
+      }
     } catch (error) {
       console.error('Error approving facility:', error);
     }
@@ -87,7 +94,13 @@ export default function ListingDetail() {
     try {
       await facilitiesService.updateFacility(facility.id, data);
       const updatedFacility = await facilitiesService.getFacilityById(facility.id);
-      if (updatedFacility) setFacility(updatedFacility);
+      if (updatedFacility) {
+        setFacility(updatedFacility);
+        // Update URL if name or location was changed (which affects the slug)
+        if (updatedFacility.slug !== slug) {
+          navigate(`/${updatedFacility.slug}`, { replace: true });
+        }
+      }
       setIsEditModalOpen(false);
     } catch (error) {
       console.error('Error updating facility:', error);

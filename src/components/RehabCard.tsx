@@ -10,7 +10,7 @@ export default function RehabCard({ facility }: { facility: Facility }) {
 
   const handleNavigation = () => {
     window.scrollTo(0, 0);
-    navigate(`/listing/${facility.id}`);
+    navigate(`/${facility.slug}`);
   };
 
   const VerificationBadge = () => (

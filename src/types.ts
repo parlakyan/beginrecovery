@@ -24,6 +24,7 @@ export interface Facility {
   isVerified: boolean;
   isFeatured: boolean;
   moderationStatus: 'pending' | 'approved' | 'rejected' | 'archived';
+  slug: string;
 }
 
 export interface CreateUserData {

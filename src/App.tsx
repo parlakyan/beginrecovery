@@ -34,7 +34,7 @@ export default function App() {
     <>
       <Routes>
         <Route path="/" element={<HomePage />} />
-        <Route path="/listing/:id" element={<ListingDetail />} />
+        <Route path="/:slug" element={<ListingDetail />} />
         <Route path="/login" element={<Login />} />
         <Route path="/register" element={<Register />} />
         <Route path="/reset-password" element={<ResetPassword />} />

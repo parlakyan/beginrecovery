@@ -119,15 +119,34 @@ export const usersService = {
   }
 };
 
+const generateSlug = (name: string, location: string): string => {
+  const cleanName = name
+    .toLowerCase()
+    .replace(/[^a-z0-9\s-]/g, '')
+    .replace(/\s+/g, '-');
+
+  const [city, state] = location.split(',').map(part => 
+    part.trim()
+      .toLowerCase()
+      .replace(/[^a-z0-9\s-]/g, '')
+      .replace(/\s+/g, '-')
+  );
+
+  return `${cleanName}-${city}-${state}`;
+};
+
 const transformFacilityData = (doc: QueryDocumentSnapshot<DocumentData>): Facility => {
   const data = doc.data();
   console.log('Raw facility data:', { id: doc.id, ...data });
   
+  const name = data.name || '';
+  const location = data.location || '';
+  
   return {
     id: doc.id,
-    name: data.name || '',
+    name,
     description: data.description || '',
-    location: data.location || '',
+    location,
     amenities: data.amenities || [],
     images: data.images || [],
     status: data.status || 'pending',
@@ -141,7 +160,8 @@ const transformFacilityData = (doc: QueryDocumentSnapshot<DocumentData>): Facili
     tags: data.tags || [],
     isVerified: Boolean(data.isVerified),
     isFeatured: Boolean(data.isFeatured),
-    moderationStatus: data.moderationStatus || 'pending'
+    moderationStatus: data.moderationStatus || 'pending',
+    slug: data.slug || generateSlug(name, location)
   };
 };
 
@@ -218,6 +238,25 @@ export const facilitiesService = {
     }
   },
 
+  async getFacilityBySlug(slug: string) {
+    try {
+      console.log('Fetching facility by slug:', slug);
+      const facilitiesRef = collection(db, FACILITIES_COLLECTION);
+      const q = query(facilitiesRef, where('slug', '==', slug), limit(1));
+      const snapshot = await getDocs(q);
+      
+      if (snapshot.empty) {
+        console.log('No facility found with slug:', slug);
+        return null;
+      }
+      
+      return transformFacilityData(snapshot.docs[0]);
+    } catch (error) {
+      console.error('Error getting facility by slug:', error);
+      return null;
+    }
+  },
+
   async getUserListings(userId: string) {
     try {
       console.log('Fetching listings for user:', userId);
@@ -270,10 +309,21 @@ export const facilitiesService = {
   async updateFacility(id: string, data: Partial<Facility>) {
     try {
       const facilityRef = doc(db, FACILITIES_COLLECTION, id);
-      await updateDoc(facilityRef, {
+      const updateData = {
         ...data,
         updatedAt: serverTimestamp()
-      });
+      };
+
+      // Generate new slug if name or location is updated
+      if (data.name || data.location) {
+        const facilityDoc = await getDoc(facilityRef);
+        const currentData = facilityDoc.data();
+        const name = data.name || currentData?.name;
+        const location = data.location || currentData?.location;
+        updateData.slug = generateSlug(name, location);
+      }
+
+      await updateDoc(facilityRef, updateData);
       return true;
     } catch (error) {
       console.error('Error updating facility:', error);
