@@ -1,4 +1,4 @@
-import { Building2, ShieldCheck } from 'lucide-react';
+import { Building2, ShieldCheck, Phone, Globe } from 'lucide-react';
 import { Facility } from '../types';
 import Button from './ui/Button';
 
@@ -41,8 +41,10 @@ export default function ContactBox({ facility }: ContactBoxProps) {
               variant="primary"
               fullWidth
               onClick={() => window.location.href = `tel:${facility.phone}`}
+              className="flex items-center justify-center gap-2"
             >
-              Call {facility.name}
+              <Phone className="w-5 h-5" />
+              <span>Call {facility.name}</span>
             </Button>
           )}
 
@@ -50,8 +52,10 @@ export default function ContactBox({ facility }: ContactBoxProps) {
             variant="secondary"
             fullWidth
             onClick={() => window.open(`https://${facility.name.toLowerCase().replace(/\s+/g, '')}.com`, '_blank')}
+            className="flex items-center justify-center gap-2"
           >
-            Visit Website
+            <Globe className="w-5 h-5" />
+            <span>Visit Website</span>
           </Button>
 
           <Button
