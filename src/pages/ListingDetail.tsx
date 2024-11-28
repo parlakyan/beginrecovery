@@ -1,6 +1,6 @@
 import { useEffect, useState } from 'react';
-import { useParams, Link } from 'react-router-dom';
-import { Edit2 } from 'lucide-react';
+import { useParams } from 'react-router-dom';
+import { Edit2, ShieldCheck, ShieldAlert, CheckCircle, XCircle, Clock, MapPin, Star } from 'lucide-react';
 import { facilitiesService } from '../services/firebase';
 import { useAuthStore } from '../store/authStore';
 import { Facility } from '../types';
@@ -12,12 +12,15 @@ import ReviewsSection from '../components/ReviewsSection';
 import MapSection from '../components/MapSection';
 import StaffSection from '../components/StaffSection';
 import CertificationsSection from '../components/CertificationsSection';
+import Button from '../components/ui/Button';
+import EditListingModal from '../components/EditListingModal';
 
 export default function ListingDetail() {
   const { id } = useParams<{ id: string }>();
   const { user } = useAuthStore();
   const [facility, setFacility] = useState<Facility | null>(null);
   const [loading, setLoading] = useState(true);
+  const [isEditModalOpen, setIsEditModalOpen] = useState(false);
 
   useEffect(() => {
     window.scrollTo(0, 0);
@@ -28,7 +31,7 @@ export default function ListingDetail() {
       try {
         setLoading(true);
         const data = await facilitiesService.getFacilityById(id);
-        if (data && data.moderationStatus === 'approved') {
+        if (data) {
           setFacility(data);
         }
       } catch (error) {
@@ -40,6 +43,55 @@ export default function ListingDetail() {
 
     fetchFacility();
   }, [id]);
+
+  const handleApprove = async () => {
+    if (!facility) return;
+    try {
+      await facilitiesService.approveFacility(facility.id);
+      const updatedFacility = await facilitiesService.getFacilityById(facility.id);
+      if (updatedFacility) setFacility(updatedFacility);
+    } catch (error) {
+      console.error('Error approving facility:', error);
+    }
+  };
+
+  const handleReject = async () => {
+    if (!facility) return;
+    try {
+      await facilitiesService.rejectFacility(facility.id);
+      const updatedFacility = await facilitiesService.getFacilityById(facility.id);
+      if (updatedFacility) setFacility(updatedFacility);
+    } catch (error) {
+      console.error('Error rejecting facility:', error);
+    }
+  };
+
+  const handleVerificationToggle = async () => {
+    if (!facility) return;
+    try {
+      if (facility.isVerified) {
+        await facilitiesService.unverifyFacility(facility.id);
+      } else {
+        await facilitiesService.verifyFacility(facility.id);
+      }
+      const updatedFacility = await facilitiesService.getFacilityById(facility.id);
+      if (updatedFacility) setFacility(updatedFacility);
+    } catch (error) {
+      console.error('Error toggling verification:', error);
+    }
+  };
+
+  const handleSave = async (data: Partial<Facility>) => {
+    if (!facility) return;
+    try {
+      await facilitiesService.updateFacility(facility.id, data);
+      const updatedFacility = await facilitiesService.getFacilityById(facility.id);
+      if (updatedFacility) setFacility(updatedFacility);
+      setIsEditModalOpen(false);
+    } catch (error) {
+      console.error('Error updating facility:', error);
+    }
+  };
 
   if (loading) {
     return (
@@ -74,7 +126,7 @@ export default function ListingDetail() {
     <div className="min-h-screen bg-gray-50">
       <Header />
       
-      <main className="relative">
+      <main className="relative pb-16">
         {/* Hero Section with Image Carousel */}
         <div className="relative h-[50vh] min-h-[400px] bg-gray-900">
           <ImageCarousel 
@@ -82,15 +134,61 @@ export default function ListingDetail() {
             showNavigation={facility.images.length > 1}
           />
           
-          {/* Admin Edit Button */}
+          {/* Admin Controls */}
           {user?.role === 'admin' && (
-            <Link
-              to={`/admin/listings/${facility.id}/edit`}
-              className="absolute top-4 right-4 bg-white/90 backdrop-blur-sm px-4 py-2 rounded-lg flex items-center gap-2 shadow-lg hover:bg-white transition-colors"
-            >
-              <Edit2 className="w-4 h-4" />
-              <span>Edit Listing</span>
-            </Link>
+            <div className="absolute top-4 right-4 flex items-center gap-2">
+              <Button
+                variant="secondary"
+                onClick={() => setIsEditModalOpen(true)}
+                className="flex items-center gap-2"
+              >
+                <Edit2 className="w-4 h-4" />
+                Edit Facility
+              </Button>
+
+              <Button
+                variant="secondary"
+                onClick={handleVerificationToggle}
+                className={`flex items-center gap-2 ${
+                  facility.isVerified 
+                    ? 'bg-green-50 text-green-700 hover:bg-green-100' 
+                    : 'bg-gray-50 text-gray-700 hover:bg-gray-100'
+                }`}
+              >
+                {facility.isVerified ? (
+                  <>
+                    <ShieldCheck className="w-4 h-4" />
+                    Verified
+                  </>
+                ) : (
+                  <>
+                    <ShieldAlert className="w-4 h-4" />
+                    Unverified
+                  </>
+                )}
+              </Button>
+
+              {facility.moderationStatus === 'pending' && (
+                <>
+                  <Button
+                    variant="primary"
+                    onClick={handleApprove}
+                    className="flex items-center gap-2"
+                  >
+                    <CheckCircle className="w-4 h-4" />
+                    Approve
+                  </Button>
+                  <Button
+                    variant="secondary"
+                    onClick={handleReject}
+                    className="flex items-center gap-2 !bg-red-50 !text-red-700 hover:!bg-red-100"
+                  >
+                    <XCircle className="w-4 h-4" />
+                    Reject
+                  </Button>
+                </>
+              )}
+            </div>
           )}
         </div>
 
@@ -100,11 +198,38 @@ export default function ListingDetail() {
             <div className="lg:col-span-2 space-y-8">
               {/* Basic Info */}
               <div className="bg-white rounded-lg shadow-lg p-6">
-                <h1 className="text-3xl font-bold text-gray-900">{facility.name}</h1>
-                <p className="mt-2 text-gray-600">{facility.location}</p>
+                <div className="flex flex-col md:flex-row md:items-start md:justify-between gap-4">
+                  <div className="flex-1">
+                    <h1 className="text-3xl font-bold text-gray-900 mb-4">{facility.name}</h1>
+                    
+                    {/* Location and Hours */}
+                    <div className="space-y-2">
+                      <div className="flex items-center text-gray-600">
+                        <MapPin className="w-5 h-5 mr-2" />
+                        <span>{facility.location}</span>
+                      </div>
+                      <div className="flex items-center text-gray-600">
+                        <Clock className="w-5 h-5 mr-2" />
+                        <span>Open 24/7</span>
+                      </div>
+                    </div>
+                  </div>
+
+                  {/* Reviews Summary */}
+                  <div className="flex flex-col items-center bg-blue-50 px-6 py-4 rounded-lg">
+                    <div className="flex items-center gap-2 mb-1">
+                      <Star className="w-6 h-6 text-yellow-400 fill-current" />
+                      <span className="text-2xl font-bold">{facility.rating.toFixed(1)}</span>
+                    </div>
+                    <div className="text-center">
+                      <div className="font-medium text-gray-900">Excellent</div>
+                      <div className="text-sm text-gray-600">{facility.reviewCount} reviews</div>
+                    </div>
+                  </div>
+                </div>
                 
                 {/* Tags */}
-                <div className="mt-4 flex flex-wrap gap-2">
+                <div className="mt-6 flex flex-wrap gap-2">
                   {facility.tags.map((tag, index) => (
                     <span 
                       key={index}
@@ -159,6 +284,16 @@ export default function ListingDetail() {
           </div>
         </div>
       </main>
+
+      {/* Edit Modal */}
+      {isEditModalOpen && (
+        <EditListingModal
+          facility={facility}
+          isOpen={isEditModalOpen}
+          onClose={() => setIsEditModalOpen(false)}
+          onSave={handleSave}
+        />
+      )}
 
       <Footer />
     </div>
