@@ -15,15 +15,30 @@ export default {
           '0%': { transform: 'translateX(0)' },
           '100%': { transform: 'translateX(100%)' }
         },
+        slideInLeft: {
+          '0%': { transform: 'translateX(-100%)' },
+          '100%': { transform: 'translateX(0)' }
+        },
+        slideInRight: {
+          '0%': { transform: 'translateX(100%)' },
+          '100%': { transform: 'translateX(0)' }
+        },
         fadeIn: {
           '0%': { opacity: '0' },
           '100%': { opacity: '1' }
+        },
+        fadeOut: {
+          '0%': { opacity: '1' },
+          '100%': { opacity: '0' }
         }
       },
       animation: {
-        slideLeft: 'slideLeft 0.5s ease-in-out',
-        slideRight: 'slideRight 0.5s ease-in-out',
-        fadeIn: 'fadeIn 0.5s ease-in-out'
+        slideLeft: 'slideLeft 500ms ease-in-out',
+        slideRight: 'slideRight 500ms ease-in-out',
+        slideInLeft: 'slideInLeft 500ms ease-in-out',
+        slideInRight: 'slideInRight 500ms ease-in-out',
+        fadeIn: 'fadeIn 500ms ease-in-out',
+        fadeOut: 'fadeOut 500ms ease-in-out'
       },
       colors: {
         'teal': {

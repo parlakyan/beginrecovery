@@ -26,7 +26,6 @@ export default function HomePage() {
   const [filters, setFilters] = useState(defaultFilters);
 
   useEffect(() => {
-    // Scroll to top on mount
     window.scrollTo(0, 0);
     
     const fetchFacilities = async () => {
@@ -71,7 +70,7 @@ export default function HomePage() {
         
         <div className="container mx-auto px-4 py-12">
           <div className="text-center mb-8">
-            <p className="text-gray-600 text-lg">
+            <p className="text-lg text-gray-600">
               Access our comprehensive resources and expert guidance to help you find the right treatment center for your journey to recovery
             </p>
           </div>
@@ -87,16 +86,13 @@ export default function HomePage() {
         {featuredFacilities.length > 0 && (
           <section className="py-20 bg-white">
             <div className="container mx-auto px-4">
-              <div className="flex justify-between items-center mb-12">
-                <div className="text-center md:text-left">
-                  <h2 className="text-3xl font-bold mb-2">Featured Treatment Centers</h2>
-                  <p className="text-gray-600">Discover our highly-rated rehabilitation facilities</p>
-                </div>
-                <button className="text-blue-600 hover:text-blue-700 font-medium">
-                  View All
-                </button>
+              <div className="max-w-3xl mx-auto text-center mb-16">
+                <h2 className="text-4xl font-bold text-gray-900 mb-6">Featured Treatment Centers</h2>
+                <p className="text-xl text-gray-600">
+                  Discover our highly-rated rehabilitation facilities, providing exceptional care and support for your recovery journey.
+                </p>
               </div>
-              <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6 max-w-6xl mx-auto">
+              <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-8 max-w-7xl mx-auto">
                 {featuredFacilities.map((facility) => (
                   facility && <RehabCard key={facility.id} facility={facility} />
                 ))}
@@ -111,16 +107,13 @@ export default function HomePage() {
         {/* Recent Treatment Centers */}
         <section className="py-20 bg-white">
           <div className="container mx-auto px-4">
-            <div className="flex justify-between items-center mb-12">
-              <div className="text-center md:text-left">
-                <h2 className="text-3xl font-bold mb-2">Recent Treatment Centers</h2>
-                <p className="text-gray-600">Browse our latest verified rehabilitation facilities</p>
-              </div>
-              <button className="text-blue-600 hover:text-blue-700 font-medium">
-                View All
-              </button>
+            <div className="max-w-3xl mx-auto text-center mb-16">
+              <h2 className="text-4xl font-bold text-gray-900 mb-6">Recent Treatment Centers</h2>
+              <p className="text-xl text-gray-600">
+                Explore our latest verified rehabilitation facilities, each committed to providing quality care and comprehensive treatment programs.
+              </p>
             </div>
-            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6 max-w-6xl mx-auto">
+            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-8 max-w-7xl mx-auto">
               {loading ? (
                 <div className="col-span-3 flex justify-center py-12">
                   <div className="animate-spin rounded-full h-12 w-12 border-4 border-blue-600 border-t-transparent"></div>
