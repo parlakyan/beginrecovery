@@ -123,21 +123,25 @@ export default function ListingDetail() {
                 </div>
               </div>
 
-              {/* Certifications Section */}
-              <div className="bg-white rounded-lg shadow-lg p-6">
-                <h2 className="text-xl font-semibold mb-6">Certifications & Licenses</h2>
-                <CertificationsSection />
-              </div>
+              {/* Certifications Section - Only for verified facilities */}
+              {facility.isVerified && (
+                <div className="bg-white rounded-lg shadow-lg p-6">
+                  <h2 className="text-xl font-semibold mb-6">Certifications & Licenses</h2>
+                  <CertificationsSection />
+                </div>
+              )}
 
               {/* Reviews Section */}
               <div className="bg-white rounded-lg shadow-lg p-6">
                 <ReviewsSection facility={facility} />
               </div>
 
-              {/* Staff Section */}
-              <div className="bg-white rounded-lg shadow-lg p-6">
-                <StaffSection />
-              </div>
+              {/* Staff Section - Only for verified facilities */}
+              {facility.isVerified && (
+                <div className="bg-white rounded-lg shadow-lg p-6">
+                  <StaffSection />
+                </div>
+              )}
 
               {/* Map Section */}
               <div className="bg-white rounded-lg shadow-lg p-6">

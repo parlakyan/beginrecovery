@@ -127,11 +127,8 @@ export default function AdminDashboard() {
   const handleApprove = async (id: string) => {
     try {
       setLoading(true);
-      // Approve and verify the facility
-      await Promise.all([
-        facilitiesService.approveFacility(id),
-        facilitiesService.verifyFacility(id)
-      ]);
+      // Only change moderation status to approved
+      await facilitiesService.approveFacility(id);
       await fetchFacilities();
     } catch (error) {
       console.error('Error approving facility:', error);
@@ -143,14 +140,27 @@ export default function AdminDashboard() {
   const handleReject = async (id: string) => {
     try {
       setLoading(true);
-      // Reject and unverify the facility
-      await Promise.all([
-        facilitiesService.rejectFacility(id),
-        facilitiesService.unverifyFacility(id)
-      ]);
+      // Only change moderation status to rejected
+      await facilitiesService.rejectFacility(id);
       await fetchFacilities();
     } catch (error) {
       console.error('Error rejecting facility:', error);
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  const handleVerificationToggle = async (id: string, isVerified: boolean) => {
+    try {
+      setLoading(true);
+      if (isVerified) {
+        await facilitiesService.unverifyFacility(id);
+      } else {
+        await facilitiesService.verifyFacility(id);
+      }
+      await fetchFacilities();
+    } catch (error) {
+      console.error('Error toggling verification:', error);
     } finally {
       setLoading(false);
     }
@@ -316,33 +326,61 @@ export default function AdminDashboard() {
                         </td>
                         <td className="py-4 px-4">
                           <div className="flex items-center gap-2">
+                            {/* Approval/Rejection buttons - only show for pending facilities */}
                             {!showArchived && facility.moderationStatus === 'pending' && (
                               <>
                                 <button 
                                   onClick={() => handleApprove(facility.id)}
                                   className="p-1 text-green-600 hover:bg-green-50 rounded" 
-                                  title="Approve"
+                                  title="Approve Listing"
                                 >
                                   <CheckCircle className="w-5 h-5" />
                                 </button>
                                 <button 
                                   onClick={() => handleReject(facility.id)}
                                   className="p-1 text-red-600 hover:bg-red-50 rounded" 
-                                  title="Reject"
+                                  title="Reject Listing"
                                 >
                                   <XCircle className="w-5 h-5" />
                                 </button>
                               </>
                             )}
+
+                            {/* Verification toggle - show for all non-archived facilities */}
+                            {!showArchived && (
+                              <button 
+                                onClick={() => handleVerificationToggle(facility.id, facility.isVerified)}
+                                className={`p-1 rounded ${
+                                  facility.isVerified 
+                                    ? 'text-green-600 hover:bg-green-50' 
+                                    : 'text-gray-400 hover:bg-gray-50'
+                                }`}
+                                title={facility.isVerified ? "Remove Verification" : "Verify Listing"}
+                              >
+                                {facility.isVerified ? (
+                                  <ShieldCheck className="w-5 h-5" />
+                                ) : (
+                                  <ShieldAlert className="w-5 h-5" />
+                                )}
+                              </button>
+                            )}
+
+                            {/* Feature toggle - only show for approved facilities */}
                             {!showArchived && facility.moderationStatus === 'approved' && (
                               <button 
                                 onClick={() => handleFeature(facility.id, facility.isFeatured)}
-                                className={`p-1 rounded ${facility.isFeatured ? 'text-yellow-500 hover:bg-yellow-50' : 'text-gray-400 hover:bg-gray-50'}`}
+                                className={`p-1 rounded ${
+                                  facility.isFeatured 
+                                    ? 'text-yellow-500 hover:bg-yellow-50' 
+                                    : 'text-gray-400 hover:bg-gray-50'
+                                }`}
                                 title={facility.isFeatured ? "Unfeature" : "Feature"}
                               >
                                 <Star className="w-5 h-5" fill={facility.isFeatured ? "currentColor" : "none"} />
                               </button>
                             )}
+
+                            {/* Edit button */}
                             <button 
                               onClick={() => handleEdit(facility)}
                               className="p-1 text-blue-600 hover:bg-blue-50 rounded" 
@@ -350,6 +388,8 @@ export default function AdminDashboard() {
                             >
                               <Edit2 className="w-5 h-5" />
                             </button>
+
+                            {/* Archive/Delete button */}
                             {!showArchived ? (
                               <button 
                                 onClick={() => setArchiveDialog({ isOpen: true, facilityId: facility.id })}
