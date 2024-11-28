@@ -1,126 +1,71 @@
-import React from 'react';
-import { MessageCircle, Star, ThumbsUp } from 'lucide-react';
+import { Star } from 'lucide-react';
+import { Facility } from '../types';
 
 interface ReviewsSectionProps {
-  facility: {
-    rating: number;
-    reviewCount: number;
-  };
+  facility: Facility;
 }
 
-const reviews = [
-  {
-    id: 'review-1',
-    author: 'John D.',
-    rating: 5,
-    date: '2 months ago',
-    content: "The staff was incredibly supportive and professional. The facility is beautiful and well-maintained. My recovery journey started here, and I'm forever grateful.",
-    helpful: 12
-  },
-  {
-    id: 'review-2',
-    author: 'Sarah M.',
-    rating: 5,
-    date: '3 months ago',
-    content: 'Outstanding treatment program with a perfect balance of therapy, activities, and personal time. The private rooms were comfortable and the amenities were excellent.',
-    helpful: 8
-  },
-  {
-    id: 'review-3',
-    author: 'Michael R.',
-    rating: 4,
-    date: '4 months ago',
-    content: 'Great experience overall. The therapists are highly qualified and genuinely care about your recovery. The location is peaceful and conducive to healing.',
-    helpful: 6
-  }
-];
-
 export default function ReviewsSection({ facility }: ReviewsSectionProps) {
-  const renderStars = (rating: number, idPrefix: string) => {
-    return Array.from({ length: 5 }).map((_, i) => (
-      <Star
-        key={`${idPrefix}-star-${i}`}
-        className={`w-5 h-5 ${
-          i < Math.floor(rating)
-            ? 'text-yellow-400 fill-current'
-            : 'text-gray-300'
-        }`}
+  // Mock reviews data
+  const reviews = [
+    {
+      id: 1,
+      author: 'John D.',
+      rating: 5,
+      date: '2 months ago',
+      content: 'Excellent facility with caring staff. The amenities were top-notch and the environment was very conducive to recovery.',
+      helpful: 12
+    },
+    {
+      id: 2,
+      author: 'Sarah M.',
+      rating: 4,
+      date: '3 months ago',
+      content: 'Very professional team and great support system. The facility is clean and well-maintained.',
+      helpful: 8
+    },
+    {
+      id: 3,
+      author: 'Michael R.',
+      rating: 5,
+      date: '1 month ago',
+      content: 'The staff here truly cares about your recovery. They go above and beyond to ensure you have everything you need.',
+      helpful: 15
+    }
+  ];
+
+  const renderStars = (rating: number) => {
+    return [...Array(5)].map((_, index) => (
+      <Star 
+        key={index}
+        className={`w-4 h-4 ${index < rating ? 'text-yellow-400 fill-current' : 'text-gray-300'}`}
       />
     ));
   };
 
-  const renderRatingBars = () => {
-    return [5, 4, 3, 2, 1].map((rating) => {
-      const count = reviews.filter((r) => r.rating === rating).length;
-      const percentage = (count / reviews.length) * 100;
-      
-      return (
-        <div key={`rating-bar-${rating}`} className="flex items-center gap-2 mb-2">
-          <div className="text-sm text-gray-600 w-8">{rating} star</div>
-          <div className="flex-1 h-2 bg-gray-200 rounded-full overflow-hidden">
-            <div
-              className="h-full bg-yellow-400"
-              style={{ width: `${percentage}%` }}
-            />
-          </div>
-          <div className="text-sm text-gray-600 w-8">{count}</div>
-        </div>
-      );
-    });
-  };
-
   return (
-    <section className="bg-white rounded-xl shadow-lg p-8 mb-8">
-      <div className="flex items-center gap-3 mb-8">
-        <MessageCircle className="w-8 h-8 text-blue-600" />
-        <h2 className="text-2xl font-bold">Reviews</h2>
-      </div>
-
-      {/* Overall Rating */}
-      <div className="flex items-center gap-8 mb-8 p-6 bg-gray-50 rounded-xl">
-        <div className="text-center">
-          <div className="text-4xl font-bold text-gray-900 mb-2">{facility.rating}</div>
-          <div className="flex items-center gap-1 mb-1">
-            {renderStars(facility.rating, 'overall')}
-          </div>
-          <div className="text-sm text-gray-600">{facility.reviewCount} reviews</div>
-        </div>
-
-        {/* Rating Breakdown */}
-        <div className="flex-1">
-          {renderRatingBars()}
-        </div>
-      </div>
-
-      {/* Reviews List */}
+    <div className="bg-white rounded-lg shadow-lg p-6">
+      <h2 className="text-xl font-semibold mb-6">Reviews</h2>
+      
       <div className="space-y-6">
-        {reviews.map((review) => (
-          <div key={`review-${review.id}`} className="border-b pb-6">
-            <div className="flex items-center justify-between mb-4">
+        {reviews.map(review => (
+          <div key={review.id} className="border-b border-gray-100 last:border-0 pb-6 last:pb-0">
+            <div className="flex items-center justify-between mb-2">
               <div>
-                <div className="font-semibold mb-1">{review.author}</div>
-                <div className="flex items-center gap-2">
-                  <div className="flex">
-                    {renderStars(review.rating, `review-${review.id}`)}
-                  </div>
-                  <span className="text-sm text-gray-600">{review.date}</span>
-                </div>
+                <div className="font-medium">{review.author}</div>
+                <div className="text-sm text-gray-500">{review.date}</div>
               </div>
-              <button className="flex items-center gap-2 text-gray-600 hover:text-blue-600">
-                <ThumbsUp className="w-4 h-4" />
-                <span className="text-sm">Helpful ({review.helpful})</span>
-              </button>
+              <div className="flex items-center gap-1">
+                {renderStars(review.rating)}
+              </div>
             </div>
-            <p className="text-gray-600">{review.content}</p>
+            <p className="text-gray-600 mb-3">{review.content}</p>
+            <button className="text-sm text-blue-600 hover:text-blue-700 flex items-center gap-1">
+              <span>Helpful ({review.helpful})</span>
+            </button>
           </div>
         ))}
       </div>
-
-      <div className="mt-8 text-center">
-        <button className="bg-gray-100 text-gray-800 px-6 py-3 rounded-lg font-semibold hover:bg-gray-200 transition-colors">
-          Show More Reviews
-        </button>
-      </div>
-    </section>
+    </div>
   );
 }

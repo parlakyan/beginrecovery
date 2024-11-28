@@ -1,66 +1,57 @@
-import React from 'react';
-import { Users } from 'lucide-react';
-
-const staff = [
-  {
-    name: 'Dr. Sarah Johnson',
-    role: 'Medical Director',
-    image: 'https://images.unsplash.com/photo-1494790108377-be9c29b29330?auto=format&fit=crop&q=80',
-    credentials: 'MD, ABAM',
-    description: 'Board-certified addiction medicine specialist with 15 years of experience.'
-  },
-  {
-    name: 'Michael Chen',
-    role: 'Clinical Director',
-    image: 'https://images.unsplash.com/photo-1472099645785-5658abf4ff4e?auto=format&fit=crop&q=80',
-    credentials: 'PhD, LMFT',
-    description: 'Licensed therapist specializing in dual diagnosis treatment.'
-  },
-  {
-    name: 'Lisa Rodriguez',
-    role: 'Lead Therapist',
-    image: 'https://images.unsplash.com/photo-1438761681033-6461ffad8d80?auto=format&fit=crop&q=80',
-    credentials: 'LCSW',
-    description: 'Experienced in trauma-informed care and family therapy.'
-  },
-  {
-    name: 'James Wilson',
-    role: 'Recovery Coach',
-    image: 'https://images.unsplash.com/photo-1500648767791-00dcc994a43e?auto=format&fit=crop&q=80',
-    credentials: 'CADC-II',
-    description: 'Certified addiction counselor with personal recovery experience.'
-  }
-];
+import { User } from 'lucide-react';
 
 export default function StaffSection() {
-  return (
-    <section className="bg-white rounded-xl shadow-lg p-8 mb-8">
-      <div className="flex items-center gap-3 mb-8">
-        <Users className="w-8 h-8 text-blue-600" />
-        <h2 className="text-2xl font-bold">Our Staff</h2>
-      </div>
+  const staff = [
+    {
+      name: 'Dr. Sarah Johnson',
+      role: 'Medical Director',
+      credentials: 'MD, FASAM',
+      description: 'Board-certified in addiction medicine with over 15 years of experience.'
+    },
+    {
+      name: 'Michael Chen',
+      role: 'Clinical Director',
+      credentials: 'LCSW, CADC',
+      description: 'Licensed clinical social worker specializing in dual diagnosis treatment.'
+    },
+    {
+      name: 'Dr. Robert Martinez',
+      role: 'Psychiatrist',
+      credentials: 'MD',
+      description: 'Expert in treating co-occurring mental health disorders.'
+    },
+    {
+      name: 'Emily Thompson',
+      role: 'Lead Therapist',
+      credentials: 'MA, LPC',
+      description: 'Specialized in trauma-informed care and CBT.'
+    }
+  ];
 
-      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-8">
+  return (
+    <div className="bg-white rounded-lg shadow-lg p-6">
+      <h2 className="text-xl font-semibold mb-6">Our Staff</h2>
+      
+      <div className="grid gap-6 md:grid-cols-2">
         {staff.map((member, index) => (
-          <div key={index} className="text-center">
-            <img
-              src={member.image}
-              alt={member.name}
-              className="w-32 h-32 rounded-full object-cover mx-auto mb-4"
-            />
-            <h3 className="text-lg font-semibold mb-1">{member.name}</h3>
-            <div className="text-blue-600 font-medium mb-1">{member.role}</div>
-            <div className="text-sm text-gray-600 mb-2">{member.credentials}</div>
-            <p className="text-sm text-gray-600">{member.description}</p>
+          <div 
+            key={index}
+            className="flex items-start gap-4 p-4 rounded-lg bg-gray-50"
+          >
+            <div className="flex-shrink-0">
+              <div className="w-12 h-12 rounded-full bg-blue-100 flex items-center justify-center">
+                <User className="w-6 h-6 text-blue-600" />
+              </div>
+            </div>
+            <div>
+              <h3 className="font-semibold text-gray-900">{member.name}</h3>
+              <div className="text-sm text-blue-600 mb-1">{member.role}</div>
+              <div className="text-sm font-medium text-gray-500 mb-2">{member.credentials}</div>
+              <p className="text-sm text-gray-600">{member.description}</p>
+            </div>
           </div>
         ))}
       </div>
-
-      <div className="mt-8 text-center">
-        <button className="bg-gray-100 text-gray-800 px-6 py-3 rounded-lg font-semibold hover:bg-gray-200 transition-colors">
-          View All Staff
-        </button>
-      </div>
-    </section>
+    </div>
   );
 }

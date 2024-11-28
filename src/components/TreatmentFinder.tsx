@@ -1,4 +1,3 @@
-import React from 'react';
 import { Brain, Cloud, Sparkles, Zap, Apple, Heart } from 'lucide-react';
 
 const categories = [
@@ -54,31 +53,35 @@ const categories = [
 
 export default function TreatmentFinder() {
   return (
-    <section className="py-20 bg-white">
+    <section className="py-20 bg-gray-50">
       <div className="container mx-auto px-4">
-        <div className="flex justify-between items-center mb-12">
-          <div className="text-center md:text-left">
-            <h2 className="text-3xl font-bold mb-2">Find Treatment</h2>
-            <p className="text-gray-600">Browse over 3,500 Treatment Providers</p>
-          </div>
-          <button className="text-blue-600 hover:text-blue-700 font-medium">
-            All Conditions
-          </button>
+        <div className="max-w-3xl mx-auto text-center mb-16">
+          <h2 className="text-4xl font-bold text-gray-900 mb-6">Find Treatment</h2>
+          <p className="text-xl text-gray-600">Browse over 3,500 Treatment Providers</p>
         </div>
 
-        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6 max-w-6xl mx-auto">
-          {categories.map((category, index) => (
-            <button 
-              key={index}
-              className={`group p-8 rounded-2xl transition-all duration-200 ${category.bgColor} ${category.hoverColor} text-center md:text-left`}
-            >
-              <div className={`w-16 h-16 rounded-xl ${category.bgColor} flex items-center justify-center mb-6 mx-auto md:mx-0 group-hover:scale-110 transition-transform duration-300`}>
-                <category.icon className={`w-8 h-8 ${category.iconColor}`} />
-              </div>
-              <h3 className="text-xl font-semibold mb-2">{category.name}</h3>
-              <p className="text-gray-600">{category.description}</p>
+        <div className="max-w-6xl mx-auto">
+          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+            {categories.map((category, index) => (
+              <button 
+                key={index}
+                className={`group p-8 rounded-xl transition-all duration-200 ${category.bgColor} ${category.hoverColor} text-center md:text-left`}
+              >
+                <div className={`w-16 h-16 rounded-xl ${category.bgColor} flex items-center justify-center mb-6 mx-auto md:mx-0 group-hover:scale-110 transition-transform duration-300`}>
+                  <category.icon className={`w-8 h-8 ${category.iconColor}`} />
+                </div>
+                <h3 className="text-xl font-semibold mb-2">{category.name}</h3>
+                <p className="text-gray-600">{category.description}</p>
+              </button>
+            ))}
+          </div>
+
+          <div className="mt-12 text-center">
+            <button className="text-blue-600 hover:text-blue-700 font-medium inline-flex items-center gap-2">
+              <span>View All Treatment Options</span>
+              <Heart className="w-4 h-4" />
             </button>
-          ))}
+          </div>
         </div>
       </div>
     </section>
