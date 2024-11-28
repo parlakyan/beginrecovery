@@ -21,6 +21,7 @@ export default function ListingDetail() {
   const [facility, setFacility] = useState<Facility | null>(null);
   const [loading, setLoading] = useState(true);
   const [isEditModalOpen, setIsEditModalOpen] = useState(false);
+  const coordinates = { lat: 34.0522, lng: -118.2437 };
 
   useEffect(() => {
     window.scrollTo(0, 0);
@@ -120,13 +121,11 @@ export default function ListingDetail() {
     );
   }
 
-  const coordinates = { lat: 34.0522, lng: -118.2437 };
-
   return (
-    <div className="min-h-screen bg-gray-50">
+    <div className="min-h-screen bg-gray-50 flex flex-col">
       <Header />
       
-      <main className="relative pb-16">
+      <main className="flex-grow">
         {/* Hero Section with Image Carousel */}
         <div className="relative h-[50vh] min-h-[400px] bg-gray-900">
           <ImageCarousel 
@@ -192,7 +191,7 @@ export default function ListingDetail() {
           )}
         </div>
 
-        <div className="relative max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 -mt-16">
+        <div className="relative max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 -mt-16 pb-24">
           <div className="grid grid-cols-1 lg:grid-cols-3 gap-8">
             {/* Main Content */}
             <div className="lg:col-span-2 space-y-8">
@@ -230,7 +229,7 @@ export default function ListingDetail() {
                 
                 {/* Tags */}
                 <div className="mt-6 flex flex-wrap gap-2">
-                  {facility.tags.map((tag, index) => (
+                  {facility.tags.map((tag: string, index: number) => (
                     <span 
                       key={index}
                       className="inline-flex items-center px-3 py-1 rounded-full text-sm font-medium bg-blue-100 text-blue-800"
@@ -250,7 +249,7 @@ export default function ListingDetail() {
                 <div className="mt-8">
                   <h2 className="text-xl font-semibold mb-4">Amenities & Services</h2>
                   <div className="flex flex-wrap gap-2">
-                    {facility.amenities.map((amenity, index) => (
+                    {facility.amenities.map((amenity: string, index: number) => (
                       <span 
                         key={index}
                         className="inline-flex items-center px-3 py-1 rounded-full text-sm font-medium bg-teal-50 text-teal-700"

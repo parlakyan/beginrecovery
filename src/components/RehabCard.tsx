@@ -7,13 +7,13 @@ import { Facility } from '../types';
 export default function RehabCard({ facility }: { facility: Facility }) {
   const navigate = useNavigate();
 
-  const handleClick = () => {
-    window.scrollTo(0, 0); // Scroll to top before navigation
+  const handleNavigation = () => {
+    window.scrollTo(0, 0);
     navigate(`/listing/${facility.id}`);
   };
 
   const VerificationBadge = () => (
-    <div className={`absolute top-4 left-4 ${facility.isVerified ? 'bg-green-50' : 'bg-gray-50'} backdrop-blur-sm px-3 py-1.5 rounded-full flex items-center gap-2 shadow-lg border ${facility.isVerified ? 'border-green-200' : 'border-gray-200'}`}>
+    <div className={`absolute top-4 left-4 ${facility.isVerified ? 'bg-green-50' : 'bg-gray-50'} backdrop-blur-sm px-3 py-1.5 rounded-full flex items-center gap-2 shadow-lg border ${facility.isVerified ? 'border-green-200' : 'border-gray-200'} z-20`}>
       {facility.isVerified ? (
         <>
           <ShieldCheck className={`w-4 h-4 text-green-600`} />
@@ -30,19 +30,20 @@ export default function RehabCard({ facility }: { facility: Facility }) {
 
   return (
     <div className="group bg-white rounded-2xl shadow-md hover:shadow-xl transition-all duration-300 overflow-hidden cursor-pointer border border-gray-100">
-      <div className="relative" onClick={(e) => e.stopPropagation()}>
+      <div className="relative h-[240px]">
         <ImageCarousel 
           images={facility.images} 
           showNavigation={facility.images.length > 1}
+          onImageClick={handleNavigation}
         />
         <VerificationBadge />
-        <div className="absolute top-4 right-4 bg-white/90 backdrop-blur-sm px-3 py-1 rounded-full flex items-center gap-1 shadow-lg">
+        <div className="absolute top-4 right-4 bg-white/90 backdrop-blur-sm px-3 py-1 rounded-full flex items-center gap-1 shadow-lg z-20">
           <Star className="w-4 h-4 text-yellow-400 fill-current" />
           <span className="font-semibold">{facility.rating}</span>
         </div>
       </div>
 
-      <div className="p-6" onClick={handleClick}>
+      <div className="p-6" onClick={handleNavigation}>
         <h2 className="text-xl font-bold text-gray-900 mb-3 group-hover:text-blue-600 transition-colors">
           {facility.name}
         </h2>
