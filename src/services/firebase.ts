@@ -26,7 +26,7 @@ import { Facility, User } from '../types';
 
 const FACILITIES_COLLECTION = 'facilities';
 const USERS_COLLECTION = 'users';
-const BATCH_SIZE = 6;
+const BATCH_SIZE = 12;
 
 // Get auth instance directly
 const auth = getAuth();
@@ -139,7 +139,7 @@ const transformFacilityData = (doc: QueryDocumentSnapshot<DocumentData>): Facili
     subscriptionId: data.subscriptionId,
     phone: data.phone || '',
     tags: data.tags || [],
-    isVerified: Boolean(data.subscriptionId),
+    isVerified: Boolean(data.isVerified),
     isFeatured: Boolean(data.isFeatured),
     moderationStatus: data.moderationStatus || 'pending'
   };
@@ -198,7 +198,7 @@ export const facilitiesService = {
     }
   },
 
-  async getFeaturedFacilities() {
+  async getFeaturedFacilities(resultLimit = 6) {
     try {
       console.log('Fetching featured facilities');
       const facilitiesRef = collection(db, FACILITIES_COLLECTION);
@@ -206,7 +206,7 @@ export const facilitiesService = {
         facilitiesRef,
         where('moderationStatus', '==', 'approved'),
         where('isFeatured', '==', true),
-        limit(BATCH_SIZE)
+        limit(resultLimit)
       );
       
       const snapshot = await getDocs(q);
@@ -216,6 +216,42 @@ export const facilitiesService = {
     } catch (error) {
       console.error('Error getting featured facilities:', error);
       return [];
+    }
+  },
+
+  async verifyFacility(id: string) {
+    try {
+      console.log('Verifying facility:', id);
+      const facilityRef = doc(db, FACILITIES_COLLECTION, id);
+      
+      await updateDoc(facilityRef, {
+        isVerified: true,
+        updatedAt: serverTimestamp()
+      });
+
+      console.log('Facility verified successfully');
+      return true;
+    } catch (error) {
+      console.error('Error verifying facility:', error);
+      throw error;
+    }
+  },
+
+  async unverifyFacility(id: string) {
+    try {
+      console.log('Unverifying facility:', id);
+      const facilityRef = doc(db, FACILITIES_COLLECTION, id);
+      
+      await updateDoc(facilityRef, {
+        isVerified: false,
+        updatedAt: serverTimestamp()
+      });
+
+      console.log('Facility unverified successfully');
+      return true;
+    } catch (error) {
+      console.error('Error unverifying facility:', error);
+      throw error;
     }
   },
 
@@ -287,10 +323,10 @@ export const facilitiesService = {
         rating: 0,
         reviewCount: 0,
         isFeatured: false,
+        isVerified: false,
         createdAt: serverTimestamp(),
         updatedAt: serverTimestamp(),
-        moderationStatus: 'pending',
-        isVerified: false
+        moderationStatus: 'pending'
       };
 
       const docRef = await addDoc(collection(db, FACILITIES_COLLECTION), facilityData);

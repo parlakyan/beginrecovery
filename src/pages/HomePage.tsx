@@ -8,7 +8,6 @@ import SearchFilters from '../components/SearchFilters';
 import RehabCard from '../components/RehabCard';
 import TreatmentFinder from '../components/TreatmentFinder';
 import InsuranceSection from '../components/InsuranceSection';
-import CertificationsSection from '../components/CertificationsSection';
 import LocationBrowser from '../components/LocationBrowser';
 
 const defaultFilters = {
@@ -27,6 +26,9 @@ export default function HomePage() {
   const [filters, setFilters] = useState(defaultFilters);
 
   useEffect(() => {
+    // Scroll to top on mount
+    window.scrollTo(0, 0);
+    
     const fetchFacilities = async () => {
       try {
         setLoading(true);
@@ -133,9 +135,6 @@ export default function HomePage() {
 
         {/* Insurance Section */}
         <InsuranceSection />
-
-        {/* Certifications Section */}
-        <CertificationsSection />
 
         {/* Location Browser */}
         <LocationBrowser />

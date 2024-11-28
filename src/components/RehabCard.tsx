@@ -8,6 +8,7 @@ export default function RehabCard({ facility }: { facility: Facility }) {
   const navigate = useNavigate();
 
   const handleClick = () => {
+    window.scrollTo(0, 0); // Scroll to top before navigation
     navigate(`/listing/${facility.id}`);
   };
 
@@ -33,7 +34,10 @@ export default function RehabCard({ facility }: { facility: Facility }) {
       className="group bg-white rounded-2xl shadow-md hover:shadow-xl transition-all duration-300 overflow-hidden cursor-pointer border border-gray-100"
     >
       <div className="relative">
-        <ImageCarousel images={facility.images} />
+        <ImageCarousel 
+          images={facility.images} 
+          showNavigation={facility.images.length > 1}
+        />
         <VerificationBadge />
         <div className="absolute top-4 right-4 bg-white/90 backdrop-blur-sm px-3 py-1 rounded-full flex items-center gap-1 shadow-lg">
           <Star className="w-4 h-4 text-yellow-400 fill-current" />

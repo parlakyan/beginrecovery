@@ -9,6 +9,7 @@ import ContactBox from '../components/ContactBox';
 import ReviewsSection from '../components/ReviewsSection';
 import MapSection from '../components/MapSection';
 import StaffSection from '../components/StaffSection';
+import CertificationsSection from '../components/CertificationsSection';
 
 export default function ListingDetail() {
   const { id } = useParams<{ id: string }>();
@@ -84,8 +85,9 @@ export default function ListingDetail() {
         <div className="relative max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 -mt-16">
           <div className="grid grid-cols-1 lg:grid-cols-3 gap-8">
             {/* Main Content */}
-            <div className="lg:col-span-2">
-              <div className="bg-white rounded-lg shadow-lg p-6 mb-8">
+            <div className="lg:col-span-2 space-y-8">
+              {/* Basic Info */}
+              <div className="bg-white rounded-lg shadow-lg p-6">
                 <h1 className="text-3xl font-bold text-gray-900">{facility.name}</h1>
                 <p className="mt-2 text-gray-600">{facility.location}</p>
                 
@@ -121,14 +123,27 @@ export default function ListingDetail() {
                 </div>
               </div>
 
+              {/* Certifications Section */}
+              <div className="bg-white rounded-lg shadow-lg p-6">
+                <h2 className="text-xl font-semibold mb-6">Certifications & Licenses</h2>
+                <CertificationsSection />
+              </div>
+
               {/* Reviews Section */}
-              <ReviewsSection facility={facility} />
+              <div className="bg-white rounded-lg shadow-lg p-6">
+                <ReviewsSection facility={facility} />
+              </div>
 
               {/* Staff Section */}
-              <StaffSection />
+              <div className="bg-white rounded-lg shadow-lg p-6">
+                <StaffSection />
+              </div>
 
               {/* Map Section */}
-              <MapSection coordinates={coordinates} />
+              <div className="bg-white rounded-lg shadow-lg p-6">
+                <h2 className="text-xl font-semibold mb-6">Location</h2>
+                <MapSection coordinates={coordinates} />
+              </div>
             </div>
 
             {/* Contact Box - Sticky */}

@@ -1,4 +1,5 @@
 import React, { useState, useEffect } from 'react';
+import { useNavigate } from 'react-router-dom';
 import { 
   LayoutGrid, 
   ListFilter, 
@@ -15,7 +16,6 @@ import {
   ShieldAlert,
   Star
 } from 'lucide-react';
-import { useNavigate } from 'react-router-dom';
 import { useAuthStore } from '../store/authStore';
 import { facilitiesService } from '../services/firebase';
 import { Facility } from '../types';
@@ -48,6 +48,9 @@ export default function AdminDashboard() {
 
   // Redirect if not admin
   useEffect(() => {
+    // Scroll to top on mount
+    window.scrollTo(0, 0);
+    
     if (user?.role !== 'admin') {
       navigate('/');
     }
@@ -63,7 +66,7 @@ export default function AdminDashboard() {
       ]);
       
       // Filter out archived facilities from allListings
-      const activeFacilities = allListings.filter(f => f.moderationStatus !== 'archived');
+      const activeFacilities = allListings.filter((f: Facility) => f.moderationStatus !== 'archived');
       
       setFacilities(activeFacilities);
       setArchivedFacilities(archivedListings);
@@ -123,19 +126,33 @@ export default function AdminDashboard() {
 
   const handleApprove = async (id: string) => {
     try {
-      await facilitiesService.approveFacility(id);
+      setLoading(true);
+      // Approve and verify the facility
+      await Promise.all([
+        facilitiesService.approveFacility(id),
+        facilitiesService.verifyFacility(id)
+      ]);
       await fetchFacilities();
     } catch (error) {
       console.error('Error approving facility:', error);
+    } finally {
+      setLoading(false);
     }
   };
 
   const handleReject = async (id: string) => {
     try {
-      await facilitiesService.rejectFacility(id);
+      setLoading(true);
+      // Reject and unverify the facility
+      await Promise.all([
+        facilitiesService.rejectFacility(id),
+        facilitiesService.unverifyFacility(id)
+      ]);
       await fetchFacilities();
     } catch (error) {
       console.error('Error rejecting facility:', error);
+    } finally {
+      setLoading(false);
     }
   };
 
