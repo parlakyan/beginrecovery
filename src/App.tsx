@@ -34,6 +34,8 @@ export default function App() {
     <>
       <Routes>
         <Route path="/" element={<HomePage />} />
+        {/* Support both old and new URL formats */}
+        <Route path="/listing/:id" element={<ListingDetail />} />
         <Route path="/:slug" element={<ListingDetail />} />
         <Route path="/login" element={<Login />} />
         <Route path="/register" element={<Register />} />

@@ -16,7 +16,7 @@ import { Button, Tag } from '../components/ui';
 import EditListingModal from '../components/EditListingModal';
 
 export default function ListingDetail() {
-  const { slug } = useParams<{ slug: string }>();
+  const { slug, id } = useParams<{ slug?: string; id?: string }>();
   const navigate = useNavigate();
   const { user } = useAuthStore();
   const [facility, setFacility] = useState<Facility | null>(null);
@@ -28,11 +28,21 @@ export default function ListingDetail() {
     window.scrollTo(0, 0);
     
     const fetchFacility = async () => {
-      if (!slug) return;
-      
       try {
         setLoading(true);
-        const data = await facilitiesService.getFacilityBySlug(slug);
+        let data = null;
+
+        if (id) {
+          // If we have an ID, fetch by ID and redirect to slug URL
+          data = await facilitiesService.getFacilityById(id);
+          if (data && data.slug) {
+            navigate(`/${data.slug}`, { replace: true });
+          }
+        } else if (slug) {
+          // If we have a slug, fetch by slug
+          data = await facilitiesService.getFacilityBySlug(slug);
+        }
+
         if (data) {
           setFacility(data);
         }
@@ -44,7 +54,7 @@ export default function ListingDetail() {
     };
 
     fetchFacility();
-  }, [slug]);
+  }, [id, slug, navigate]);
 
   const handleApprove = async () => {
     if (!facility) return;
