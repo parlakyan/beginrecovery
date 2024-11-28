@@ -62,7 +62,7 @@ export default function ImageCarousel({ images, showNavigation = true, onImageCl
           <div
             key={index}
             className={`absolute inset-0 transition-opacity duration-500 ease-in-out ${
-              index === currentIndex ? 'opacity-100 z-10' : 'opacity-0 z-0'
+              index === currentIndex ? 'opacity-100' : 'opacity-0'
             }`}
             style={{ willChange: 'opacity' }}
           >
@@ -82,21 +82,21 @@ export default function ImageCarousel({ images, showNavigation = true, onImageCl
           {/* Previous/Next Buttons */}
           <button
             onClick={prevSlide}
-            className="absolute left-4 top-1/2 -translate-y-1/2 z-20 bg-black/50 hover:bg-black/75 text-white p-2 rounded-full transition-all duration-200 transform hover:scale-105"
+            className="absolute left-4 top-1/2 -translate-y-1/2 z-10 bg-black/50 hover:bg-black/75 text-white p-2 rounded-full transition-all duration-200 transform hover:scale-105"
             style={{ backdropFilter: 'blur(4px)' }}
           >
             <ChevronLeft className="w-6 h-6" />
           </button>
           <button
             onClick={nextSlide}
-            className="absolute right-4 top-1/2 -translate-y-1/2 z-20 bg-black/50 hover:bg-black/75 text-white p-2 rounded-full transition-all duration-200 transform hover:scale-105"
+            className="absolute right-4 top-1/2 -translate-y-1/2 z-10 bg-black/50 hover:bg-black/75 text-white p-2 rounded-full transition-all duration-200 transform hover:scale-105"
             style={{ backdropFilter: 'blur(4px)' }}
           >
             <ChevronRight className="w-6 h-6" />
           </button>
 
           {/* Dots */}
-          <div className="absolute bottom-4 left-1/2 -translate-x-1/2 flex gap-2 z-20">
+          <div className="absolute bottom-4 left-1/2 -translate-x-1/2 flex gap-2 z-10">
             {images.map((_, index) => (
               <button
                 key={index}

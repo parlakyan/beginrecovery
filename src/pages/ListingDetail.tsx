@@ -12,7 +12,7 @@ import ReviewsSection from '../components/ReviewsSection';
 import MapSection from '../components/MapSection';
 import StaffSection from '../components/StaffSection';
 import CertificationsSection from '../components/CertificationsSection';
-import Button from '../components/ui/Button';
+import { Button } from '../components/ui';
 import EditListingModal from '../components/EditListingModal';
 
 export default function ListingDetail() {
@@ -135,7 +135,7 @@ export default function ListingDetail() {
           
           {/* Admin Controls */}
           {user?.role === 'admin' && (
-            <div className="absolute top-4 right-4 flex items-center gap-2">
+            <div className="absolute top-4 right-4 flex items-center gap-2 z-20">
               <Button
                 variant="secondary"
                 onClick={() => setIsEditModalOpen(true)}
@@ -191,7 +191,7 @@ export default function ListingDetail() {
           )}
         </div>
 
-        <div className="relative max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 -mt-16 pb-24">
+        <div className="relative max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 -mt-16 pb-24 z-10">
           <div className="grid grid-cols-1 lg:grid-cols-3 gap-8">
             {/* Main Content */}
             <div className="lg:col-span-2 space-y-8">
