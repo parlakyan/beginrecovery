@@ -1,6 +1,6 @@
-import { Building2, ShieldCheck, Phone, Globe } from 'lucide-react';
+import { Building2, ShieldCheck, Phone, Globe, MessageCircle } from 'lucide-react';
 import { Facility } from '../types';
-import Button from './ui/Button';
+import { Button } from './ui';
 
 interface ContactBoxProps {
   facility: Facility;
@@ -30,7 +30,13 @@ export default function ContactBox({ facility }: ContactBoxProps) {
         <div className="bg-blue-50 rounded-lg p-4">
           <h4 className="font-medium text-blue-900 mb-2">Insurance Accepted</h4>
           <p className="text-sm text-blue-700">
-            We work with most major insurance providers. Contact us to verify your coverage.
+            We work with most major insurance providers.{' '}
+            <button 
+              onClick={() => {/* Add insurance check handler */}} 
+              className="text-blue-600 hover:text-blue-700 underline font-medium"
+            >
+              Check insurance coverage
+            </button>
           </p>
         </div>
 
@@ -51,18 +57,21 @@ export default function ContactBox({ facility }: ContactBoxProps) {
           <Button
             variant="secondary"
             fullWidth
+            onClick={() => {/* Add message handler */}}
+            className="flex items-center justify-center gap-2"
+          >
+            <MessageCircle className="w-5 h-5" />
+            <span>Message</span>
+          </Button>
+
+          <Button
+            variant="secondary"
+            fullWidth
             onClick={() => window.open(`https://${facility.name.toLowerCase().replace(/\s+/g, '')}.com`, '_blank')}
             className="flex items-center justify-center gap-2"
           >
             <Globe className="w-5 h-5" />
             <span>Visit Website</span>
-          </Button>
-
-          <Button
-            variant="primary"
-            fullWidth
-          >
-            Check Insurance Coverage
           </Button>
         </div>
 

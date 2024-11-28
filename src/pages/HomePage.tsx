@@ -9,6 +9,7 @@ import RehabCard from '../components/RehabCard';
 import TreatmentFinder from '../components/TreatmentFinder';
 import InsuranceSection from '../components/InsuranceSection';
 import LocationBrowser from '../components/LocationBrowser';
+import CoreValues from '../components/CoreValues';
 
 const defaultFilters = {
   treatmentTypes: [],
@@ -72,7 +73,7 @@ export default function HomePage() {
         <div className="container mx-auto px-4 py-12">
           <div className="text-center mb-8">
             <p className="text-gray-600 text-lg">
-              Access our comprehensive resources and expert guidance to help you find the right treatment center for your journey to recovery
+              Our mission is to connect you with trusted, licensed treatment centers that provide personalized care and support for lasting recovery
             </p>
           </div>
           <SearchFilters 
@@ -82,6 +83,9 @@ export default function HomePage() {
             onFilterChange={setFilters}
           />
         </div>
+
+        {/* Core Values Section */}
+        <CoreValues />
 
         {/* Featured Treatment Centers */}
         {featuredFacilities.length > 0 && (
