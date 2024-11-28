@@ -14,7 +14,8 @@ import {
   X,
   ShieldCheck,
   ShieldAlert,
-  Star
+  Star,
+  RotateCcw
 } from 'lucide-react';
 import { useAuthStore } from '../store/authStore';
 import { facilitiesService } from '../services/firebase';
@@ -48,7 +49,6 @@ export default function AdminDashboard() {
 
   // Redirect if not admin
   useEffect(() => {
-    // Scroll to top on mount
     window.scrollTo(0, 0);
     
     if (user?.role !== 'admin') {
@@ -127,7 +127,6 @@ export default function AdminDashboard() {
   const handleApprove = async (id: string) => {
     try {
       setLoading(true);
-      // Only change moderation status to approved
       await facilitiesService.approveFacility(id);
       await fetchFacilities();
     } catch (error) {
@@ -140,7 +139,6 @@ export default function AdminDashboard() {
   const handleReject = async (id: string) => {
     try {
       setLoading(true);
-      // Only change moderation status to rejected
       await facilitiesService.rejectFacility(id);
       await fetchFacilities();
     } catch (error) {
@@ -190,6 +188,18 @@ export default function AdminDashboard() {
       setArchiveDialog({ isOpen: false, facilityId: null });
     } catch (error) {
       console.error('Error archiving facility:', error);
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  const handleRestore = async (id: string) => {
+    try {
+      setLoading(true);
+      await facilitiesService.restoreFacility(id);
+      await fetchFacilities();
+    } catch (error) {
+      console.error('Error restoring facility:', error);
     } finally {
       setLoading(false);
     }
@@ -326,86 +336,96 @@ export default function AdminDashboard() {
                         </td>
                         <td className="py-4 px-4">
                           <div className="flex items-center gap-2">
-                            {/* Approval/Rejection buttons - only show for pending facilities */}
-                            {!showArchived && facility.moderationStatus === 'pending' && (
+                            {showArchived ? (
                               <>
                                 <button 
-                                  onClick={() => handleApprove(facility.id)}
-                                  className="p-1 text-green-600 hover:bg-green-50 rounded" 
-                                  title="Approve Listing"
+                                  onClick={() => handleRestore(facility.id)}
+                                  className="p-1 text-blue-600 hover:bg-blue-50 rounded flex items-center gap-1" 
+                                  title="Restore Listing"
                                 >
-                                  <CheckCircle className="w-5 h-5" />
+                                  <RotateCcw className="w-5 h-5" />
+                                  <span className="text-sm">Restore</span>
                                 </button>
                                 <button 
-                                  onClick={() => handleReject(facility.id)}
+                                  onClick={() => setDeleteDialog({ isOpen: true, facilityId: facility.id })}
                                   className="p-1 text-red-600 hover:bg-red-50 rounded" 
-                                  title="Reject Listing"
+                                  title="Delete Permanently"
                                 >
-                                  <XCircle className="w-5 h-5" />
+                                  <Trash2 className="w-5 h-5" />
                                 </button>
                               </>
-                            )}
-
-                            {/* Verification toggle - show for all non-archived facilities */}
-                            {!showArchived && (
-                              <button 
-                                onClick={() => handleVerificationToggle(facility.id, facility.isVerified)}
-                                className={`p-1 rounded ${
-                                  facility.isVerified 
-                                    ? 'text-green-600 hover:bg-green-50' 
-                                    : 'text-gray-400 hover:bg-gray-50'
-                                }`}
-                                title={facility.isVerified ? "Remove Verification" : "Verify Listing"}
-                              >
-                                {facility.isVerified ? (
-                                  <ShieldCheck className="w-5 h-5" />
-                                ) : (
-                                  <ShieldAlert className="w-5 h-5" />
-                                )}
-                              </button>
-                            )}
-
-                            {/* Feature toggle - only show for approved facilities */}
-                            {!showArchived && facility.moderationStatus === 'approved' && (
-                              <button 
-                                onClick={() => handleFeature(facility.id, facility.isFeatured)}
-                                className={`p-1 rounded ${
-                                  facility.isFeatured 
-                                    ? 'text-yellow-500 hover:bg-yellow-50' 
-                                    : 'text-gray-400 hover:bg-gray-50'
-                                }`}
-                                title={facility.isFeatured ? "Unfeature" : "Feature"}
-                              >
-                                <Star className="w-5 h-5" fill={facility.isFeatured ? "currentColor" : "none"} />
-                              </button>
-                            )}
-
-                            {/* Edit button */}
-                            <button 
-                              onClick={() => handleEdit(facility)}
-                              className="p-1 text-blue-600 hover:bg-blue-50 rounded" 
-                              title="Edit"
-                            >
-                              <Edit2 className="w-5 h-5" />
-                            </button>
-
-                            {/* Archive/Delete button */}
-                            {!showArchived ? (
-                              <button 
-                                onClick={() => setArchiveDialog({ isOpen: true, facilityId: facility.id })}
-                                className="p-1 text-gray-600 hover:bg-gray-50 rounded" 
-                                title="Archive"
-                              >
-                                <Archive className="w-5 h-5" />
-                              </button>
                             ) : (
-                              <button 
-                                onClick={() => setDeleteDialog({ isOpen: true, facilityId: facility.id })}
-                                className="p-1 text-red-600 hover:bg-red-50 rounded" 
-                                title="Delete Permanently"
-                              >
-                                <Trash2 className="w-5 h-5" />
-                              </button>
+                              <>
+                                {/* Approval/Rejection buttons - only show for pending facilities */}
+                                {facility.moderationStatus === 'pending' && (
+                                  <>
+                                    <button 
+                                      onClick={() => handleApprove(facility.id)}
+                                      className="p-1 text-green-600 hover:bg-green-50 rounded" 
+                                      title="Approve Listing"
+                                    >
+                                      <CheckCircle className="w-5 h-5" />
+                                    </button>
+                                    <button 
+                                      onClick={() => handleReject(facility.id)}
+                                      className="p-1 text-red-600 hover:bg-red-50 rounded" 
+                                      title="Reject Listing"
+                                    >
+                                      <XCircle className="w-5 h-5" />
+                                    </button>
+                                  </>
+                                )}
+
+                                {/* Verification toggle - show for all non-archived facilities */}
+                                <button 
+                                  onClick={() => handleVerificationToggle(facility.id, facility.isVerified)}
+                                  className={`p-1 rounded ${
+                                    facility.isVerified 
+                                      ? 'text-green-600 hover:bg-green-50' 
+                                      : 'text-gray-400 hover:bg-gray-50'
+                                  }`}
+                                  title={facility.isVerified ? "Remove Verification" : "Verify Listing"}
+                                >
+                                  {facility.isVerified ? (
+                                    <ShieldCheck className="w-5 h-5" />
+                                  ) : (
+                                    <ShieldAlert className="w-5 h-5" />
+                                  )}
+                                </button>
+
+                                {/* Feature toggle - only show for approved facilities */}
+                                {facility.moderationStatus === 'approved' && (
+                                  <button 
+                                    onClick={() => handleFeature(facility.id, facility.isFeatured)}
+                                    className={`p-1 rounded ${
+                                      facility.isFeatured 
+                                        ? 'text-yellow-500 hover:bg-yellow-50' 
+                                        : 'text-gray-400 hover:bg-gray-50'
+                                    }`}
+                                    title={facility.isFeatured ? "Unfeature" : "Feature"}
+                                  >
+                                    <Star className="w-5 h-5" fill={facility.isFeatured ? "currentColor" : "none"} />
+                                  </button>
+                                )}
+
+                                {/* Edit button */}
+                                <button 
+                                  onClick={() => handleEdit(facility)}
+                                  className="p-1 text-blue-600 hover:bg-blue-50 rounded" 
+                                  title="Edit"
+                                >
+                                  <Edit2 className="w-5 h-5" />
+                                </button>
+
+                                {/* Archive button */}
+                                <button 
+                                  onClick={() => setArchiveDialog({ isOpen: true, facilityId: facility.id })}
+                                  className="p-1 text-gray-600 hover:bg-gray-50 rounded" 
+                                  title="Archive"
+                                >
+                                  <Archive className="w-5 h-5" />
+                                </button>
+                              </>
                             )}
                           </div>
                         </td>

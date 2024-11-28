@@ -29,11 +29,8 @@ export default function RehabCard({ facility }: { facility: Facility }) {
   );
 
   return (
-    <div 
-      onClick={handleClick}
-      className="group bg-white rounded-2xl shadow-md hover:shadow-xl transition-all duration-300 overflow-hidden cursor-pointer border border-gray-100"
-    >
-      <div className="relative">
+    <div className="group bg-white rounded-2xl shadow-md hover:shadow-xl transition-all duration-300 overflow-hidden cursor-pointer border border-gray-100">
+      <div className="relative" onClick={(e) => e.stopPropagation()}>
         <ImageCarousel 
           images={facility.images} 
           showNavigation={facility.images.length > 1}
@@ -45,7 +42,7 @@ export default function RehabCard({ facility }: { facility: Facility }) {
         </div>
       </div>
 
-      <div className="p-6">
+      <div className="p-6" onClick={handleClick}>
         <h2 className="text-xl font-bold text-gray-900 mb-3 group-hover:text-blue-600 transition-colors">
           {facility.name}
         </h2>
@@ -84,10 +81,6 @@ export default function RehabCard({ facility }: { facility: Facility }) {
 
         <button 
           className="w-full bg-gradient-to-r from-blue-600 to-blue-700 text-white py-3 rounded-xl hover:from-blue-700 hover:to-blue-800 transition-all duration-200 flex items-center justify-center gap-2 group/button"
-          onClick={(e) => {
-            e.stopPropagation();
-            handleClick();
-          }}
         >
           View Details
           <ArrowRight className="w-4 h-4 group-hover/button:translate-x-1 transition-transform" />

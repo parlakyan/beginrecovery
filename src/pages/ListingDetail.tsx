@@ -1,6 +1,8 @@
 import { useEffect, useState } from 'react';
-import { useParams } from 'react-router-dom';
+import { useParams, Link } from 'react-router-dom';
+import { Edit2 } from 'lucide-react';
 import { facilitiesService } from '../services/firebase';
+import { useAuthStore } from '../store/authStore';
 import { Facility } from '../types';
 import Header from '../components/Header';
 import Footer from '../components/Footer';
@@ -13,11 +15,11 @@ import CertificationsSection from '../components/CertificationsSection';
 
 export default function ListingDetail() {
   const { id } = useParams<{ id: string }>();
+  const { user } = useAuthStore();
   const [facility, setFacility] = useState<Facility | null>(null);
   const [loading, setLoading] = useState(true);
 
   useEffect(() => {
-    // Scroll to top on mount
     window.scrollTo(0, 0);
     
     const fetchFacility = async () => {
@@ -26,7 +28,6 @@ export default function ListingDetail() {
       try {
         setLoading(true);
         const data = await facilitiesService.getFacilityById(id);
-        // Only show approved facilities
         if (data && data.moderationStatus === 'approved') {
           setFacility(data);
         }
@@ -67,7 +68,7 @@ export default function ListingDetail() {
     );
   }
 
-  const coordinates = { lat: 34.0522, lng: -118.2437 }; // Example coordinates for LA
+  const coordinates = { lat: 34.0522, lng: -118.2437 };
 
   return (
     <div className="min-h-screen bg-gray-50">
@@ -80,6 +81,17 @@ export default function ListingDetail() {
             images={facility.images} 
             showNavigation={facility.images.length > 1}
           />
+          
+          {/* Admin Edit Button */}
+          {user?.role === 'admin' && (
+            <Link
+              to={`/admin/listings/${facility.id}/edit`}
+              className="absolute top-4 right-4 bg-white/90 backdrop-blur-sm px-4 py-2 rounded-lg flex items-center gap-2 shadow-lg hover:bg-white transition-colors"
+            >
+              <Edit2 className="w-4 h-4" />
+              <span>Edit Listing</span>
+            </Link>
+          )}
         </div>
 
         <div className="relative max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 -mt-16">
@@ -112,47 +124,35 @@ export default function ListingDetail() {
                 {/* Amenities */}
                 <div className="mt-8">
                   <h2 className="text-xl font-semibold mb-4">Amenities & Services</h2>
-                  <div className="grid grid-cols-2 md:grid-cols-3 gap-4">
+                  <div className="flex flex-wrap gap-2">
                     {facility.amenities.map((amenity, index) => (
-                      <div key={index} className="flex items-center gap-2">
-                        <div className="h-2 w-2 bg-blue-600 rounded-full"></div>
-                        <span>{amenity}</span>
-                      </div>
+                      <span 
+                        key={index}
+                        className="inline-flex items-center px-3 py-1 rounded-full text-sm font-medium bg-teal-50 text-teal-700"
+                      >
+                        {amenity}
+                      </span>
                     ))}
                   </div>
                 </div>
               </div>
 
               {/* Certifications Section - Only for verified facilities */}
-              {facility.isVerified && (
-                <div className="bg-white rounded-lg shadow-lg p-6">
-                  <h2 className="text-xl font-semibold mb-6">Certifications & Licenses</h2>
-                  <CertificationsSection />
-                </div>
-              )}
+              {facility.isVerified && <CertificationsSection />}
 
               {/* Reviews Section */}
-              <div className="bg-white rounded-lg shadow-lg p-6">
-                <ReviewsSection facility={facility} />
-              </div>
+              <ReviewsSection facility={facility} />
 
               {/* Staff Section - Only for verified facilities */}
-              {facility.isVerified && (
-                <div className="bg-white rounded-lg shadow-lg p-6">
-                  <StaffSection />
-                </div>
-              )}
+              {facility.isVerified && <StaffSection />}
 
               {/* Map Section */}
-              <div className="bg-white rounded-lg shadow-lg p-6">
-                <h2 className="text-xl font-semibold mb-6">Location</h2>
-                <MapSection coordinates={coordinates} />
-              </div>
+              <MapSection coordinates={coordinates} />
             </div>
 
             {/* Contact Box - Sticky */}
             <div className="lg:col-span-1">
-              <div className="sticky top-24"> {/* Increased top spacing to avoid nav overlap */}
+              <div className="sticky top-24">
                 <ContactBox facility={facility} />
               </div>
             </div>

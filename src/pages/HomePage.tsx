@@ -70,6 +70,11 @@ export default function HomePage() {
         <HeroSection />
         
         <div className="container mx-auto px-4 py-12">
+          <div className="text-center mb-8">
+            <p className="text-gray-600 text-lg">
+              Access our comprehensive resources and expert guidance to help you find the right treatment center for your journey to recovery
+            </p>
+          </div>
           <SearchFilters 
             isOpen={isFiltersOpen}
             onClose={() => setIsFiltersOpen(false)}

@@ -150,20 +150,16 @@ export const facilitiesService = {
     try {
       console.log('Fetching approved facilities from collection:', FACILITIES_COLLECTION);
       
-      // First, let's check if we can get any documents at all
       const facilitiesRef = collection(db, FACILITIES_COLLECTION);
       const testQuery = query(facilitiesRef);
       const testSnapshot = await getDocs(testQuery);
       console.log('Total documents in collection:', testSnapshot.size);
       
       if (testSnapshot.size === 0) {
-        console.log('No documents found in collection. Please check:');
-        console.log('1. Collection name:', FACILITIES_COLLECTION);
-        console.log('2. Firebase connection:', db);
+        console.log('No documents found in collection');
         return { facilities: [], lastVisible: null, hasMore: false };
       }
 
-      // Now query for approved facilities
       const baseQuery = query(
         facilitiesRef,
         where('moderationStatus', '==', 'approved')
@@ -172,16 +168,6 @@ export const facilitiesService = {
       const snapshot = await getDocs(baseQuery);
       console.log('Query returned:', snapshot.size, 'approved facilities');
       
-      snapshot.docs.forEach((doc: QueryDocumentSnapshot<DocumentData>) => {
-        const data = doc.data();
-        console.log('Facility data:', {
-          id: doc.id,
-          name: data.name,
-          moderationStatus: data.moderationStatus,
-          isVerified: Boolean(data.subscriptionId)
-        });
-      });
-      
       const facilities = snapshot.docs.map(transformFacilityData);
       const lastVisible = snapshot.docs[snapshot.docs.length - 1] || null;
       const hasMore = snapshot.docs.length === BATCH_SIZE;
@@ -189,16 +175,11 @@ export const facilitiesService = {
       return { facilities, lastVisible, hasMore };
     } catch (error) {
       console.error('Error getting facilities:', error);
-      if (error instanceof Error) {
-        console.error('Error name:', error.name);
-        console.error('Error message:', error.message);
-        console.error('Error stack:', error.stack);
-      }
       return { facilities: [], lastVisible: null, hasMore: false };
     }
   },
 
-  async getFeaturedFacilities(resultLimit = 6) {
+  async getFeaturedFacilities() {
     try {
       console.log('Fetching featured facilities');
       const facilitiesRef = collection(db, FACILITIES_COLLECTION);
@@ -206,7 +187,7 @@ export const facilitiesService = {
         facilitiesRef,
         where('moderationStatus', '==', 'approved'),
         where('isFeatured', '==', true),
-        limit(resultLimit)
+        limit(BATCH_SIZE)
       );
       
       const snapshot = await getDocs(q);
@@ -216,78 +197,6 @@ export const facilitiesService = {
     } catch (error) {
       console.error('Error getting featured facilities:', error);
       return [];
-    }
-  },
-
-  async verifyFacility(id: string) {
-    try {
-      console.log('Verifying facility:', id);
-      const facilityRef = doc(db, FACILITIES_COLLECTION, id);
-      
-      await updateDoc(facilityRef, {
-        isVerified: true,
-        updatedAt: serverTimestamp()
-      });
-
-      console.log('Facility verified successfully');
-      return true;
-    } catch (error) {
-      console.error('Error verifying facility:', error);
-      throw error;
-    }
-  },
-
-  async unverifyFacility(id: string) {
-    try {
-      console.log('Unverifying facility:', id);
-      const facilityRef = doc(db, FACILITIES_COLLECTION, id);
-      
-      await updateDoc(facilityRef, {
-        isVerified: false,
-        updatedAt: serverTimestamp()
-      });
-
-      console.log('Facility unverified successfully');
-      return true;
-    } catch (error) {
-      console.error('Error unverifying facility:', error);
-      throw error;
-    }
-  },
-
-  async featureFacility(id: string) {
-    try {
-      console.log('Featuring facility:', id);
-      const facilityRef = doc(db, FACILITIES_COLLECTION, id);
-      
-      await updateDoc(facilityRef, {
-        isFeatured: true,
-        updatedAt: serverTimestamp()
-      });
-
-      console.log('Facility featured successfully');
-      return true;
-    } catch (error) {
-      console.error('Error featuring facility:', error);
-      throw error;
-    }
-  },
-
-  async unfeatureFacility(id: string) {
-    try {
-      console.log('Unfeaturing facility:', id);
-      const facilityRef = doc(db, FACILITIES_COLLECTION, id);
-      
-      await updateDoc(facilityRef, {
-        isFeatured: false,
-        updatedAt: serverTimestamp()
-      });
-
-      console.log('Facility unfeatured successfully');
-      return true;
-    } catch (error) {
-      console.error('Error unfeaturing facility:', error);
-      throw error;
     }
   },
 
@@ -302,127 +211,10 @@ export const facilitiesService = {
         return null;
       }
       
-      const facility = transformFacilityData(docSnap);
-      console.log('Found facility:', facility);
-      return facility;
+      return transformFacilityData(docSnap);
     } catch (error) {
       console.error('Error getting facility:', error);
       return null;
-    }
-  },
-
-  async createFacility(data: Partial<Facility>) {
-    if (!auth.currentUser) throw new Error('User must be authenticated');
-
-    try {
-      console.log('Creating new facility with data:', data);
-      const facilityData = {
-        ...data,
-        ownerId: auth.currentUser.uid,
-        status: 'pending',
-        rating: 0,
-        reviewCount: 0,
-        isFeatured: false,
-        isVerified: false,
-        createdAt: serverTimestamp(),
-        updatedAt: serverTimestamp(),
-        moderationStatus: 'pending'
-      };
-
-      const docRef = await addDoc(collection(db, FACILITIES_COLLECTION), facilityData);
-      console.log('Created facility with ID:', docRef.id);
-      return { id: docRef.id };
-    } catch (error) {
-      console.error('Error creating facility:', error);
-      throw error;
-    }
-  },
-
-  async updateFacility(id: string, data: Partial<Facility>) {
-    try {
-      console.log('Updating facility:', id, 'with data:', data);
-      const facilityRef = doc(db, FACILITIES_COLLECTION, id);
-      
-      const updateData = {
-        ...data,
-        updatedAt: serverTimestamp()
-      };
-
-      await updateDoc(facilityRef, updateData);
-      console.log('Facility updated successfully');
-      
-      return true;
-    } catch (error) {
-      console.error('Error updating facility:', error);
-      throw error;
-    }
-  },
-
-  async approveFacility(id: string) {
-    try {
-      console.log('Approving facility:', id);
-      const facilityRef = doc(db, FACILITIES_COLLECTION, id);
-      
-      await updateDoc(facilityRef, {
-        moderationStatus: 'approved',
-        updatedAt: serverTimestamp()
-      });
-
-      console.log('Facility approved successfully');
-      return true;
-    } catch (error) {
-      console.error('Error approving facility:', error);
-      throw error;
-    }
-  },
-
-  async rejectFacility(id: string) {
-    try {
-      console.log('Rejecting facility:', id);
-      const facilityRef = doc(db, FACILITIES_COLLECTION, id);
-      
-      await updateDoc(facilityRef, {
-        moderationStatus: 'rejected',
-        updatedAt: serverTimestamp()
-      });
-
-      console.log('Facility rejected successfully');
-      return true;
-    } catch (error) {
-      console.error('Error rejecting facility:', error);
-      throw error;
-    }
-  },
-
-  async archiveFacility(id: string) {
-    try {
-      console.log('Archiving facility:', id);
-      const facilityRef = doc(db, FACILITIES_COLLECTION, id);
-      
-      await updateDoc(facilityRef, {
-        moderationStatus: 'archived',
-        updatedAt: serverTimestamp()
-      });
-
-      console.log('Facility archived successfully');
-      return true;
-    } catch (error) {
-      console.error('Error archiving facility:', error);
-      throw error;
-    }
-  },
-
-  async deleteFacility(id: string) {
-    try {
-      console.log('Deleting facility:', id);
-      const facilityRef = doc(db, FACILITIES_COLLECTION, id);
-      
-      await deleteDoc(facilityRef);
-      console.log('Facility deleted successfully');
-      return true;
-    } catch (error) {
-      console.error('Error deleting facility:', error);
-      throw error;
     }
   },
 
@@ -437,7 +229,6 @@ export const facilitiesService = {
       );
       
       const snapshot = await getDocs(q);
-      console.log('Found', snapshot.size, 'listings for user');
       return snapshot.docs.map(transformFacilityData);
     } catch (error) {
       console.error('Error getting user listings:', error);
@@ -449,36 +240,10 @@ export const facilitiesService = {
     try {
       console.log('Fetching all listings for admin');
       const facilitiesRef = collection(db, FACILITIES_COLLECTION);
-      
-      // First, let's check if we can get any documents at all
       const testQuery = query(facilitiesRef);
-      const testSnapshot = await getDocs(testQuery);
-      console.log('Total documents in collection:', testSnapshot.size);
+      const snapshot = await getDocs(testQuery);
       
-      if (testSnapshot.size === 0) {
-        console.log('No documents found in collection. Please check:');
-        console.log('1. Collection name:', FACILITIES_COLLECTION);
-        console.log('2. Firebase connection:', db);
-        return [];
-      }
-
-      // Log all documents to see what we have
-      testSnapshot.docs.forEach((doc: QueryDocumentSnapshot<DocumentData>) => {
-        const data = doc.data();
-        console.log('Document data:', {
-          id: doc.id,
-          name: data.name,
-          moderationStatus: data.moderationStatus,
-          isVerified: Boolean(data.subscriptionId)
-        });
-      });
-
-      // Filter in memory instead of in query
-      const facilities = testSnapshot.docs.map(transformFacilityData);
-      const activeFacilities = facilities.filter((facility: Facility) => facility.moderationStatus !== 'archived');
-      console.log('Active facilities:', activeFacilities);
-
-      return activeFacilities;
+      return snapshot.docs.map(transformFacilityData);
     } catch (error) {
       console.error('Error getting all listings:', error);
       return [];
@@ -489,37 +254,12 @@ export const facilitiesService = {
     try {
       console.log('Fetching archived listings');
       const facilitiesRef = collection(db, FACILITIES_COLLECTION);
-      
-      // First, let's check if we can get any documents at all
-      const testQuery = query(facilitiesRef);
-      const testSnapshot = await getDocs(testQuery);
-      console.log('Total documents in collection:', testSnapshot.size);
-      
-      if (testSnapshot.size === 0) {
-        console.log('No documents found in collection. Please check:');
-        console.log('1. Collection name:', FACILITIES_COLLECTION);
-        console.log('2. Firebase connection:', db);
-        return [];
-      }
-
-      // Now query for archived facilities
       const q = query(
         facilitiesRef,
         where('moderationStatus', '==', 'archived')
       );
       
       const snapshot = await getDocs(q);
-      console.log('Found', snapshot.size, 'archived listings');
-      
-      snapshot.docs.forEach((doc: QueryDocumentSnapshot<DocumentData>) => {
-        const data = doc.data();
-        console.log('Archived listing data:', {
-          id: doc.id,
-          name: data.name,
-          moderationStatus: data.moderationStatus
-        });
-      });
-
       return snapshot.docs.map(transformFacilityData);
     } catch (error) {
       console.error('Error getting archived listings:', error);
@@ -527,115 +267,140 @@ export const facilitiesService = {
     }
   },
 
-  async searchFacilities(params: SearchParams) {
+  async updateFacility(id: string, data: Partial<Facility>) {
     try {
-      console.log('Searching facilities with params:', params);
-      
-      const facilitiesRef = collection(db, FACILITIES_COLLECTION);
-      let baseQuery = query(
-        facilitiesRef,
-        where('moderationStatus', '==', 'approved')
-      );
-
-      if (params.location) {
-        baseQuery = query(
-          baseQuery,
-          where('location', '>=', params.location.toLowerCase()),
-          where('location', '<=', params.location.toLowerCase() + '\uf8ff')
-        );
-      }
-
-      const snapshot = await getDocs(baseQuery);
-      console.log('Search returned:', snapshot.size, 'facilities');
-      
-      let facilities = snapshot.docs.map(transformFacilityData);
-
-      // Apply filters in memory
-      if (params.query) {
-        const searchTerm = params.query.toLowerCase();
-        facilities = facilities.filter(facility => 
-          facility.name.toLowerCase().includes(searchTerm) ||
-          facility.description.toLowerCase().includes(searchTerm)
-        );
-      }
-
-      if (params.rating) {
-        facilities = facilities.filter(facility => facility.rating >= params.rating!);
-      }
-
-      if (params.tags?.length) {
-        facilities = facilities.filter(facility =>
-          params.tags!.some(tag => facility.tags.includes(tag))
-        );
-      }
-
-      if (params.insurance?.length) {
-        facilities = facilities.filter(facility =>
-          params.insurance!.some(insurance => facility.amenities.includes(insurance))
-        );
-      }
-
-      // Sort by rating
-      facilities.sort((a, b) => b.rating - a.rating);
-
-      return facilities;
+      const facilityRef = doc(db, FACILITIES_COLLECTION, id);
+      await updateDoc(facilityRef, {
+        ...data,
+        updatedAt: serverTimestamp()
+      });
+      return true;
     } catch (error) {
-      console.error('Error searching facilities:', error);
-      return [];
+      console.error('Error updating facility:', error);
+      throw error;
     }
   },
 
-  async getNearbyFacilities(location: string, resultLimit = 6) {
+  async approveFacility(id: string) {
     try {
-      console.log('Fetching nearby facilities for location:', location);
-      
-      const facilitiesRef = collection(db, FACILITIES_COLLECTION);
-      // Simplified query to avoid compound query errors
-      const q = query(
-        facilitiesRef,
-        where('moderationStatus', '==', 'approved'),
-        where('location', '>=', location.toLowerCase()),
-        limit(resultLimit)
-      );
-      
-      const snapshot = await getDocs(q);
-      console.log('Found', snapshot.size, 'nearby facilities');
-      
-      // Sort in memory instead of in query
-      const facilities = snapshot.docs.map(transformFacilityData)
-        .sort((a, b) => b.rating - a.rating);
-      
-      return facilities;
+      const facilityRef = doc(db, FACILITIES_COLLECTION, id);
+      await updateDoc(facilityRef, {
+        moderationStatus: 'approved',
+        updatedAt: serverTimestamp()
+      });
+      return true;
     } catch (error) {
-      console.error('Error getting nearby facilities:', error);
-      return [];
+      console.error('Error approving facility:', error);
+      throw error;
     }
   },
 
-  async getTopRatedFacilities(resultLimit = 6) {
+  async rejectFacility(id: string) {
     try {
-      console.log('Fetching top rated facilities');
-      
-      const facilitiesRef = collection(db, FACILITIES_COLLECTION);
-      // Simplified query to avoid compound query errors
-      const q = query(
-        facilitiesRef,
-        where('moderationStatus', '==', 'approved'),
-        limit(resultLimit * 2) // Fetch more to account for sorting
-      );
-      
-      const snapshot = await getDocs(q);
-      console.log('Found', snapshot.size, 'facilities');
-      
-      // Sort in memory and limit results
-      const facilities = snapshot.docs.map(transformFacilityData)
-        .sort((a, b) => b.rating - a.rating)
-        .slice(0, resultLimit);
-      
-      return facilities;
+      const facilityRef = doc(db, FACILITIES_COLLECTION, id);
+      await updateDoc(facilityRef, {
+        moderationStatus: 'rejected',
+        updatedAt: serverTimestamp()
+      });
+      return true;
     } catch (error) {
-      console.error('Error getting top rated facilities:', error);
-      return [];
+      console.error('Error rejecting facility:', error);
+      throw error;
+    }
+  },
+
+  async verifyFacility(id: string) {
+    try {
+      const facilityRef = doc(db, FACILITIES_COLLECTION, id);
+      await updateDoc(facilityRef, {
+        isVerified: true,
+        updatedAt: serverTimestamp()
+      });
+      return true;
+    } catch (error) {
+      console.error('Error verifying facility:', error);
+      throw error;
+    }
+  },
+
+  async unverifyFacility(id: string) {
+    try {
+      const facilityRef = doc(db, FACILITIES_COLLECTION, id);
+      await updateDoc(facilityRef, {
+        isVerified: false,
+        updatedAt: serverTimestamp()
+      });
+      return true;
+    } catch (error) {
+      console.error('Error unverifying facility:', error);
+      throw error;
+    }
+  },
+
+  async featureFacility(id: string) {
+    try {
+      const facilityRef = doc(db, FACILITIES_COLLECTION, id);
+      await updateDoc(facilityRef, {
+        isFeatured: true,
+        updatedAt: serverTimestamp()
+      });
+      return true;
+    } catch (error) {
+      console.error('Error featuring facility:', error);
+      throw error;
+    }
+  },
+
+  async unfeatureFacility(id: string) {
+    try {
+      const facilityRef = doc(db, FACILITIES_COLLECTION, id);
+      await updateDoc(facilityRef, {
+        isFeatured: false,
+        updatedAt: serverTimestamp()
+      });
+      return true;
+    } catch (error) {
+      console.error('Error unfeaturing facility:', error);
+      throw error;
+    }
+  },
+
+  async archiveFacility(id: string) {
+    try {
+      const facilityRef = doc(db, FACILITIES_COLLECTION, id);
+      await updateDoc(facilityRef, {
+        moderationStatus: 'archived',
+        updatedAt: serverTimestamp()
+      });
+      return true;
+    } catch (error) {
+      console.error('Error archiving facility:', error);
+      throw error;
+    }
+  },
+
+  async restoreFacility(id: string) {
+    try {
+      const facilityRef = doc(db, FACILITIES_COLLECTION, id);
+      await updateDoc(facilityRef, {
+        moderationStatus: 'pending',
+        updatedAt: serverTimestamp()
+      });
+      return true;
+    } catch (error) {
+      console.error('Error restoring facility:', error);
+      throw error;
+    }
+  },
+
+  async deleteFacility(id: string) {
+    try {
+      const facilityRef = doc(db, FACILITIES_COLLECTION, id);
+      await deleteDoc(facilityRef);
+      return true;
+    } catch (error) {
+      console.error('Error deleting facility:', error);
+      throw error;
     }
   }
 };
