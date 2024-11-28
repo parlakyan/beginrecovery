@@ -5,9 +5,15 @@ interface ImageCarouselProps {
   images: string[];
   showNavigation?: boolean;
   onImageClick?: () => void;
+  paginationPosition?: 'bottom' | 'elevated';
 }
 
-export default function ImageCarousel({ images, showNavigation = true, onImageClick }: ImageCarouselProps) {
+export default function ImageCarousel({ 
+  images, 
+  showNavigation = true, 
+  onImageClick,
+  paginationPosition = 'bottom' 
+}: ImageCarouselProps) {
   const [currentIndex, setCurrentIndex] = useState(0);
   const [isTransitioning, setIsTransitioning] = useState(false);
   const [touchStart, setTouchStart] = useState<number | null>(null);
@@ -76,6 +82,11 @@ export default function ImageCarousel({ images, showNavigation = true, onImageCl
     );
   }
 
+  const paginationClasses = {
+    bottom: 'bottom-4',
+    elevated: 'bottom-24'
+  };
+
   return (
     <div 
       className="relative w-full h-full overflow-hidden bg-gray-900"
@@ -126,8 +137,8 @@ export default function ImageCarousel({ images, showNavigation = true, onImageCl
             <ChevronRight className="w-6 h-6" />
           </button>
 
-          {/* Dots - Moved up to avoid content overlap */}
-          <div className="absolute bottom-24 left-1/2 -translate-x-1/2 flex gap-2 z-10">
+          {/* Dots */}
+          <div className={`absolute left-1/2 -translate-x-1/2 flex gap-2 z-10 ${paginationClasses[paginationPosition]}`}>
             {images.map((_, index) => (
               <button
                 key={index}

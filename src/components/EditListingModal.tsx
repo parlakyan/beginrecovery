@@ -1,6 +1,7 @@
 import { useState, useEffect } from 'react';
 import { X, Plus, Trash } from 'lucide-react';
 import { Facility } from '../types';
+import { Tag } from './ui';
 
 interface EditListingModalProps {
   facility: Facility;
@@ -187,19 +188,18 @@ const EditListingModal = ({ facility, isOpen, onClose, onSave }: EditListingModa
             </div>
             <div className="flex flex-wrap gap-2">
               {formData.amenities?.map((amenity, index) => (
-                <span
-                  key={index}
-                  className="px-3 py-1 bg-blue-50 text-blue-600 rounded-full flex items-center gap-1"
-                >
-                  {amenity}
-                  <button
-                    type="button"
-                    onClick={() => handleRemoveAmenity(index)}
-                    className="hover:text-blue-800"
-                  >
-                    <X className="w-4 h-4" />
-                  </button>
-                </span>
+                <div key={index} className="flex items-center">
+                  <Tag variant="primary">
+                    {amenity}
+                    <button
+                      type="button"
+                      onClick={() => handleRemoveAmenity(index)}
+                      className="ml-2 hover:text-blue-800"
+                    >
+                      <X className="w-4 h-4" />
+                    </button>
+                  </Tag>
+                </div>
               ))}
             </div>
           </div>
@@ -227,19 +227,18 @@ const EditListingModal = ({ facility, isOpen, onClose, onSave }: EditListingModa
             </div>
             <div className="flex flex-wrap gap-2">
               {formData.tags?.map((tag, index) => (
-                <span
-                  key={index}
-                  className="px-3 py-1 bg-gray-100 text-gray-600 rounded-full flex items-center gap-1"
-                >
-                  {tag}
-                  <button
-                    type="button"
-                    onClick={() => handleRemoveTag(index)}
-                    className="hover:text-gray-800"
-                  >
-                    <X className="w-4 h-4" />
-                  </button>
-                </span>
+                <div key={index} className="flex items-center">
+                  <Tag variant="secondary">
+                    {tag}
+                    <button
+                      type="button"
+                      onClick={() => handleRemoveTag(index)}
+                      className="ml-2 hover:text-teal-800"
+                    >
+                      <X className="w-4 h-4" />
+                    </button>
+                  </Tag>
+                </div>
               ))}
             </div>
           </div>

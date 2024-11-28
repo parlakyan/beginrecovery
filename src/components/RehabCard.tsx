@@ -2,6 +2,7 @@ import React from 'react';
 import { Star, MapPin, Phone, ArrowRight, ShieldCheck, ShieldAlert } from 'lucide-react';
 import { useNavigate } from 'react-router-dom';
 import ImageCarousel from './ImageCarousel';
+import { Tag } from './ui';
 import { Facility } from '../types';
 
 export default function RehabCard({ facility }: { facility: Facility }) {
@@ -35,6 +36,7 @@ export default function RehabCard({ facility }: { facility: Facility }) {
           images={facility.images} 
           showNavigation={facility.images.length > 1}
           onImageClick={handleNavigation}
+          paginationPosition="bottom"
         />
         <VerificationBadge />
         <div className="absolute top-4 right-4 bg-white/90 backdrop-blur-sm px-3 py-1 rounded-full flex items-center gap-1 shadow-lg z-20">
@@ -64,14 +66,22 @@ export default function RehabCard({ facility }: { facility: Facility }) {
           <p className="text-gray-600 text-sm line-clamp-2">{facility.description}</p>
         </div>
 
+        {/* Tags */}
+        <div className="flex flex-wrap gap-2 mb-2">
+          {facility.tags.slice(0, 2).map((tag, index) => (
+            <Tag key={index} variant="secondary">{tag}</Tag>
+          ))}
+          {facility.tags.length > 2 && (
+            <span className="px-3 py-1 bg-gray-50 text-gray-600 rounded-full text-sm">
+              +{facility.tags.length - 2} more
+            </span>
+          )}
+        </div>
+
+        {/* Amenities */}
         <div className="flex flex-wrap gap-2 mb-6">
           {facility.amenities.slice(0, 3).map((amenity, index) => (
-            <span
-              key={index}
-              className="px-3 py-1 bg-blue-50 text-blue-600 rounded-full text-sm font-medium"
-            >
-              {amenity}
-            </span>
+            <Tag key={index} variant="primary">{amenity}</Tag>
           ))}
           {facility.amenities.length > 3 && (
             <span className="px-3 py-1 bg-gray-50 text-gray-600 rounded-full text-sm">

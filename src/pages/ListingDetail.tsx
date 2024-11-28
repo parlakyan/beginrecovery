@@ -12,7 +12,7 @@ import ReviewsSection from '../components/ReviewsSection';
 import MapSection from '../components/MapSection';
 import StaffSection from '../components/StaffSection';
 import CertificationsSection from '../components/CertificationsSection';
-import { Button } from '../components/ui';
+import { Button, Tag } from '../components/ui';
 import EditListingModal from '../components/EditListingModal';
 
 export default function ListingDetail() {
@@ -131,6 +131,7 @@ export default function ListingDetail() {
           <ImageCarousel 
             images={facility.images} 
             showNavigation={facility.images.length > 1}
+            paginationPosition="elevated"
           />
           
           {/* Admin Controls */}
@@ -230,12 +231,7 @@ export default function ListingDetail() {
                 {/* Tags */}
                 <div className="mt-6 flex flex-wrap gap-2">
                   {facility.tags.map((tag: string, index: number) => (
-                    <span 
-                      key={index}
-                      className="inline-flex items-center px-3 py-1 rounded-full text-sm font-medium bg-blue-100 text-blue-800"
-                    >
-                      {tag}
-                    </span>
+                    <Tag key={index} variant="secondary">{tag}</Tag>
                   ))}
                 </div>
 
@@ -250,12 +246,7 @@ export default function ListingDetail() {
                   <h2 className="text-xl font-semibold mb-4">Amenities & Services</h2>
                   <div className="flex flex-wrap gap-2">
                     {facility.amenities.map((amenity: string, index: number) => (
-                      <span 
-                        key={index}
-                        className="inline-flex items-center px-3 py-1 rounded-full text-sm font-medium bg-teal-50 text-teal-700"
-                      >
-                        {amenity}
-                      </span>
+                      <Tag key={index} variant="primary">{amenity}</Tag>
                     ))}
                   </div>
                 </div>
