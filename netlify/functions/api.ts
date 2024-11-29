@@ -1,40 +1,19 @@
 import { Handler } from '@netlify/functions';
-import { initializeApp, getApps, cert } from 'firebase-admin/app';
-import { getFirestore } from 'firebase-admin/firestore';
-import { getAuth } from 'firebase-admin/auth';
 import Stripe from 'stripe';
+import { db, auth } from './firebase-admin';
 
 if (!process.env.STRIPE_SECRET_KEY) {
   throw new Error('Missing STRIPE_SECRET_KEY environment variable');
 }
 
-if (!process.env.FIREBASE_PRIVATE_KEY || !process.env.FIREBASE_CLIENT_EMAIL) {
-  throw new Error('Missing Firebase credentials');
+if (!process.env.STRIPE_PRICE_ID) {
+  throw new Error('Missing STRIPE_PRICE_ID environment variable');
 }
 
-// Initialize Firebase Admin
-let app;
-try {
-  if (!getApps().length) {
-    app = initializeApp({
-      credential: cert({
-        projectId: process.env.VITE_FIREBASE_PROJECT_ID,
-        clientEmail: process.env.FIREBASE_CLIENT_EMAIL,
-        privateKey: process.env.FIREBASE_PRIVATE_KEY.replace(/\\n/g, '\n')
-      }),
-      databaseURL: process.env.VITE_FIREBASE_DATABASE_URL,
-      storageBucket: process.env.VITE_FIREBASE_STORAGE_BUCKET
-    });
-  } else {
-    app = getApps()[0];
-  }
-} catch (error) {
-  console.error('Firebase initialization error:', error);
-  throw error;
+if (!process.env.SITE_URL) {
+  throw new Error('Missing SITE_URL environment variable');
 }
 
-const db = getFirestore(app);
-const auth = getAuth(app);
 const stripe = new Stripe(process.env.STRIPE_SECRET_KEY, {
   apiVersion: '2023-10-16'
 });
@@ -218,7 +197,8 @@ export const handler: Handler = async (event, context) => {
       headers,
       body: JSON.stringify({ 
         error: 'Internal server error',
-        message: error instanceof Error ? error.message : 'Unknown error'
+        message: error instanceof Error ? error.message : 'Unknown error',
+        details: error instanceof Error ? error.stack : undefined
       })
     };
   }
