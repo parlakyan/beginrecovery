@@ -1,5 +1,5 @@
 import { Handler } from '@netlify/functions';
-import { initializeApp, cert } from 'firebase-admin/app';
+import { initializeApp, getApps, cert } from 'firebase-admin/app';
 import { getFirestore } from 'firebase-admin/firestore';
 import { getAuth } from 'firebase-admin/auth';
 import Stripe from 'stripe';
@@ -8,20 +8,35 @@ if (!process.env.STRIPE_SECRET_KEY) {
   throw new Error('Missing STRIPE_SECRET_KEY environment variable');
 }
 
-if (!process.env.FIREBASE_SERVICE_ACCOUNT) {
-  throw new Error('Missing FIREBASE_SERVICE_ACCOUNT environment variable');
+if (!process.env.FIREBASE_PRIVATE_KEY || !process.env.FIREBASE_CLIENT_EMAIL) {
+  throw new Error('Missing Firebase credentials');
 }
 
 // Initialize Firebase Admin
-const app = initializeApp({
-  credential: cert(JSON.parse(process.env.FIREBASE_SERVICE_ACCOUNT)),
-  databaseURL: process.env.FIREBASE_DATABASE_URL
-}, 'api-app');
+let app;
+try {
+  if (!getApps().length) {
+    app = initializeApp({
+      credential: cert({
+        projectId: process.env.VITE_FIREBASE_PROJECT_ID,
+        clientEmail: process.env.FIREBASE_CLIENT_EMAIL,
+        privateKey: process.env.FIREBASE_PRIVATE_KEY.replace(/\\n/g, '\n')
+      }),
+      databaseURL: process.env.VITE_FIREBASE_DATABASE_URL,
+      storageBucket: process.env.VITE_FIREBASE_STORAGE_BUCKET
+    });
+  } else {
+    app = getApps()[0];
+  }
+} catch (error) {
+  console.error('Firebase initialization error:', error);
+  throw error;
+}
 
 const db = getFirestore(app);
 const auth = getAuth(app);
 const stripe = new Stripe(process.env.STRIPE_SECRET_KEY, {
-  apiVersion: '2024-11-20.acacia' as const
+  apiVersion: '2023-10-16'
 });
 
 export const handler: Handler = async (event, context) => {
@@ -130,7 +145,7 @@ export const handler: Handler = async (event, context) => {
       }
 
       const token = authHeader.split('Bearer ')[1];
-      await auth.verifyIdToken(token);
+      const decodedToken = await auth.verifyIdToken(token);
 
       // Parse request body
       if (!event.body) {
@@ -151,6 +166,18 @@ export const handler: Handler = async (event, context) => {
         };
       }
 
+      // Get facility data
+      const facilityDoc = await db.collection('facilities').doc(facilityId).get();
+      if (!facilityDoc.exists) {
+        return {
+          statusCode: 404,
+          headers,
+          body: JSON.stringify({ error: 'Facility not found' })
+        };
+      }
+
+      const facilityData = facilityDoc.data();
+
       // Create Stripe checkout session
       const session = await stripe.checkout.sessions.create({
         payment_method_types: ['card'],
@@ -159,10 +186,13 @@ export const handler: Handler = async (event, context) => {
           price: process.env.STRIPE_PRICE_ID,
           quantity: 1,
         }],
-        success_url: `${process.env.URL}/payment/success?session_id={CHECKOUT_SESSION_ID}`,
-        cancel_url: `${process.env.URL}/payment/cancel`,
+        success_url: `${process.env.SITE_URL}/payment/success?session_id={CHECKOUT_SESSION_ID}`,
+        cancel_url: `${process.env.SITE_URL}/payment/cancel`,
+        customer_email: decodedToken.email,
         metadata: {
-          facilityId
+          facilityId,
+          userId: decodedToken.uid,
+          facilityName: facilityData?.name || ''
         }
       });
 
@@ -188,7 +218,7 @@ export const handler: Handler = async (event, context) => {
       headers,
       body: JSON.stringify({ 
         error: 'Internal server error',
-        message: (error as Error).message
+        message: error instanceof Error ? error.message : 'Unknown error'
       })
     };
   }
