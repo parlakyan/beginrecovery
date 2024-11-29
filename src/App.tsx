@@ -1,4 +1,4 @@
-import { StrictMode } from 'react';
+import { StrictMode, useEffect } from 'react';
 import { Routes, Route } from 'react-router-dom';
 import HomePage from './pages/HomePage';
 import ListingDetail from './pages/ListingDetail';
@@ -14,10 +14,26 @@ import NotFound from './pages/NotFound';
 import ProtectedRoute from './components/ProtectedRoute';
 import NetworkStatus from './components/NetworkStatus';
 import { useAuthStore } from './store/authStore';
+import { facilitiesService } from './services/firebase';
 import { Loader2 } from 'lucide-react';
 
 export default function App() {
   const { initialized } = useAuthStore();
+
+  useEffect(() => {
+    const initializeApp = async () => {
+      try {
+        // Run the migration when the app starts
+        await facilitiesService.migrateExistingSlugs();
+      } catch (error) {
+        console.error('Error migrating slugs:', error);
+      }
+    };
+
+    if (initialized) {
+      initializeApp();
+    }
+  }, [initialized]);
 
   if (!initialized) {
     return (

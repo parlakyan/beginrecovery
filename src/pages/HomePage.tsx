@@ -32,6 +32,10 @@ export default function HomePage() {
     const fetchFacilities = async () => {
       try {
         setLoading(true);
+        
+        // First, migrate existing facilities to ensure they have slugs
+        await facilitiesService.migrateExistingSlugs();
+        
         const [allFacilities, featured] = await Promise.all([
           facilitiesService.getFacilities(),
           facilitiesService.getFeaturedFacilities()

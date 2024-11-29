@@ -179,6 +179,37 @@ const transformFacilityData = (doc: QueryDocumentSnapshot<DocumentData>): Facili
 };
 
 export const facilitiesService = {
+  async migrateExistingSlugs() {
+    try {
+      console.log('Starting facility slug migration');
+      const facilitiesRef = collection(db, FACILITIES_COLLECTION);
+      const snapshot = await getDocs(facilitiesRef);
+      const batch = writeBatch(db);
+      let updateCount = 0;
+
+      snapshot.docs.forEach((doc) => {
+        const data = doc.data();
+        const name = data.name || '';
+        const location = data.location || '';
+        const slug = generateSlug(name, location);
+        
+        // Always update to ensure consistent slugs
+        batch.update(doc.ref, { slug });
+        updateCount++;
+      });
+
+      if (updateCount > 0) {
+        await batch.commit();
+        console.log(`Updated ${updateCount} facilities with slugs`);
+      } else {
+        console.log('No facilities needed slug updates');
+      }
+    } catch (error) {
+      console.error('Error migrating facility slugs:', error);
+      throw error;
+    }
+  },
+
   async getFacilities(lastDoc?: QueryDocumentSnapshot<DocumentData>) {
     try {
       console.log('Fetching approved facilities from collection:', FACILITIES_COLLECTION);
