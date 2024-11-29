@@ -210,6 +210,31 @@ export const facilitiesService = {
     }
   },
 
+  async createFacility(data: Partial<Facility>) {
+    try {
+      const facilitiesRef = collection(db, FACILITIES_COLLECTION);
+      const facilityData = {
+        ...data,
+        ownerId: auth.currentUser?.uid,
+        rating: 0,
+        reviewCount: 0,
+        status: 'pending',
+        moderationStatus: 'pending',
+        isVerified: false,
+        isFeatured: false,
+        createdAt: serverTimestamp(),
+        updatedAt: serverTimestamp(),
+        slug: generateSlug(data.name || '', data.location || '')
+      };
+
+      const docRef = await addDoc(facilitiesRef, facilityData);
+      return { id: docRef.id };
+    } catch (error) {
+      console.error('Error creating facility:', error);
+      throw error;
+    }
+  },
+
   async getFacilities(lastDoc?: QueryDocumentSnapshot<DocumentData>) {
     try {
       console.log('Fetching approved facilities from collection:', FACILITIES_COLLECTION);

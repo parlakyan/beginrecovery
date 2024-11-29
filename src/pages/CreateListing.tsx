@@ -12,10 +12,14 @@ interface CreateListingForm {
   description: string;
   location: string;
   phone: string;
+  email: string;
   images: string;
   amenities: string;
   tags: string;
 }
+
+const phoneRegex = /^(\+\d{1,2}\s?)?\(?\d{3}\)?[\s.-]?\d{3}[\s.-]?\d{4}$/;
+const emailRegex = /^[A-Z0-9._%+-]+@[A-Z0-9.-]+\.[A-Z]{2,}$/i;
 
 export default function CreateListing() {
   const { register, handleSubmit, formState: { errors } } = useForm<CreateListingForm>();
@@ -127,7 +131,7 @@ export default function CreateListing() {
                 <input
                   {...register('location', { required: 'Location is required' })}
                   type="text"
-                  placeholder="Full address"
+                  placeholder="City, State"
                   className="w-full px-4 py-2 border rounded-lg focus:ring-2 focus:ring-blue-500 outline-none"
                 />
                 {errors.location && (
@@ -140,13 +144,40 @@ export default function CreateListing() {
                   Phone Number
                 </label>
                 <input
-                  {...register('phone', { required: 'Phone number is required' })}
+                  {...register('phone', { 
+                    required: 'Phone number is required',
+                    pattern: {
+                      value: phoneRegex,
+                      message: 'Please enter a valid phone number'
+                    }
+                  })}
                   type="tel"
-                  placeholder="Contact phone number"
+                  placeholder="(123) 456-7890"
                   className="w-full px-4 py-2 border rounded-lg focus:ring-2 focus:ring-blue-500 outline-none"
                 />
                 {errors.phone && (
                   <p className="mt-1 text-sm text-red-600">{errors.phone.message}</p>
+                )}
+              </div>
+
+              <div>
+                <label className="block text-sm font-medium text-gray-700 mb-1">
+                  Email Address
+                </label>
+                <input
+                  {...register('email', { 
+                    required: 'Email is required',
+                    pattern: {
+                      value: emailRegex,
+                      message: 'Please enter a valid email address'
+                    }
+                  })}
+                  type="email"
+                  placeholder="contact@facility.com"
+                  className="w-full px-4 py-2 border rounded-lg focus:ring-2 focus:ring-blue-500 outline-none"
+                />
+                {errors.email && (
+                  <p className="mt-1 text-sm text-red-600">{errors.email.message}</p>
                 )}
               </div>
 
