@@ -18,40 +18,60 @@ export default function Payment() {
   const facilityId = location.state?.facilityId;
   const facilityData = location.state?.facility;
 
+  // Ensure we have the required data
   React.useEffect(() => {
     if (!facilityId || !facilityData) {
       navigate('/create-listing');
     }
   }, [facilityId, facilityData, navigate]);
 
+  // Ensure user is authenticated
+  React.useEffect(() => {
+    if (!user) {
+      navigate('/login', { 
+        state: { 
+          returnUrl: '/payment', 
+          facilityId, 
+          facilityData 
+        } 
+      });
+    }
+  }, [user, navigate, facilityId, facilityData]);
+
   const handlePayment = async () => {
     setLoading(true);
     setError(null);
 
     try {
-      // First check if Stripe is loaded
-      const stripe = await stripePromise;
-      if (!stripe) {
-        throw new Error('Payment system is not available. Please try again later.');
-      }
-
-      // Validate required data
+      // Verify we have required data
       if (!facilityId) {
         throw new Error('Missing facility information. Please try creating your listing again.');
       }
 
+      if (!user) {
+        throw new Error('Please log in to continue.');
+      }
+
       // Create subscription checkout session
+      console.log('Creating checkout session for facility:', { facilityId });
       const { sessionId, url } = await paymentsService.createSubscription({
         facilityId
       });
 
       // If we have a URL, use it directly (preferred method)
       if (url) {
+        console.log('Redirecting to checkout URL');
         window.location.href = url;
         return;
       }
 
       // Fallback to redirectToCheckout if no URL is provided
+      console.log('Using fallback redirect method');
+      const stripe = await stripePromise;
+      if (!stripe) {
+        throw new Error('Payment system is not available. Please try again later.');
+      }
+
       if (!sessionId) {
         throw new Error('Unable to initialize payment. Please try again.');
       }
@@ -65,20 +85,26 @@ export default function Payment() {
         throw new Error(stripeError.message || 'Failed to redirect to payment page.');
       }
     } catch (err) {
-      console.error('Payment error:', err);
+      console.error('Payment error:', {
+        message: err instanceof Error ? err.message : 'Unknown error',
+        code: (err as any).code,
+        name: err instanceof Error ? err.name : undefined
+      });
       
       // Handle specific error cases
       if (err instanceof Error) {
-        if (err.message.includes('Authentication')) {
+        if (err.message.includes('Authentication') || err.message.includes('log in')) {
           setError('Please log in again to continue.');
-          // Optionally redirect to login
-          navigate('/login', { 
-            state: { 
-              returnUrl: '/payment',
-              facilityId,
-              facilityData
-            }
-          });
+          // Redirect to login after a short delay
+          setTimeout(() => {
+            navigate('/login', { 
+              state: { 
+                returnUrl: '/payment',
+                facilityId,
+                facilityData
+              }
+            });
+          }, 2000);
           return;
         }
         setError(err.message);
@@ -90,15 +116,8 @@ export default function Payment() {
     }
   };
 
-  // Handle authentication
+  // Show nothing while redirecting to login
   if (!user) {
-    navigate('/login', { 
-      state: { 
-        returnUrl: '/payment', 
-        facilityId, 
-        facilityData 
-      } 
-    });
     return null;
   }
 
@@ -120,14 +139,6 @@ export default function Payment() {
             {error && (
               <div className="mb-6 bg-red-50 border border-red-200 text-red-600 px-4 py-3 rounded-lg">
                 {error}
-                {error.includes('try again') && (
-                  <button 
-                    onClick={() => setError(null)}
-                    className="ml-2 underline hover:no-underline"
-                  >
-                    Dismiss
-                  </button>
-                )}
               </div>
             )}
 

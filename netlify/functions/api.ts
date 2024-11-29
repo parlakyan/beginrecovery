@@ -14,18 +14,6 @@ if (!process.env.SITE_URL) {
   throw new Error('Missing SITE_URL environment variable');
 }
 
-// Log environment variables (excluding sensitive values)
-console.log('Environment check:', {
-  hasStripeKey: !!process.env.STRIPE_SECRET_KEY,
-  hasPriceId: !!process.env.STRIPE_PRICE_ID,
-  hasSiteUrl: !!process.env.SITE_URL,
-  hasFirebasePrivateKey: !!process.env.FIREBASE_PRIVATE_KEY,
-  hasFirebaseClientEmail: !!process.env.FIREBASE_CLIENT_EMAIL,
-  hasFirebaseProjectId: !!process.env.VITE_FIREBASE_PROJECT_ID,
-  privateKeyLength: process.env.FIREBASE_PRIVATE_KEY?.length,
-  projectId: process.env.VITE_FIREBASE_PROJECT_ID
-});
-
 const stripe = new Stripe(process.env.STRIPE_SECRET_KEY, {
   apiVersion: '2023-10-16'
 });
@@ -47,7 +35,12 @@ export const handler: Handler = async (event, context) => {
 
   try {
     const path = event.path.replace('/.netlify/functions/api/', '');
-    console.log('Processing request:', { path, method: event.httpMethod });
+    console.log('Processing request:', { 
+      path, 
+      method: event.httpMethod,
+      hasAuth: !!event.headers.authorization,
+      authHeader: event.headers.authorization?.substring(0, 20) + '...' // Log part of the auth header safely
+    });
 
     // Create checkout session endpoint
     if (path === 'create-checkout' && event.httpMethod === 'POST') {
@@ -56,10 +49,11 @@ export const handler: Handler = async (event, context) => {
       // Verify Firebase auth token
       const authHeader = event.headers.authorization;
       if (!authHeader?.startsWith('Bearer ')) {
+        console.error('Missing or invalid authorization header');
         return {
           statusCode: 401,
           headers,
-          body: JSON.stringify({ error: 'Unauthorized' })
+          body: JSON.stringify({ error: 'Unauthorized: Missing or invalid authorization header' })
         };
       }
 
@@ -68,7 +62,11 @@ export const handler: Handler = async (event, context) => {
       
       try {
         const decodedToken = await auth.verifyIdToken(token);
-        console.log('Token verified successfully:', { uid: decodedToken.uid });
+        console.log('Token verified successfully:', { 
+          uid: decodedToken.uid,
+          email: decodedToken.email,
+          hasEmail: !!decodedToken.email
+        });
 
         // Parse request body
         if (!event.body) {
@@ -106,7 +104,7 @@ export const handler: Handler = async (event, context) => {
           }],
           success_url: `${process.env.SITE_URL}/payment/success?session_id={CHECKOUT_SESSION_ID}`,
           cancel_url: `${process.env.SITE_URL}/payment/cancel`,
-          customer_email: decodedToken.email,
+          customer_email: decodedToken.email || undefined,
           metadata: {
             facilityId,
             userId: decodedToken.uid,
@@ -127,38 +125,43 @@ export const handler: Handler = async (event, context) => {
             url: session.url 
           })
         };
-      } catch (error) {
-        console.error('Error processing checkout:', error);
-        throw error;
+      } catch (authError) {
+        console.error('Authentication error:', {
+          message: authError instanceof Error ? authError.message : 'Unknown error',
+          code: (authError as any).code,
+          name: authError instanceof Error ? authError.name : undefined
+        });
+        return {
+          statusCode: 401,
+          headers,
+          body: JSON.stringify({ 
+            error: 'Authentication failed',
+            message: authError instanceof Error ? authError.message : 'Unknown error'
+          })
+        };
       }
     }
 
-    // Handle other endpoints...
     return {
       statusCode: 404,
       headers,
       body: JSON.stringify({ error: 'Not found' })
     };
   } catch (error) {
-    console.error('API error:', error);
-    
-    // Enhanced error logging
-    const errorDetails = {
+    console.error('API error:', {
       message: error instanceof Error ? error.message : 'Unknown error',
-      stack: error instanceof Error ? error.stack : undefined,
-      name: error instanceof Error ? error.name : undefined,
       code: (error as any).code,
-      details: (error as any).details
-    };
-    
-    console.error('Detailed error:', errorDetails);
+      name: error instanceof Error ? error.name : undefined,
+      stack: error instanceof Error ? error.stack : undefined
+    });
 
     return {
       statusCode: 500,
       headers,
       body: JSON.stringify({ 
         error: 'Internal server error',
-        details: errorDetails
+        message: error instanceof Error ? error.message : 'Unknown error',
+        details: error instanceof Error ? error.stack : undefined
       })
     };
   }

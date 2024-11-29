@@ -17,7 +17,14 @@ export const paymentsService = {
     }
 
     try {
-      const idToken = await auth.currentUser.getIdToken();
+      // Get a fresh token
+      const idToken = await auth.currentUser.getIdToken(true);
+      console.log('Got fresh ID token:', { 
+        hasToken: !!idToken,
+        tokenLength: idToken?.length,
+        userId: auth.currentUser.uid
+      });
+
       const response = await fetch('/.netlify/functions/api/create-checkout', {
         method: 'POST',
         headers: {
@@ -30,15 +37,12 @@ export const paymentsService = {
       const data = await response.json();
 
       if (!response.ok) {
-        // Log the error details for debugging
-        console.error('Checkout error response:', data);
-        
-        // Throw a user-friendly error message
-        throw new Error(
-          data.message || 
-          data.error || 
-          `Failed to create checkout session (${response.status})`
-        );
+        console.error('Checkout error response:', {
+          status: response.status,
+          statusText: response.statusText,
+          data
+        });
+        throw new Error(data.message || data.error || `Failed to create checkout session (${response.status})`);
       }
 
       // Validate the response data
@@ -49,7 +53,12 @@ export const paymentsService = {
       return data as CheckoutResponse;
     } catch (error) {
       // Log the full error for debugging
-      console.error('Payment service error:', error);
+      console.error('Payment service error:', {
+        message: error instanceof Error ? error.message : 'Unknown error',
+        code: (error as any).code,
+        name: error instanceof Error ? error.name : undefined,
+        stack: error instanceof Error ? error.stack : undefined
+      });
 
       // If it's already an Error object, rethrow it
       if (error instanceof Error) {
@@ -59,15 +68,5 @@ export const paymentsService = {
       // Otherwise, wrap it in an Error object with a generic message
       throw new Error('Failed to create checkout session. Please try again.');
     }
-  },
-
-  // Helper method to validate the response
-  validateCheckoutResponse(data: any): data is CheckoutResponse {
-    return (
-      typeof data === 'object' &&
-      data !== null &&
-      typeof data.sessionId === 'string' &&
-      (data.url === undefined || typeof data.url === 'string')
-    );
   }
 };
