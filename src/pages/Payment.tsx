@@ -29,14 +29,23 @@ export default function Payment() {
     setError(null);
 
     try {
+      // First check if Stripe is loaded
       const stripe = await stripePromise;
-      if (!stripe) throw new Error('Stripe failed to load');
+      if (!stripe) {
+        throw new Error('Payment system is not available. Please try again later.');
+      }
+
+      // Validate required data
+      if (!facilityId) {
+        throw new Error('Missing facility information. Please try creating your listing again.');
+      }
 
       // Create subscription checkout session
       const { sessionId, url } = await paymentsService.createSubscription({
         facilityId
       });
 
+      // If we have a URL, use it directly (preferred method)
       if (url) {
         window.location.href = url;
         return;
@@ -44,7 +53,7 @@ export default function Payment() {
 
       // Fallback to redirectToCheckout if no URL is provided
       if (!sessionId) {
-        throw new Error('Failed to create checkout session');
+        throw new Error('Unable to initialize payment. Please try again.');
       }
 
       const { error: stripeError } = await stripe.redirectToCheckout({
@@ -52,16 +61,36 @@ export default function Payment() {
       });
 
       if (stripeError) {
-        throw stripeError;
+        console.error('Stripe redirect error:', stripeError);
+        throw new Error(stripeError.message || 'Failed to redirect to payment page.');
       }
     } catch (err) {
       console.error('Payment error:', err);
-      setError(err instanceof Error ? err.message : 'Failed to process payment. Please try again.');
+      
+      // Handle specific error cases
+      if (err instanceof Error) {
+        if (err.message.includes('Authentication')) {
+          setError('Please log in again to continue.');
+          // Optionally redirect to login
+          navigate('/login', { 
+            state: { 
+              returnUrl: '/payment',
+              facilityId,
+              facilityData
+            }
+          });
+          return;
+        }
+        setError(err.message);
+      } else {
+        setError('An unexpected error occurred. Please try again.');
+      }
     } finally {
       setLoading(false);
     }
   };
 
+  // Handle authentication
   if (!user) {
     navigate('/login', { 
       state: { 
@@ -91,6 +120,14 @@ export default function Payment() {
             {error && (
               <div className="mb-6 bg-red-50 border border-red-200 text-red-600 px-4 py-3 rounded-lg">
                 {error}
+                {error.includes('try again') && (
+                  <button 
+                    onClick={() => setError(null)}
+                    className="ml-2 underline hover:no-underline"
+                  >
+                    Dismiss
+                  </button>
+                )}
               </div>
             )}
 

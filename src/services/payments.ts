@@ -27,18 +27,47 @@ export const paymentsService = {
         body: JSON.stringify({ facilityId })
       });
 
+      const data = await response.json();
+
       if (!response.ok) {
-        const errorData = await response.json() as ErrorResponse;
-        throw new Error(errorData.message || errorData.error || 'Failed to create checkout session');
+        // Log the error details for debugging
+        console.error('Checkout error response:', data);
+        
+        // Throw a user-friendly error message
+        throw new Error(
+          data.message || 
+          data.error || 
+          `Failed to create checkout session (${response.status})`
+        );
       }
 
-      const data = await response.json();
+      // Validate the response data
+      if (!data.sessionId) {
+        throw new Error('Invalid response: missing session ID');
+      }
+
       return data as CheckoutResponse;
     } catch (error) {
+      // Log the full error for debugging
+      console.error('Payment service error:', error);
+
+      // If it's already an Error object, rethrow it
       if (error instanceof Error) {
         throw error;
       }
-      throw new Error('An unexpected error occurred');
+
+      // Otherwise, wrap it in an Error object with a generic message
+      throw new Error('Failed to create checkout session. Please try again.');
     }
+  },
+
+  // Helper method to validate the response
+  validateCheckoutResponse(data: any): data is CheckoutResponse {
+    return (
+      typeof data === 'object' &&
+      data !== null &&
+      typeof data.sessionId === 'string' &&
+      (data.url === undefined || typeof data.url === 'string')
+    );
   }
 };
