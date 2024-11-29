@@ -14,6 +14,18 @@ if (!process.env.SITE_URL) {
   throw new Error('Missing SITE_URL environment variable');
 }
 
+// Log environment variables (excluding sensitive values)
+console.log('Environment check:', {
+  hasStripeKey: !!process.env.STRIPE_SECRET_KEY,
+  hasPriceId: !!process.env.STRIPE_PRICE_ID,
+  hasSiteUrl: !!process.env.SITE_URL,
+  hasFirebasePrivateKey: !!process.env.FIREBASE_PRIVATE_KEY,
+  hasFirebaseClientEmail: !!process.env.FIREBASE_CLIENT_EMAIL,
+  hasFirebaseProjectId: !!process.env.VITE_FIREBASE_PROJECT_ID,
+  privateKeyLength: process.env.FIREBASE_PRIVATE_KEY?.length,
+  projectId: process.env.VITE_FIREBASE_PROJECT_ID
+});
+
 const stripe = new Stripe(process.env.STRIPE_SECRET_KEY, {
   apiVersion: '2023-10-16'
 });
@@ -35,84 +47,12 @@ export const handler: Handler = async (event, context) => {
 
   try {
     const path = event.path.replace('/.netlify/functions/api/', '');
-
-    // Stripe webhook endpoint
-    if (path === 'webhook' && event.httpMethod === 'POST') {
-      const sig = event.headers['stripe-signature'];
-      const webhookSecret = process.env.STRIPE_WEBHOOK_SECRET;
-
-      if (!webhookSecret) {
-        throw new Error('Missing STRIPE_WEBHOOK_SECRET');
-      }
-
-      if (!sig) {
-        throw new Error('Missing stripe-signature header');
-      }
-
-      if (!event.body) {
-        throw new Error('Missing request body');
-      }
-
-      try {
-        const stripeEvent = stripe.webhooks.constructEvent(
-          event.body,
-          sig,
-          webhookSecret
-        );
-
-        switch (stripeEvent.type) {
-          case 'checkout.session.completed': {
-            const session = stripeEvent.data.object;
-            const facilityId = session.metadata?.facilityId;
-            
-            if (!facilityId) {
-              throw new Error('Missing facilityId in session metadata');
-            }
-
-            await db.collection('facilities')
-              .doc(facilityId)
-              .update({
-                status: 'active',
-                subscriptionId: session.subscription,
-                updatedAt: new Date().toISOString()
-              });
-            break;
-          }
-
-          case 'customer.subscription.deleted': {
-            const subscription = stripeEvent.data.object;
-            const facilitiesRef = db.collection('facilities');
-            const snapshot = await facilitiesRef
-              .where('subscriptionId', '==', subscription.id)
-              .get();
-
-            if (!snapshot.empty) {
-              await snapshot.docs[0].ref.update({
-                status: 'inactive',
-                updatedAt: new Date().toISOString()
-              });
-            }
-            break;
-          }
-        }
-
-        return {
-          statusCode: 200,
-          headers,
-          body: JSON.stringify({ received: true })
-        };
-      } catch (err) {
-        console.error('Webhook error:', err);
-        return {
-          statusCode: 400,
-          headers,
-          body: JSON.stringify({ error: `Webhook Error: ${(err as Error).message}` })
-        };
-      }
-    }
+    console.log('Processing request:', { path, method: event.httpMethod });
 
     // Create checkout session endpoint
     if (path === 'create-checkout' && event.httpMethod === 'POST') {
+      console.log('Processing checkout request');
+      
       // Verify Firebase auth token
       const authHeader = event.headers.authorization;
       if (!authHeader?.startsWith('Bearer ')) {
@@ -124,67 +64,76 @@ export const handler: Handler = async (event, context) => {
       }
 
       const token = authHeader.split('Bearer ')[1];
-      const decodedToken = await auth.verifyIdToken(token);
-
-      // Parse request body
-      if (!event.body) {
-        return {
-          statusCode: 400,
-          headers,
-          body: JSON.stringify({ error: 'Missing request body' })
-        };
-      }
-
-      const { facilityId } = JSON.parse(event.body);
+      console.log('Verifying Firebase token');
       
-      if (!facilityId) {
-        return {
-          statusCode: 400,
-          headers,
-          body: JSON.stringify({ error: 'Missing facilityId' })
-        };
-      }
+      try {
+        const decodedToken = await auth.verifyIdToken(token);
+        console.log('Token verified successfully:', { uid: decodedToken.uid });
 
-      // Get facility data
-      const facilityDoc = await db.collection('facilities').doc(facilityId).get();
-      if (!facilityDoc.exists) {
-        return {
-          statusCode: 404,
-          headers,
-          body: JSON.stringify({ error: 'Facility not found' })
-        };
-      }
-
-      const facilityData = facilityDoc.data();
-
-      // Create Stripe checkout session
-      const session = await stripe.checkout.sessions.create({
-        payment_method_types: ['card'],
-        mode: 'subscription',
-        line_items: [{
-          price: process.env.STRIPE_PRICE_ID,
-          quantity: 1,
-        }],
-        success_url: `${process.env.SITE_URL}/payment/success?session_id={CHECKOUT_SESSION_ID}`,
-        cancel_url: `${process.env.SITE_URL}/payment/cancel`,
-        customer_email: decodedToken.email,
-        metadata: {
-          facilityId,
-          userId: decodedToken.uid,
-          facilityName: facilityData?.name || ''
+        // Parse request body
+        if (!event.body) {
+          throw new Error('Missing request body');
         }
-      });
 
-      return {
-        statusCode: 200,
-        headers,
-        body: JSON.stringify({ 
+        const { facilityId } = JSON.parse(event.body);
+        console.log('Processing facility:', { facilityId });
+        
+        if (!facilityId) {
+          throw new Error('Missing facilityId');
+        }
+
+        // Get facility data
+        console.log('Fetching facility data');
+        const facilityDoc = await db.collection('facilities').doc(facilityId).get();
+        if (!facilityDoc.exists) {
+          throw new Error('Facility not found');
+        }
+
+        const facilityData = facilityDoc.data();
+        console.log('Facility data retrieved:', { 
+          name: facilityData?.name,
+          hasData: !!facilityData 
+        });
+
+        // Create Stripe checkout session
+        console.log('Creating Stripe checkout session');
+        const session = await stripe.checkout.sessions.create({
+          payment_method_types: ['card'],
+          mode: 'subscription',
+          line_items: [{
+            price: process.env.STRIPE_PRICE_ID,
+            quantity: 1,
+          }],
+          success_url: `${process.env.SITE_URL}/payment/success?session_id={CHECKOUT_SESSION_ID}`,
+          cancel_url: `${process.env.SITE_URL}/payment/cancel`,
+          customer_email: decodedToken.email,
+          metadata: {
+            facilityId,
+            userId: decodedToken.uid,
+            facilityName: facilityData?.name || ''
+          }
+        });
+
+        console.log('Checkout session created:', { 
           sessionId: session.id,
-          url: session.url 
-        })
-      };
+          hasUrl: !!session.url 
+        });
+
+        return {
+          statusCode: 200,
+          headers,
+          body: JSON.stringify({ 
+            sessionId: session.id,
+            url: session.url 
+          })
+        };
+      } catch (error) {
+        console.error('Error processing checkout:', error);
+        throw error;
+      }
     }
 
+    // Handle other endpoints...
     return {
       statusCode: 404,
       headers,
@@ -192,13 +141,24 @@ export const handler: Handler = async (event, context) => {
     };
   } catch (error) {
     console.error('API error:', error);
+    
+    // Enhanced error logging
+    const errorDetails = {
+      message: error instanceof Error ? error.message : 'Unknown error',
+      stack: error instanceof Error ? error.stack : undefined,
+      name: error instanceof Error ? error.name : undefined,
+      code: (error as any).code,
+      details: (error as any).details
+    };
+    
+    console.error('Detailed error:', errorDetails);
+
     return {
       statusCode: 500,
       headers,
       body: JSON.stringify({ 
         error: 'Internal server error',
-        message: error instanceof Error ? error.message : 'Unknown error',
-        details: error instanceof Error ? error.stack : undefined
+        details: errorDetails
       })
     };
   }
