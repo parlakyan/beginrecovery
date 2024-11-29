@@ -125,14 +125,27 @@ const generateSlug = (name: string, location: string): string => {
     .replace(/[^a-z0-9\s-]/g, '')
     .replace(/\s+/g, '-');
 
-  const [city, state] = location.split(',').map(part => 
-    part.trim()
-      .toLowerCase()
-      .replace(/[^a-z0-9\s-]/g, '')
-      .replace(/\s+/g, '-')
-  );
+  // Handle cases where location might be undefined or malformed
+  if (!location) {
+    return cleanName;
+  }
 
-  return `${cleanName}-${city}-${state}`;
+  const parts = location.split(',');
+  if (parts.length < 2) {
+    return `${cleanName}-${location.toLowerCase().replace(/[^a-z0-9\s-]/g, '').replace(/\s+/g, '-')}`;
+  }
+
+  const [city, stateWithSpaces] = parts.map(part => part.trim());
+  const state = stateWithSpaces
+    .toLowerCase()
+    .replace(/[^a-z0-9\s-]/g, '')
+    .replace(/\s+/g, '-');
+  const cleanCity = city
+    .toLowerCase()
+    .replace(/[^a-z0-9\s-]/g, '')
+    .replace(/\s+/g, '-');
+
+  return `${cleanName}-${cleanCity}-${state}`;
 };
 
 const transformFacilityData = (doc: QueryDocumentSnapshot<DocumentData>): Facility => {

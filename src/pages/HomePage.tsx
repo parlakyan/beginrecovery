@@ -27,7 +27,6 @@ export default function HomePage() {
   const [filters, setFilters] = useState(defaultFilters);
 
   useEffect(() => {
-    // Scroll to top on mount
     window.scrollTo(0, 0);
     
     const fetchFacilities = async () => {
@@ -38,14 +37,13 @@ export default function HomePage() {
           facilitiesService.getFeaturedFacilities()
         ]);
         
-        // Ensure we have valid facilities and only show approved ones
         const validFacilities = (allFacilities.facilities || [])
-          .filter(f => f && 
+          .filter((f: Facility) => f && 
                       typeof f.rating === 'number' && 
                       f.moderationStatus === 'approved');
         
         const validFeatured = (featured || [])
-          .filter(f => f && 
+          .filter((f: Facility) => f && 
                       typeof f.rating === 'number' && 
                       f.moderationStatus === 'approved');
         
@@ -70,14 +68,12 @@ export default function HomePage() {
       <main>
         <HeroSection />
         
-        <div className="container mx-auto px-4 py-12">
-          <SearchFilters 
-            isOpen={isFiltersOpen}
-            onClose={() => setIsFiltersOpen(false)}
-            filters={filters}
-            onFilterChange={setFilters}
-          />
-        </div>
+        <SearchFilters 
+          isOpen={isFiltersOpen}
+          onClose={() => setIsFiltersOpen(false)}
+          filters={filters}
+          onFilterChange={setFilters}
+        />
 
         {/* Featured Treatment Centers */}
         {featuredFacilities.length > 0 && (
