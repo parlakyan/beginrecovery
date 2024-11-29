@@ -71,11 +71,6 @@ export default function HomePage() {
         <HeroSection />
         
         <div className="container mx-auto px-4 py-12">
-          <div className="text-center mb-8">
-            <p className="text-gray-600 text-lg">
-              Our mission is to connect you with trusted, licensed treatment centers that provide personalized care and support for lasting recovery
-            </p>
-          </div>
           <SearchFilters 
             isOpen={isFiltersOpen}
             onClose={() => setIsFiltersOpen(false)}
@@ -83,9 +78,6 @@ export default function HomePage() {
             onFilterChange={setFilters}
           />
         </div>
-
-        {/* Core Values Section */}
-        <CoreValues />
 
         {/* Featured Treatment Centers */}
         {featuredFacilities.length > 0 && (
@@ -147,6 +139,9 @@ export default function HomePage() {
 
         {/* Location Browser */}
         <LocationBrowser />
+
+        {/* Core Values Section */}
+        <CoreValues />
       </main>
 
       <Footer />
