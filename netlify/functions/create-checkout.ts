@@ -18,8 +18,7 @@ const validateEnvironment = () => {
   const validation = {
     stripe: {
       hasSecretKey: !!process.env.STRIPE_SECRET_KEY,
-      hasPriceId: !!process.env.STRIPE_PRICE_ID,
-      secretKeyLength: process.env.STRIPE_SECRET_KEY?.length
+      hasPriceId: !!process.env.STRIPE_PRICE_ID
     },
     url: {
       hasUrl: !!process.env.URL,
@@ -45,7 +44,7 @@ const validateEnvironment = () => {
   return validation;
 };
 
-// Initialize Stripe after validation
+// Initialize Stripe
 validateEnvironment();
 const stripe = new Stripe(process.env.STRIPE_SECRET_KEY!, {
   apiVersion: '2023-10-16'
@@ -76,13 +75,24 @@ export const handler: Handler = async (event) => {
   }
 
   try {
-    // Test Firebase Admin connection
+    // Test Firebase Admin connection first
     console.log(`[${requestId}] Testing Firebase Admin connection`);
     const connectionTest = await testConnection();
-    console.log(`[${requestId}] Connection test result:`, connectionTest);
-
+    
     if (!connectionTest.success) {
-      throw new Error(`Firebase Admin connection failed: ${connectionTest.error}`);
+      console.error(`[${requestId}] Firebase Admin connection failed:`, connectionTest);
+      return {
+        statusCode: 500,
+        headers,
+        body: JSON.stringify({ 
+          error: 'Service unavailable',
+          message: 'Unable to process request at this time',
+          details: {
+            requestId,
+            timestamp: new Date().toISOString()
+          }
+        })
+      };
     }
 
     // Log request details
@@ -90,8 +100,7 @@ export const handler: Handler = async (event) => {
       method: event.httpMethod,
       hasAuth: !!event.headers.authorization,
       hasBody: !!event.body,
-      timestamp: new Date().toISOString(),
-      serverTime: Date.now()
+      timestamp: new Date().toISOString()
     });
 
     // Verify Firebase Auth token
@@ -123,31 +132,15 @@ export const handler: Handler = async (event) => {
         timestamp: new Date().toISOString()
       });
 
-      // Handle specific token errors
-      if ((error as any).code === 'auth/id-token-expired') {
-        return {
-          statusCode: 401,
-          headers,
-          body: JSON.stringify({ 
-            error: 'Token expired',
-            message: 'Please sign in again',
-            details: {
-              code: (error as any).code,
-              serverTime: Date.now()
-            }
-          })
-        };
-      }
-
       return {
         statusCode: 401,
         headers,
         body: JSON.stringify({ 
           error: 'Authentication failed',
-          message: error instanceof Error ? error.message : 'Token verification failed',
+          message: 'Please sign in again',
           details: {
-            code: (error as any).code,
-            serverTime: Date.now()
+            requestId,
+            timestamp: new Date().toISOString()
           }
         })
       };
@@ -173,26 +166,6 @@ export const handler: Handler = async (event) => {
       };
     }
 
-    // Verify facility exists
-    console.log(`[${requestId}] Verifying facility:`, { facilityId });
-    const facilityDoc = await db.collection('facilities').doc(facilityId).get();
-    
-    if (!facilityDoc.exists) {
-      console.log(`[${requestId}] Facility not found:`, { facilityId });
-      return {
-        statusCode: 404,
-        headers,
-        body: JSON.stringify({ error: 'Facility not found' })
-      };
-    }
-
-    const facilityData = facilityDoc.data();
-    console.log(`[${requestId}] Facility verified:`, {
-      facilityId,
-      name: facilityData?.name,
-      timestamp: new Date().toISOString()
-    });
-
     // Create Stripe checkout session
     console.log(`[${requestId}] Creating Stripe checkout session`);
     const session = await stripe.checkout.sessions.create({
@@ -208,7 +181,6 @@ export const handler: Handler = async (event) => {
       metadata: {
         facilityId,
         userId: decodedToken.uid,
-        facilityName: facilityData?.name || '',
         requestId
       }
     });
@@ -234,8 +206,7 @@ export const handler: Handler = async (event) => {
       code: (error as any).code,
       name: error instanceof Error ? error.name : undefined,
       stack: error instanceof Error ? error.stack : undefined,
-      timestamp: new Date().toISOString(),
-      serverTime: Date.now()
+      timestamp: new Date().toISOString()
     });
 
     // Handle specific error types
@@ -260,7 +231,7 @@ export const handler: Handler = async (event) => {
       headers,
       body: JSON.stringify({ 
         error: 'Internal server error',
-        message: error instanceof Error ? error.message : 'An unexpected error occurred',
+        message: 'Unable to process payment at this time',
         details: {
           requestId,
           timestamp: new Date().toISOString()
