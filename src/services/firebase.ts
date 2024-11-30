@@ -14,7 +14,10 @@ import {
   addDoc,
   updateDoc,
   deleteDoc,
-  setDoc
+  setDoc,
+  enableNetwork,
+  disableNetwork,
+  Timestamp
 } from 'firebase/firestore';
 import { getAuth } from 'firebase/auth';
 import { db } from '../lib/firebase';
@@ -27,6 +30,27 @@ const BATCH_SIZE = 12;
 
 // Get auth instance
 const auth = getAuth();
+
+/**
+ * Network connectivity service
+ */
+export const networkService = {
+  goOnline: async () => {
+    try {
+      await enableNetwork(db);
+    } catch (error) {
+      console.error('Error enabling network:', error);
+    }
+  },
+  
+  goOffline: async () => {
+    try {
+      await disableNetwork(db);
+    } catch (error) {
+      console.error('Error disabling network:', error);
+    }
+  }
+};
 
 /**
  * Input type for user creation
@@ -42,11 +66,18 @@ interface CreateUserInput {
  */
 const transformFacilityData = (doc: QueryDocumentSnapshot<DocumentData>): Facility => {
   const data = doc.data();
-  console.log('Raw facility data:', { id: doc.id, ...data });
   
   const name = data.name || '';
   const location = data.location || '';
   
+  const createdAt = data.createdAt instanceof Timestamp 
+    ? data.createdAt.toDate().toISOString()
+    : new Date().toISOString();
+    
+  const updatedAt = data.updatedAt instanceof Timestamp
+    ? data.updatedAt.toDate().toISOString()
+    : new Date().toISOString();
+
   return {
     id: doc.id,
     name,
@@ -58,8 +89,8 @@ const transformFacilityData = (doc: QueryDocumentSnapshot<DocumentData>): Facili
     ownerId: data.ownerId || '',
     rating: data.rating || 0,
     reviewCount: data.reviewCount || 0,
-    createdAt: data.createdAt?.toDate?.()?.toISOString() || new Date().toISOString(),
-    updatedAt: data.updatedAt?.toDate?.()?.toISOString() || new Date().toISOString(),
+    createdAt,
+    updatedAt,
     subscriptionId: data.subscriptionId,
     phone: data.phone || '',
     tags: data.tags || [],
