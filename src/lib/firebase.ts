@@ -1,5 +1,5 @@
 import { initializeApp } from 'firebase/app';
-import { getAuth, connectAuthEmulator, browserLocalPersistence, setPersistence } from 'firebase/auth';
+import { getAuth, browserLocalPersistence, setPersistence, onAuthStateChanged } from 'firebase/auth';
 import { getFirestore, connectFirestoreEmulator } from 'firebase/firestore';
 
 const firebaseConfig = {
@@ -12,23 +12,20 @@ const firebaseConfig = {
   measurementId: import.meta.env.VITE_FIREBASE_MEASUREMENT_ID
 };
 
-// Log config (excluding sensitive values)
-console.log('Firebase config:', {
-  hasApiKey: !!firebaseConfig.apiKey,
-  authDomain: firebaseConfig.authDomain,
-  projectId: firebaseConfig.projectId,
-  storageBucket: firebaseConfig.storageBucket,
-  hasAppId: !!firebaseConfig.appId
-});
-
 // Initialize Firebase
 const app = initializeApp(firebaseConfig);
 
 // Initialize Auth with persistence
 const auth = getAuth(app);
+
+// Set persistence to LOCAL
 setPersistence(auth, browserLocalPersistence)
-  .then(() => console.log('Auth persistence set to local'))
-  .catch((error) => console.error('Error setting auth persistence:', error));
+  .then(() => {
+    console.log('Firebase Auth persistence set to LOCAL');
+  })
+  .catch((error) => {
+    console.error('Error setting auth persistence:', error);
+  });
 
 // Initialize Firestore
 const db = getFirestore(app);
@@ -36,7 +33,6 @@ const db = getFirestore(app);
 // Connect to emulators in development
 if (import.meta.env.DEV) {
   try {
-    connectAuthEmulator(auth, 'http://localhost:9099');
     connectFirestoreEmulator(db, 'localhost', 8080);
     console.log('Connected to Firebase emulators');
   } catch (error) {
@@ -45,7 +41,7 @@ if (import.meta.env.DEV) {
 }
 
 // Log auth state changes
-auth.onAuthStateChanged((user) => {
+onAuthStateChanged(auth, (user) => {
   console.log('Auth state changed:', {
     isAuthenticated: !!user,
     userId: user?.uid,
@@ -54,6 +50,19 @@ auth.onAuthStateChanged((user) => {
     lastLoginTime: user?.metadata.lastSignInTime,
     creationTime: user?.metadata.creationTime
   });
+
+  // If user is logged in, set up token refresh
+  if (user) {
+    // Get current token
+    user.getIdToken(true).then(token => {
+      console.log('Token refreshed:', {
+        tokenLength: token.length,
+        userId: user.uid
+      });
+    }).catch(error => {
+      console.error('Error refreshing token:', error);
+    });
+  }
 });
 
 export { app, auth, db };

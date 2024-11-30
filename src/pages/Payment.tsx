@@ -14,7 +14,7 @@ export default function Payment() {
   const [error, setError] = React.useState<string | null>(null);
   const location = useLocation();
   const navigate = useNavigate();
-  const { user } = useAuthStore();
+  const { user, refreshToken } = useAuthStore();
   const facilityId = location.state?.facilityId;
   const facilityData = location.state?.facility;
 
@@ -27,16 +27,24 @@ export default function Payment() {
 
   // Ensure user is authenticated
   React.useEffect(() => {
-    if (!user) {
-      navigate('/login', { 
-        state: { 
-          returnUrl: '/payment', 
-          facilityId, 
-          facilityData 
-        } 
-      });
-    }
-  }, [user, navigate, facilityId, facilityData]);
+    const checkAuth = async () => {
+      if (!user) {
+        // Store the current path and data for redirect after login
+        navigate('/login', { 
+          state: { 
+            returnUrl: '/payment', 
+            facilityId, 
+            facilityData 
+          }
+        });
+      } else {
+        // Refresh the token to ensure it's valid
+        await refreshToken();
+      }
+    };
+
+    checkAuth();
+  }, [user, navigate, facilityId, facilityData, refreshToken]);
 
   const handlePayment = async () => {
     setLoading(true);
@@ -52,6 +60,9 @@ export default function Payment() {
         throw new Error('Please log in to continue.');
       }
 
+      // Refresh token before creating checkout session
+      await refreshToken();
+
       // Create subscription checkout session
       console.log('Creating checkout session for facility:', { facilityId });
       const { sessionId, url } = await paymentsService.createSubscription({
@@ -61,6 +72,11 @@ export default function Payment() {
       // If we have a URL, use it directly (preferred method)
       if (url) {
         console.log('Redirecting to checkout URL');
+        // Store payment data in sessionStorage for recovery
+        sessionStorage.setItem('paymentData', JSON.stringify({
+          facilityId,
+          facilityData
+        }));
         window.location.href = url;
         return;
       }
