@@ -5,25 +5,40 @@ import { Mail, Lock, Building2 } from 'lucide-react';
 import { useAuthStore } from '../store/authStore';
 import Logo from '../components/Logo';
 
+/**
+ * Registration form data structure
+ */
 interface RegisterForm {
   email: string;
   password: string;
   confirmPassword: string;
 }
 
+/**
+ * Registration Page Component
+ * Handles new user account creation with email/password
+ * Supports different user roles (user, owner)
+ */
 export default function Register() {
+  // Form handling with validation
   const { register, handleSubmit, watch, formState: { errors } } = useForm<RegisterForm>();
   const navigate = useNavigate();
   const location = useLocation();
   const { signUp, error, loading, clearError } = useAuthStore();
   
+  // Get return URL and user type from location state
   const returnUrl = location.state?.returnUrl || '/';
   const userType = location.state?.userType || 'user';
 
+  // Clear any existing errors on mount
   React.useEffect(() => {
     clearError();
   }, [clearError]);
 
+  /**
+   * Handle form submission
+   * Creates user account and redirects to return URL
+   */
   const onSubmit = async (data: RegisterForm) => {
     try {
       await signUp(data.email, data.password, userType);
@@ -56,6 +71,7 @@ export default function Register() {
 
       <div className="mt-8 sm:mx-auto sm:w-full sm:max-w-md">
         <div className="bg-white py-8 px-4 shadow sm:rounded-lg sm:px-10">
+          {/* Show any auth errors */}
           {error && (
             <div className="mb-4 bg-red-50 border border-red-200 text-red-600 px-4 py-3 rounded-lg">
               {error}
@@ -63,6 +79,7 @@ export default function Register() {
           )}
 
           <form className="space-y-6" onSubmit={handleSubmit(onSubmit)}>
+            {/* Email field */}
             <div>
               <label htmlFor="email" className="block text-sm font-medium text-gray-700">
                 Email address
@@ -88,6 +105,7 @@ export default function Register() {
               )}
             </div>
 
+            {/* Password field */}
             <div>
               <label htmlFor="password" className="block text-sm font-medium text-gray-700">
                 Password
@@ -113,6 +131,7 @@ export default function Register() {
               )}
             </div>
 
+            {/* Confirm Password field */}
             <div>
               <label htmlFor="confirmPassword" className="block text-sm font-medium text-gray-700">
                 Confirm Password
@@ -135,6 +154,7 @@ export default function Register() {
               )}
             </div>
 
+            {/* Submit button */}
             <div>
               <button
                 type="submit"
@@ -145,6 +165,7 @@ export default function Register() {
               </button>
             </div>
 
+            {/* Show facility owner info if registering as owner */}
             {userType === 'owner' && (
               <div className="flex items-center gap-2 p-4 bg-blue-50 rounded-lg text-sm text-blue-700">
                 <Building2 className="w-5 h-5 flex-shrink-0" />

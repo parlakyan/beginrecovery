@@ -24,13 +24,26 @@ import { getAuth } from 'firebase/auth';
 import { db } from '../lib/firebase';
 import { Facility, User } from '../types';
 
+// Collection names
 const FACILITIES_COLLECTION = 'facilities';
 const USERS_COLLECTION = 'users';
 const BATCH_SIZE = 12;
 
-// Get auth instance directly
+// Get auth instance
 const auth = getAuth();
 
+/**
+ * Input type for user creation
+ */
+interface CreateUserInput {
+  email: string;
+  role: 'user' | 'owner' | 'admin';
+  createdAt: string;
+}
+
+/**
+ * Search parameters for facilities
+ */
 interface SearchParams {
   query?: string;
   location?: string;
@@ -39,12 +52,10 @@ interface SearchParams {
   rating?: number;
 }
 
-interface CreateUserInput {
-  email: string;
-  role: 'user' | 'owner' | 'admin';
-  createdAt: string;
-}
-
+/**
+ * Network connectivity service
+ * Handles online/offline functionality
+ */
 export const networkService = {
   goOnline: async () => {
     try {
@@ -63,7 +74,17 @@ export const networkService = {
   }
 };
 
+/**
+ * User management service
+ * Handles user document operations in Firestore
+ */
 export const usersService = {
+  /**
+   * Creates a new user document in Firestore
+   * @param userData - User data including email, role, and creation date
+   * @returns Created user data
+   * @throws Error if no authenticated user or creation fails
+   */
   async createUser(userData: CreateUserInput) {
     if (!auth.currentUser) throw new Error('No authenticated user');
     
@@ -94,6 +115,11 @@ export const usersService = {
     }
   },
 
+  /**
+   * Retrieves user data by ID
+   * @param userId - Firebase Auth UID
+   * @returns User data or null if not found
+   */
   async getUserById(userId: string): Promise<User | null> {
     try {
       console.log('Fetching user by ID:', userId);
@@ -119,13 +145,15 @@ export const usersService = {
   }
 };
 
+/**
+ * Generates URL-friendly slug from facility name and location
+ */
 const generateSlug = (name: string, location: string): string => {
   const cleanName = name
     .toLowerCase()
     .replace(/[^a-z0-9\s-]/g, '')
     .replace(/\s+/g, '-');
 
-  // Handle cases where location might be undefined or malformed
   if (!location) {
     return cleanName;
   }
@@ -148,6 +176,9 @@ const generateSlug = (name: string, location: string): string => {
   return `${cleanName}-${cleanCity}-${state}`;
 };
 
+/**
+ * Transforms Firestore document to Facility type
+ */
 const transformFacilityData = (doc: QueryDocumentSnapshot<DocumentData>): Facility => {
   const data = doc.data();
   console.log('Raw facility data:', { id: doc.id, ...data });
@@ -178,7 +209,14 @@ const transformFacilityData = (doc: QueryDocumentSnapshot<DocumentData>): Facili
   };
 };
 
+/**
+ * Facilities management service
+ * Handles facility CRUD operations and queries
+ */
 export const facilitiesService = {
+  /**
+   * Migrates existing facilities to include slugs
+   */
   async migrateExistingSlugs() {
     try {
       console.log('Starting facility slug migration');
@@ -193,7 +231,6 @@ export const facilitiesService = {
         const location = data.location || '';
         const slug = generateSlug(name, location);
         
-        // Always update to ensure consistent slugs
         batch.update(doc.ref, { slug });
         updateCount++;
       });
@@ -210,6 +247,9 @@ export const facilitiesService = {
     }
   },
 
+  /**
+   * Creates a new facility listing
+   */
   async createFacility(data: Partial<Facility>) {
     try {
       const facilitiesRef = collection(db, FACILITIES_COLLECTION);
@@ -235,17 +275,20 @@ export const facilitiesService = {
     }
   },
 
+  /**
+   * Retrieves paginated facilities list
+   */
   async getFacilities(lastDoc?: QueryDocumentSnapshot<DocumentData>) {
     try {
-      console.log('Fetching approved facilities from collection:', FACILITIES_COLLECTION);
+      console.log('Fetching approved facilities');
       
       const facilitiesRef = collection(db, FACILITIES_COLLECTION);
       const testQuery = query(facilitiesRef);
       const testSnapshot = await getDocs(testQuery);
-      console.log('Total documents in collection:', testSnapshot.size);
+      console.log('Total documents:', testSnapshot.size);
       
       if (testSnapshot.size === 0) {
-        console.log('No documents found in collection');
+        console.log('No documents found');
         return { facilities: [], lastVisible: null, hasMore: false };
       }
 
@@ -268,6 +311,9 @@ export const facilitiesService = {
     }
   },
 
+  /**
+   * Gets featured facilities
+   */
   async getFeaturedFacilities() {
     try {
       console.log('Fetching featured facilities');
@@ -289,6 +335,9 @@ export const facilitiesService = {
     }
   },
 
+  /**
+   * Gets facility by ID
+   */
   async getFacilityById(id: string) {
     try {
       console.log('Fetching facility by ID:', id);
@@ -307,6 +356,9 @@ export const facilitiesService = {
     }
   },
 
+  /**
+   * Gets facility by slug
+   */
   async getFacilityBySlug(slug: string) {
     try {
       console.log('Fetching facility by slug:', slug);
@@ -326,6 +378,9 @@ export const facilitiesService = {
     }
   },
 
+  /**
+   * Gets user's facility listings
+   */
   async getUserListings(userId: string) {
     try {
       console.log('Fetching listings for user:', userId);
@@ -344,6 +399,9 @@ export const facilitiesService = {
     }
   },
 
+  /**
+   * Gets all listings for admin
+   */
   async getAllListingsForAdmin() {
     try {
       console.log('Fetching all listings for admin');
@@ -358,6 +416,9 @@ export const facilitiesService = {
     }
   },
 
+  /**
+   * Gets archived listings
+   */
   async getArchivedListings() {
     try {
       console.log('Fetching archived listings');
@@ -375,6 +436,9 @@ export const facilitiesService = {
     }
   },
 
+  /**
+   * Updates facility data
+   */
   async updateFacility(id: string, data: Partial<Facility>) {
     try {
       const facilityRef = doc(db, FACILITIES_COLLECTION, id);
@@ -383,7 +447,6 @@ export const facilitiesService = {
         updatedAt: serverTimestamp()
       };
 
-      // Generate new slug if name or location is updated
       if (data.name || data.location) {
         const facilityDoc = await getDoc(facilityRef);
         const currentData = facilityDoc.data();
@@ -400,6 +463,9 @@ export const facilitiesService = {
     }
   },
 
+  /**
+   * Approves facility listing
+   */
   async approveFacility(id: string) {
     try {
       const facilityRef = doc(db, FACILITIES_COLLECTION, id);
@@ -414,6 +480,9 @@ export const facilitiesService = {
     }
   },
 
+  /**
+   * Rejects facility listing
+   */
   async rejectFacility(id: string) {
     try {
       const facilityRef = doc(db, FACILITIES_COLLECTION, id);
@@ -428,6 +497,9 @@ export const facilitiesService = {
     }
   },
 
+  /**
+   * Verifies facility listing
+   */
   async verifyFacility(id: string) {
     try {
       const facilityRef = doc(db, FACILITIES_COLLECTION, id);
@@ -442,6 +514,9 @@ export const facilitiesService = {
     }
   },
 
+  /**
+   * Removes verification from facility
+   */
   async unverifyFacility(id: string) {
     try {
       const facilityRef = doc(db, FACILITIES_COLLECTION, id);
@@ -456,6 +531,9 @@ export const facilitiesService = {
     }
   },
 
+  /**
+   * Features facility listing
+   */
   async featureFacility(id: string) {
     try {
       const facilityRef = doc(db, FACILITIES_COLLECTION, id);
@@ -470,6 +548,9 @@ export const facilitiesService = {
     }
   },
 
+  /**
+   * Removes facility from featured
+   */
   async unfeatureFacility(id: string) {
     try {
       const facilityRef = doc(db, FACILITIES_COLLECTION, id);
@@ -484,6 +565,9 @@ export const facilitiesService = {
     }
   },
 
+  /**
+   * Archives facility listing
+   */
   async archiveFacility(id: string) {
     try {
       const facilityRef = doc(db, FACILITIES_COLLECTION, id);
@@ -498,6 +582,9 @@ export const facilitiesService = {
     }
   },
 
+  /**
+   * Restores archived facility
+   */
   async restoreFacility(id: string) {
     try {
       const facilityRef = doc(db, FACILITIES_COLLECTION, id);
@@ -512,6 +599,9 @@ export const facilitiesService = {
     }
   },
 
+  /**
+   * Deletes facility listing
+   */
   async deleteFacility(id: string) {
     try {
       const facilityRef = doc(db, FACILITIES_COLLECTION, id);

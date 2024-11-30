@@ -5,23 +5,59 @@ import { Mail, Lock } from 'lucide-react';
 import { useAuthStore } from '../store/authStore';
 import Logo from '../components/Logo';
 
+/**
+ * Login Form Interface
+ * Defines the structure of login form data
+ * 
+ * @property email - User's email address
+ * @property password - User's password
+ */
 interface LoginForm {
   email: string;
   password: string;
 }
 
+/**
+ * Login Page Component
+ * 
+ * Handles user authentication with email/password
+ * Supports redirect to originally requested protected route
+ * 
+ * Features:
+ * - Email validation
+ * - Password validation
+ * - Error display
+ * - Loading states
+ * - Remember me option
+ * - Password reset link
+ * - Registration link
+ * 
+ * Dependencies:
+ * - react-hook-form: Form handling and validation
+ * - useAuthStore: Authentication state management
+ * - react-router-dom: Navigation and routing
+ */
 export default function Login() {
+  // Initialize form handling with validation
   const { register, handleSubmit, formState: { errors } } = useForm<LoginForm>();
   const navigate = useNavigate();
   const location = useLocation();
   const { signIn, error, loading, clearError } = useAuthStore();
 
+  // Get redirect path from location state or default to home
   const from = location.state?.from?.pathname || '/';
 
+  // Clear any existing errors on mount
   React.useEffect(() => {
     clearError();
   }, [clearError]);
 
+  /**
+   * Handle form submission
+   * Attempts to sign in user and redirect to original destination
+   * 
+   * @param data - Form data containing email and password
+   */
   const onSubmit = async (data: LoginForm) => {
     try {
       await signIn(data.email, data.password);
@@ -33,6 +69,7 @@ export default function Login() {
 
   return (
     <div className="min-h-screen bg-gray-50 flex flex-col justify-center py-12 sm:px-6 lg:px-8">
+      {/* Header Section */}
       <div className="sm:mx-auto sm:w-full sm:max-w-md">
         <Link to="/" className="flex justify-center mb-6">
           <Logo />
@@ -48,8 +85,10 @@ export default function Login() {
         </p>
       </div>
 
+      {/* Login Form Section */}
       <div className="mt-8 sm:mx-auto sm:w-full sm:max-w-md">
         <div className="bg-white py-8 px-4 shadow sm:rounded-lg sm:px-10">
+          {/* Error Display */}
           {error && (
             <div className="mb-4 bg-red-50 border border-red-200 text-red-600 px-4 py-3 rounded-lg">
               {error}
@@ -57,6 +96,7 @@ export default function Login() {
           )}
 
           <form className="space-y-6" onSubmit={handleSubmit(onSubmit)}>
+            {/* Email Field */}
             <div>
               <label htmlFor="email" className="block text-sm font-medium text-gray-700">
                 Email address
@@ -82,6 +122,7 @@ export default function Login() {
               )}
             </div>
 
+            {/* Password Field */}
             <div>
               <label htmlFor="password" className="block text-sm font-medium text-gray-700">
                 Password
@@ -101,6 +142,7 @@ export default function Login() {
               )}
             </div>
 
+            {/* Additional Options */}
             <div className="flex items-center justify-between">
               <div className="flex items-center">
                 <input
@@ -124,6 +166,7 @@ export default function Login() {
               </div>
             </div>
 
+            {/* Submit Button */}
             <div>
               <button
                 type="submit"
