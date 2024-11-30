@@ -1,14 +1,7 @@
 import { initializeApp } from 'firebase/app';
-import { 
-  getFirestore,
-  initializeFirestore,
-  persistentLocalCache,
-  persistentSingleTabManager
-} from 'firebase/firestore';
-import { getAuth, setPersistence, browserLocalPersistence } from 'firebase/auth';
-import { getAnalytics, isSupported } from 'firebase/analytics';
+import { getAuth, connectAuthEmulator, browserLocalPersistence, setPersistence } from 'firebase/auth';
+import { getFirestore, connectFirestoreEmulator } from 'firebase/firestore';
 
-// Initialize Firebase with environment variables
 const firebaseConfig = {
   apiKey: import.meta.env.VITE_FIREBASE_API_KEY,
   authDomain: import.meta.env.VITE_FIREBASE_AUTH_DOMAIN,
@@ -19,29 +12,48 @@ const firebaseConfig = {
   measurementId: import.meta.env.VITE_FIREBASE_MEASUREMENT_ID
 };
 
+// Log config (excluding sensitive values)
+console.log('Firebase config:', {
+  hasApiKey: !!firebaseConfig.apiKey,
+  authDomain: firebaseConfig.authDomain,
+  projectId: firebaseConfig.projectId,
+  storageBucket: firebaseConfig.storageBucket,
+  hasAppId: !!firebaseConfig.appId
+});
+
 // Initialize Firebase
 const app = initializeApp(firebaseConfig);
 
-// Initialize Auth first
+// Initialize Auth with persistence
 const auth = getAuth(app);
+setPersistence(auth, browserLocalPersistence)
+  .then(() => console.log('Auth persistence set to local'))
+  .catch((error) => console.error('Error setting auth persistence:', error));
 
-// Initialize Firestore with persistence
-const db = initializeFirestore(app, {
-  localCache: persistentLocalCache({
-    tabManager: persistentSingleTabManager()
-  })
+// Initialize Firestore
+const db = getFirestore(app);
+
+// Connect to emulators in development
+if (import.meta.env.DEV) {
+  try {
+    connectAuthEmulator(auth, 'http://localhost:9099');
+    connectFirestoreEmulator(db, 'localhost', 8080);
+    console.log('Connected to Firebase emulators');
+  } catch (error) {
+    console.error('Error connecting to emulators:', error);
+  }
+}
+
+// Log auth state changes
+auth.onAuthStateChanged((user) => {
+  console.log('Auth state changed:', {
+    isAuthenticated: !!user,
+    userId: user?.uid,
+    email: user?.email,
+    emailVerified: user?.emailVerified,
+    lastLoginTime: user?.metadata.lastSignInTime,
+    creationTime: user?.metadata.creationTime
+  });
 });
 
-// Set auth persistence
-setPersistence(auth, browserLocalPersistence).catch(console.error);
-
-// Initialize analytics only in production
-const analytics = async () => {
-  if (await isSupported() && import.meta.env.PROD) {
-    return getAnalytics(app);
-  }
-  return null;
-};
-
-export { db, auth, analytics };
-export default app;
+export { app, auth, db };

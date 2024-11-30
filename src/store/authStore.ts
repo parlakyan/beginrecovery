@@ -1,150 +1,153 @@
 import { create } from 'zustand';
-import { persist } from 'zustand/middleware';
-import { 
-  signInWithEmailAndPassword, 
-  createUserWithEmailAndPassword,
-  signOut as firebaseSignOut,
-  sendPasswordResetEmail,
-  onAuthStateChanged,
-  AuthError,
-  User as FirebaseUser 
-} from 'firebase/auth';
 import { auth } from '../lib/firebase';
-import { usersService } from '../services/firebase';
-import { User } from '../types';
+import type { User as FirebaseUser } from 'firebase/auth';
 
-interface AuthState {
-  user: User | null;
-  loading: boolean;
-  error: string | null;
-  initialized: boolean;
-  signIn: (email: string, password: string) => Promise<void>;
-  signUp: (email: string, password: string, role?: 'user' | 'owner') => Promise<void>;
-  signOut: () => Promise<void>;
-  resetPassword: (email: string) => Promise<void>;
-  clearError: () => void;
-  setUser: (user: User | null) => void;
-  setLoading: (loading: boolean) => void;
-  setInitialized: (initialized: boolean) => void;
+// Extend Firebase User type with our custom properties
+interface CustomUser extends FirebaseUser {
+  id: string;
+  role: 'user' | 'owner' | 'admin';
+  createdAt: string;
 }
 
-const formatAuthError = (error: AuthError): string => {
-  switch (error.code) {
-    case 'auth/invalid-credential':
-      return 'Invalid email or password';
-    case 'auth/email-already-in-use':
-      return 'This email is already registered';
-    case 'auth/invalid-email':
-      return 'Invalid email address';
-    case 'auth/user-disabled':
-      return 'This account has been disabled';
-    case 'auth/user-not-found':
-      return 'No account found with this email';
-    case 'auth/wrong-password':
-      return 'Invalid email or password';
-    default:
-      return error.message || 'An error occurred during authentication';
-  }
-};
+interface AuthState {
+  user: CustomUser | null;
+  initialized: boolean;
+  loading: boolean;
+  error: string | null;
+  setUser: (user: FirebaseUser | null) => void;
+  setError: (error: string | null) => void;
+  refreshToken: () => Promise<string | null>;
+  signOut: () => Promise<void>;
+}
 
-export const useAuthStore = create<AuthState>()(
-  persist(
-    (set) => ({
-      user: null,
-      loading: true,
-      error: null,
-      initialized: false,
+export const useAuthStore = create<AuthState>((set, get) => ({
+  user: null,
+  initialized: false,
+  loading: true,
+  error: null,
 
-      setUser: (user) => set({ user }),
-      setLoading: (loading) => set({ loading }),
-      setInitialized: (initialized) => set({ initialized }),
-
-      signIn: async (email: string, password: string) => {
-        try {
-          set({ loading: true, error: null });
-          const userCredential = await signInWithEmailAndPassword(auth, email, password);
-          const userData = await usersService.getUserById(userCredential.user.uid);
-          set({ user: userData });
-        } catch (error: any) {
-          const errorMessage = formatAuthError(error);
-          set({ error: errorMessage });
-          throw error;
-        } finally {
-          set({ loading: false });
-        }
-      },
-
-      signUp: async (email: string, password: string, role: 'user' | 'owner' = 'user') => {
-        try {
-          set({ loading: true, error: null });
-          const userCredential = await createUserWithEmailAndPassword(auth, email, password);
-          
-          const newUser = await usersService.createUser({
-            email,
-            role,
-            createdAt: new Date().toISOString()
-          });
-
-          set({ user: newUser });
-        } catch (error: any) {
-          const errorMessage = formatAuthError(error);
-          set({ error: errorMessage });
-          throw error;
-        } finally {
-          set({ loading: false });
-        }
-      },
-
-      signOut: async () => {
-        try {
-          await firebaseSignOut(auth);
-          set({ user: null });
-        } catch (error: any) {
-          set({ error: 'Failed to sign out' });
-          throw error;
-        }
-      },
-
-      resetPassword: async (email: string) => {
-        try {
-          set({ loading: true, error: null });
-          await sendPasswordResetEmail(auth, email);
-        } catch (error: any) {
-          const errorMessage = formatAuthError(error);
-          set({ error: errorMessage });
-          throw error;
-        } finally {
-          set({ loading: false });
-        }
-      },
-
-      clearError: () => set({ error: null })
-    }),
-    {
-      name: 'auth-storage',
-      partialize: (state) => ({ user: state.user }),
+  setUser: async (firebaseUser) => {
+    if (!firebaseUser) {
+      set({ user: null, initialized: true, loading: false });
+      return;
     }
-  )
-);
+
+    try {
+      // Get additional user data from Firestore
+      const userDoc = await fetch('/.netlify/functions/api/user', {
+        headers: {
+          'Authorization': `Bearer ${await firebaseUser.getIdToken()}`
+        }
+      }).then(res => res.json());
+
+      // Combine Firebase user with custom data
+      const customUser: CustomUser = {
+        ...firebaseUser,
+        id: firebaseUser.uid,
+        role: userDoc.role || 'user',
+        createdAt: userDoc.createdAt || new Date().toISOString()
+      };
+
+      set({ user: customUser, initialized: true, loading: false });
+      
+      // Log auth state for debugging
+      console.log('Auth store updated:', {
+        isAuthenticated: true,
+        userId: customUser.id,
+        email: customUser.email,
+        emailVerified: customUser.emailVerified,
+        role: customUser.role
+      });
+    } catch (error) {
+      console.error('Error getting user data:', error);
+      set({ 
+        user: {
+          ...firebaseUser,
+          id: firebaseUser.uid,
+          role: 'user',
+          createdAt: new Date().toISOString()
+        } as CustomUser,
+        initialized: true,
+        loading: false
+      });
+    }
+  },
+
+  setError: (error) => {
+    set({ error, loading: false });
+    if (error) {
+      console.error('Auth store error:', error);
+    }
+  },
+
+  refreshToken: async () => {
+    const { user } = get();
+    if (!user) {
+      console.log('No user found for token refresh');
+      return null;
+    }
+
+    try {
+      console.log('Refreshing auth token');
+      // Force reload the user to get fresh data
+      await user.reload();
+      // Get a fresh token
+      const token = await user.getIdToken(true);
+      console.log('Token refreshed successfully');
+      return token;
+    } catch (error) {
+      console.error('Error refreshing token:', error);
+      // If there's an auth error, sign out the user
+      if ((error as any).code?.startsWith('auth/')) {
+        await auth.signOut();
+        set({ user: null, error: 'Authentication expired. Please sign in again.' });
+      }
+      return null;
+    }
+  },
+
+  signOut: async () => {
+    try {
+      await auth.signOut();
+      set({ user: null, error: null });
+    } catch (error) {
+      console.error('Error signing out:', error);
+      set({ error: 'Error signing out. Please try again.' });
+    }
+  }
+}));
 
 // Set up auth state listener
-onAuthStateChanged(auth, async (firebaseUser: FirebaseUser | null) => {
-  const store = useAuthStore.getState();
+auth.onAuthStateChanged(
+  (user) => {
+    console.log('Firebase auth state changed:', {
+      isAuthenticated: !!user,
+      userId: user?.uid,
+      email: user?.email
+    });
+    useAuthStore.getState().setUser(user);
+  },
+  (error) => {
+    console.error('Firebase auth error:', error);
+    useAuthStore.getState().setError(error.message);
+  }
+);
 
-  try {
-    store.setLoading(true);
+// Set up token refresh
+let refreshInterval: NodeJS.Timeout;
 
-    if (firebaseUser) {
-      const userData = await usersService.getUserById(firebaseUser.uid);
-      store.setUser(userData);
-    } else {
-      store.setUser(null);
-    }
-  } catch (error) {
-    console.error('Auth state change error:', error);
-    store.setUser(null);
-  } finally {
-    store.setLoading(false);
-    store.setInitialized(true);
+auth.onAuthStateChanged((user) => {
+  // Clear existing interval
+  if (refreshInterval) {
+    clearInterval(refreshInterval);
+  }
+
+  if (user) {
+    // Refresh token every 30 minutes
+    refreshInterval = setInterval(async () => {
+      await useAuthStore.getState().refreshToken();
+    }, 30 * 60 * 1000); // 30 minutes
   }
 });
+
+export default useAuthStore;

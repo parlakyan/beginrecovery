@@ -17,12 +17,18 @@ export const paymentsService = {
     }
 
     try {
-      // Get a fresh token
+      // Force refresh the token to ensure it's valid
+      await auth.currentUser.reload();
       const idToken = await auth.currentUser.getIdToken(true);
-      console.log('Got fresh ID token:', { 
+      
+      console.log('Token details:', {
+        userId: auth.currentUser.uid,
+        email: auth.currentUser.email,
         hasToken: !!idToken,
         tokenLength: idToken?.length,
-        userId: auth.currentUser.uid
+        emailVerified: auth.currentUser.emailVerified,
+        lastLoginTime: auth.currentUser.metadata.lastSignInTime,
+        creationTime: auth.currentUser.metadata.creationTime
       });
 
       const response = await fetch('/.netlify/functions/api/create-checkout', {
@@ -34,6 +40,13 @@ export const paymentsService = {
         body: JSON.stringify({ facilityId })
       });
 
+      // Log response details
+      console.log('Checkout response:', {
+        status: response.status,
+        statusText: response.statusText,
+        headers: Object.fromEntries(response.headers.entries())
+      });
+
       const data = await response.json();
 
       if (!response.ok) {
@@ -42,11 +55,20 @@ export const paymentsService = {
           statusText: response.statusText,
           data
         });
+
+        // Handle specific error cases
+        if (response.status === 401) {
+          // Force a new sign in if authentication failed
+          await auth.signOut();
+          throw new Error('Authentication expired. Please sign in again.');
+        }
+
         throw new Error(data.message || data.error || `Failed to create checkout session (${response.status})`);
       }
 
       // Validate the response data
       if (!data.sessionId) {
+        console.error('Invalid response data:', data);
         throw new Error('Invalid response: missing session ID');
       }
 
@@ -57,8 +79,19 @@ export const paymentsService = {
         message: error instanceof Error ? error.message : 'Unknown error',
         code: (error as any).code,
         name: error instanceof Error ? error.name : undefined,
-        stack: error instanceof Error ? error.stack : undefined
+        stack: error instanceof Error ? error.stack : undefined,
+        user: auth.currentUser ? {
+          uid: auth.currentUser.uid,
+          email: auth.currentUser.email,
+          emailVerified: auth.currentUser.emailVerified
+        } : 'No user'
       });
+
+      // Handle Firebase Auth errors
+      if ((error as any).code?.startsWith('auth/')) {
+        await auth.signOut();
+        throw new Error('Authentication error. Please sign in again.');
+      }
 
       // If it's already an Error object, rethrow it
       if (error instanceof Error) {

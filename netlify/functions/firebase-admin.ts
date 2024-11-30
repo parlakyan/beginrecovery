@@ -5,21 +5,23 @@ const initializeFirebaseAdmin = () => {
     return admin.apps[0];
   }
 
-  // Validate required environment variables
-  const requiredVars = {
-    projectId: process.env.VITE_FIREBASE_PROJECT_ID,
-    clientEmail: process.env.FIREBASE_CLIENT_EMAIL,
-    privateKey: process.env.FIREBASE_PRIVATE_KEY,
-  };
-
-  // Check for missing variables
-  Object.entries(requiredVars).forEach(([key, value]) => {
-    if (!value) {
-      throw new Error(`Missing required environment variable: ${key}`);
-    }
-  });
-
   try {
+    // Create a service account credential object
+    const serviceAccount = {
+      type: 'service_account',
+      project_id: process.env.VITE_FIREBASE_PROJECT_ID,
+      private_key_id: process.env.FIREBASE_PRIVATE_KEY_ID,
+      private_key: process.env.FIREBASE_PRIVATE_KEY?.replace(/\\n/g, '\n'),
+      client_email: process.env.FIREBASE_CLIENT_EMAIL,
+      client_id: '',
+      auth_uri: 'https://accounts.google.com/o/oauth2/auth',
+      token_uri: 'https://oauth2.googleapis.com/token',
+      auth_provider_x509_cert_url: 'https://www.googleapis.com/oauth2/v1/certs',
+      client_x509_cert_url: `https://www.googleapis.com/robot/v1/metadata/x509/${encodeURIComponent(
+        process.env.FIREBASE_CLIENT_EMAIL || ''
+      )}`
+    };
+
     // Log initialization attempt (without sensitive data)
     console.log('Initializing Firebase Admin with:', {
       projectId: process.env.VITE_FIREBASE_PROJECT_ID,
@@ -28,32 +30,10 @@ const initializeFirebaseAdmin = () => {
       privateKeyLength: process.env.FIREBASE_PRIVATE_KEY?.length
     });
 
-    // Get and validate private key
-    const privateKey = process.env.FIREBASE_PRIVATE_KEY;
-    if (!privateKey) {
-      throw new Error('Private key is required but was not provided');
-    }
-
-    // Format the private key
-    const formattedKey = privateKey
-      .replace(/\\n/g, '\n')
-      .replace(/^"/, '')
-      .replace(/"$/, '');
-
-    console.log('Private key format:', {
-      startsWithBegin: formattedKey.startsWith('-----BEGIN PRIVATE KEY-----'),
-      endsWithEnd: formattedKey.endsWith('-----END PRIVATE KEY-----'),
-      length: formattedKey.length,
-      containsNewlines: formattedKey.includes('\n')
-    });
-
-    // Initialize the app
+    // Initialize the app with the service account
     const app = admin.initializeApp({
-      credential: admin.credential.cert({
-        projectId: process.env.VITE_FIREBASE_PROJECT_ID || '',
-        clientEmail: process.env.FIREBASE_CLIENT_EMAIL || '',
-        privateKey: formattedKey
-      })
+      credential: admin.credential.cert(serviceAccount as admin.ServiceAccount),
+      projectId: process.env.VITE_FIREBASE_PROJECT_ID
     });
 
     console.log('Firebase Admin initialized successfully');

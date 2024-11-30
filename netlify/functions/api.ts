@@ -53,19 +53,32 @@ export const handler: Handler = async (event, context) => {
         return {
           statusCode: 401,
           headers,
-          body: JSON.stringify({ error: 'Unauthorized: Missing or invalid authorization header' })
+          body: JSON.stringify({ 
+            error: 'Unauthorized',
+            message: 'Missing or invalid authorization header'
+          })
         };
       }
 
       const token = authHeader.split('Bearer ')[1];
-      console.log('Verifying Firebase token');
+      console.log('Attempting to verify Firebase token');
       
       try {
-        const decodedToken = await auth.verifyIdToken(token);
+        // Log token details (safely)
+        console.log('Token details:', {
+          length: token.length,
+          start: token.substring(0, 10) + '...',
+          end: '...' + token.substring(token.length - 10)
+        });
+
+        const decodedToken = await auth.verifyIdToken(token, true);
         console.log('Token verified successfully:', { 
           uid: decodedToken.uid,
           email: decodedToken.email,
-          hasEmail: !!decodedToken.email
+          hasEmail: !!decodedToken.email,
+          tokenIssuer: decodedToken.iss,
+          tokenAudience: decodedToken.aud,
+          authTime: new Date(decodedToken.auth_time * 1000).toISOString()
         });
 
         // Parse request body
@@ -129,14 +142,40 @@ export const handler: Handler = async (event, context) => {
         console.error('Authentication error:', {
           message: authError instanceof Error ? authError.message : 'Unknown error',
           code: (authError as any).code,
-          name: authError instanceof Error ? authError.name : undefined
+          name: authError instanceof Error ? authError.name : undefined,
+          stack: authError instanceof Error ? authError.stack : undefined
         });
+
+        // Check for specific Firebase Auth errors
+        const errorCode = (authError as any).code;
+        if (errorCode === 'auth/id-token-expired') {
+          return {
+            statusCode: 401,
+            headers,
+            body: JSON.stringify({ 
+              error: 'Token expired',
+              message: 'Please log in again'
+            })
+          };
+        }
+
+        if (errorCode === 'auth/invalid-id-token') {
+          return {
+            statusCode: 401,
+            headers,
+            body: JSON.stringify({ 
+              error: 'Invalid token',
+              message: 'Authentication failed. Please try again.'
+            })
+          };
+        }
+
         return {
           statusCode: 401,
           headers,
           body: JSON.stringify({ 
             error: 'Authentication failed',
-            message: authError instanceof Error ? authError.message : 'Unknown error'
+            message: authError instanceof Error ? authError.message : 'Unknown authentication error'
           })
         };
       }
