@@ -23,10 +23,10 @@ interface CustomUser extends FirebaseUser {
  * Handles authentication state and user management
  */
 interface AuthState {
-  user: CustomUser | null;        // Current authenticated user
-  initialized: boolean;           // Whether auth state has been initialized
-  loading: boolean;              // Loading state for auth operations
-  error: string | null;          // Error message if auth operation fails
+  user: CustomUser | null;
+  initialized: boolean;
+  loading: boolean;
+  error: string | null;
   setUser: (user: FirebaseUser | null) => void;
   setError: (error: string | null) => void;
   clearError: () => void;
@@ -44,7 +44,7 @@ export const useAuthStore = create<AuthState>((set, get) => ({
 
   /**
    * Sets user data and fetches additional info from API
-   * @param firebaseUser - Firebase user object or null
+   * Includes role and other custom properties
    */
   setUser: async (firebaseUser) => {
     if (!firebaseUser) {
@@ -55,8 +55,9 @@ export const useAuthStore = create<AuthState>((set, get) => ({
     try {
       // Get fresh token for API call
       const token = await firebaseUser.getIdToken(true);
+      console.log('Getting fresh token for user data fetch');
       
-      // Fetch user data including role from API
+      // Get user data from API
       const response = await fetch('/.netlify/functions/api/user', {
         headers: {
           'Authorization': `Bearer ${token}`
@@ -99,10 +100,6 @@ export const useAuthStore = create<AuthState>((set, get) => ({
     }
   },
 
-  /**
-   * Sets error state for auth operations
-   * @param error - Error message or null to clear
-   */
   setError: (error) => {
     set({ error, loading: false });
     if (error) {
@@ -110,17 +107,13 @@ export const useAuthStore = create<AuthState>((set, get) => ({
     }
   },
 
-  /**
-   * Clears any existing error messages
-   */
   clearError: () => {
     set({ error: null });
   },
 
   /**
-   * Signs in existing user with email/password
-   * @param email - User's email
-   * @param password - User's password
+   * Signs in user with email/password
+   * Automatically refreshes token and fetches user data
    */
   signIn: async (email: string, password: string) => {
     set({ loading: true, error: null });
@@ -131,7 +124,9 @@ export const useAuthStore = create<AuthState>((set, get) => ({
         userId: userCredential.user.uid,
         email: userCredential.user.email
       });
-      // Auth state listener will call setUser
+
+      // Force token refresh and user data fetch
+      await get().refreshToken();
     } catch (error) {
       console.error('Sign in error:', error);
       const errorMessage = (error as any).code === 'auth/wrong-password' || (error as any).code === 'auth/user-not-found'
@@ -143,10 +138,8 @@ export const useAuthStore = create<AuthState>((set, get) => ({
   },
 
   /**
-   * Creates new user account and Firestore document
-   * @param email - New user's email
-   * @param password - New user's password
-   * @param role - User role (default: 'user')
+   * Creates new user account
+   * Sets up user document with role
    */
   signUp: async (email: string, password: string, role: 'user' | 'owner' | 'admin' = 'user') => {
     set({ loading: true, error: null });
@@ -157,7 +150,7 @@ export const useAuthStore = create<AuthState>((set, get) => ({
       const userCredential = await createUserWithEmailAndPassword(auth, email, password);
       console.log('Firebase user created:', userCredential.user.uid);
 
-      // Create Firestore user document
+      // Create user document
       await usersService.createUser({
         email,
         role,
@@ -165,12 +158,13 @@ export const useAuthStore = create<AuthState>((set, get) => ({
       });
 
       console.log('User document created with role:', role);
-      // Auth state listener will call setUser
+      
+      // Force token refresh and user data fetch
+      await get().refreshToken();
     } catch (error) {
       console.error('Registration error:', error);
       let errorMessage = 'An error occurred during registration';
       
-      // Handle specific Firebase auth errors
       if ((error as any).code === 'auth/email-already-in-use') {
         errorMessage = 'This email is already registered';
       } else if ((error as any).code === 'auth/invalid-email') {
@@ -184,9 +178,6 @@ export const useAuthStore = create<AuthState>((set, get) => ({
     }
   },
 
-  /**
-   * Signs out current user and clears state
-   */
   signOut: async () => {
     set({ loading: true, error: null });
     try {
@@ -203,8 +194,8 @@ export const useAuthStore = create<AuthState>((set, get) => ({
   },
 
   /**
-   * Refreshes Firebase ID token
-   * @returns Fresh token or null if no user/error
+   * Refreshes auth token and user data
+   * Used to ensure latest role and permissions
    */
   refreshToken: async () => {
     const { user } = get();
@@ -214,16 +205,18 @@ export const useAuthStore = create<AuthState>((set, get) => ({
     }
 
     try {
-      console.log('Refreshing auth token');
+      console.log('Refreshing auth token and user data');
       // Force reload user data
       await user.reload();
       // Get fresh token
       const token = await user.getIdToken(true);
-      console.log('Token refreshed successfully');
+      // Fetch latest user data
+      await get().setUser(user);
+      console.log('Token and user data refreshed successfully');
       return token;
     } catch (error) {
       console.error('Error refreshing token:', error);
-      // Sign out on auth errors
+      // Sign out if auth error occurs
       if ((error as any).code?.startsWith('auth/')) {
         await firebaseSignOut(auth);
         set({ user: null, error: 'Authentication expired. Please sign in again.' });
@@ -249,7 +242,7 @@ auth.onAuthStateChanged(
   }
 );
 
-// Auto refresh token every 30 minutes
+// Set up automatic token refresh every 30 minutes
 let refreshInterval: NodeJS.Timeout;
 
 auth.onAuthStateChanged((user) => {

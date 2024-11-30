@@ -8,9 +8,6 @@ import Logo from '../components/Logo';
 /**
  * Login Form Interface
  * Defines the structure of login form data
- * 
- * @property email - User's email address
- * @property password - User's password
  */
 interface LoginForm {
   email: string;
@@ -19,32 +16,14 @@ interface LoginForm {
 
 /**
  * Login Page Component
- * 
  * Handles user authentication with email/password
- * Supports redirect to originally requested protected route
- * 
- * Features:
- * - Email validation
- * - Password validation
- * - Error display
- * - Loading states
- * - Remember me option
- * - Password reset link
- * - Registration link
- * 
- * Dependencies:
- * - react-hook-form: Form handling and validation
- * - useAuthStore: Authentication state management
- * - react-router-dom: Navigation and routing
  */
 export default function Login() {
-  // Initialize form handling with validation
   const { register, handleSubmit, formState: { errors } } = useForm<LoginForm>();
   const navigate = useNavigate();
   const location = useLocation();
-  const { signIn, error, loading, clearError } = useAuthStore();
+  const { signIn, error, loading, clearError, refreshToken } = useAuthStore();
 
-  // Get redirect path from location state or default to home
   const from = location.state?.from?.pathname || '/';
 
   // Clear any existing errors on mount
@@ -54,14 +33,17 @@ export default function Login() {
 
   /**
    * Handle form submission
-   * Attempts to sign in user and redirect to original destination
-   * 
-   * @param data - Form data containing email and password
+   * Signs in user and refreshes token to ensure latest role
    */
   const onSubmit = async (data: LoginForm) => {
     try {
       await signIn(data.email, data.password);
-      navigate(from, { replace: true });
+      // Force token refresh to get latest claims/role
+      await refreshToken();
+      // Add small delay to ensure state is updated
+      setTimeout(() => {
+        navigate(from, { replace: true });
+      }, 100);
     } catch (err) {
       console.error('Login error:', err);
     }

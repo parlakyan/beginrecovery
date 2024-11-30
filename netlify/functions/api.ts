@@ -66,9 +66,7 @@ export const handler: Handler = async (event, context) => {
 
     /**
      * User Data Endpoint
-     * 
-     * Returns user data including role
-     * Requires Firebase auth token
+     * Handles user data retrieval and role verification
      */
     if (path === 'user' && event.httpMethod === 'GET') {
       const authHeader = event.headers.authorization;
@@ -88,28 +86,42 @@ export const handler: Handler = async (event, context) => {
         const userDoc = await db.collection('users').doc(decodedToken.uid).get();
         const userData = userDoc.data();
 
-        // Special case for admin email
-        if (decodedToken.email === 'admin@beginrecovery.com') {
+        console.log('User data retrieved:', {
+          email: decodedToken.email,
+          hasUserDoc: userDoc.exists,
+          storedRole: userData?.role
+        });
+
+        // Check for admin status
+        const isAdmin = decodedToken.email === 'admin@beginrecovery.com' || userData?.role === 'admin';
+
+        // If user document doesn't exist, create it
+        if (!userDoc.exists) {
+          const newUserData = {
+            id: decodedToken.uid,
+            email: decodedToken.email,
+            role: isAdmin ? 'admin' : 'user',
+            createdAt: new Date().toISOString()
+          };
+
+          await db.collection('users').doc(decodedToken.uid).set(newUserData);
+          console.log('Created new user document with role:', newUserData.role);
+
           return {
             statusCode: 200,
             headers,
-            body: JSON.stringify({
-              id: decodedToken.uid,
-              email: decodedToken.email,
-              role: 'admin',
-              createdAt: userData?.createdAt || new Date().toISOString()
-            })
+            body: JSON.stringify(newUserData)
           };
         }
 
-        // Return user data with role
+        // Return existing user data with admin check
         return {
           statusCode: 200,
           headers,
           body: JSON.stringify({
             id: decodedToken.uid,
             email: decodedToken.email,
-            role: userData?.role || 'user',
+            role: isAdmin ? 'admin' : (userData?.role || 'user'),
             createdAt: userData?.createdAt || new Date().toISOString()
           })
         };
@@ -125,9 +137,7 @@ export const handler: Handler = async (event, context) => {
 
     /**
      * Webhook Handler
-     * 
      * Handles Stripe webhook events
-     * Requires Stripe signature
      */
     if (path === 'webhook' && event.httpMethod === 'POST') {
       const sig = event.headers['stripe-signature'];
@@ -223,9 +233,7 @@ export const handler: Handler = async (event, context) => {
 
     /**
      * Checkout Session Creator
-     * 
      * Creates Stripe checkout session
-     * Requires Firebase auth token
      */
     if (path === 'create-checkout' && event.httpMethod === 'POST') {
       console.log('Processing checkout request');
