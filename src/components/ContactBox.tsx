@@ -27,13 +27,13 @@ export default function ContactBox({ facility }: ContactBoxProps) {
       {/* Contact Info */}
       <div className="p-6 space-y-6">
         {/* Insurance Info */}
-        <div className="bg-blue-50 rounded-lg p-4">
-          <h4 className="font-medium text-blue-900 mb-2">Insurance Accepted</h4>
-          <p className="text-sm text-blue-700">
+        <div className="bg-surface rounded-lg p-4">
+          <h4 className="font-semibold text-gray-900 mb-2">Insurance Accepted</h4>
+          <p className="text-gray-900">
             We work with most major insurance providers.{' '}
             <button 
               onClick={() => {/* Add insurance check handler */}} 
-              className="text-blue-600 hover:text-blue-700 underline font-medium"
+              className="text-blue-600 hover:text-blue-700 font-semibold"
             >
               Check insurance coverage
             </button>

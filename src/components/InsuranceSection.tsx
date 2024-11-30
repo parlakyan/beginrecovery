@@ -70,18 +70,6 @@ const InsuranceSection = () => {
             </button>
           ))}
         </div>
-
-        {/* Insurance Info Box */}
-        <div className="mt-12 bg-surface rounded-lg p-6 max-w-6xl mx-auto">
-          <h3 className="text-xl font-semibold text-gray-900 mb-2">Insurance Accepted</h3>
-          <p className="text-gray-900 mb-2">We work with most major insurance providers.</p>
-          <a 
-            href="#check-insurance" 
-            className="text-blue-600 hover:text-blue-700 font-semibold inline-block"
-          >
-            Check insurance coverage
-          </a>
-        </div>
       </div>
     </section>
   );

@@ -34,15 +34,29 @@ export const paymentsService = {
     }
 
     try {
-      // Get fresh auth token to ensure it's valid
+      // Log user state before token refresh
+      console.log('User state before token refresh:', {
+        uid: auth.currentUser.uid,
+        email: auth.currentUser.email,
+        lastLoginTime: auth.currentUser.metadata.lastSignInTime,
+        creationTime: auth.currentUser.metadata.creationTime
+      });
+
+      // Force reload user before getting token
+      await auth.currentUser.reload();
+      console.log('User reloaded successfully');
+
+      // Get fresh auth token with force refresh
       const idToken = await auth.currentUser.getIdToken(true);
       console.log('Got fresh ID token:', { 
         hasToken: !!idToken,
         tokenLength: idToken?.length,
-        userId: auth.currentUser.uid
+        userId: auth.currentUser.uid,
+        timestamp: new Date().toISOString()
       });
 
       // Create checkout session via API
+      console.log('Creating checkout session for facility:', { facilityId });
       const response = await fetch('/.netlify/functions/api/create-checkout', {
         method: 'POST',
         headers: {
@@ -52,6 +66,13 @@ export const paymentsService = {
         body: JSON.stringify({ facilityId })
       });
 
+      // Log response status
+      console.log('Checkout API response:', {
+        status: response.status,
+        statusText: response.statusText,
+        ok: response.ok
+      });
+
       const data = await response.json();
 
       // Handle API errors
@@ -59,15 +80,55 @@ export const paymentsService = {
         console.error('Checkout error response:', {
           status: response.status,
           statusText: response.statusText,
-          data
+          data,
+          timestamp: new Date().toISOString()
         });
+
+        // Handle specific error cases
+        if (response.status === 401) {
+          if (data.error === 'Token expired') {
+            throw new Error('Authentication expired. Please sign in again.');
+          }
+          if (data.error === 'Invalid token') {
+            // Force token refresh and retry once
+            console.log('Invalid token detected, attempting refresh...');
+            await auth.currentUser.reload();
+            const newToken = await auth.currentUser.getIdToken(true);
+            
+            // Retry with new token
+            const retryResponse = await fetch('/.netlify/functions/api/create-checkout', {
+              method: 'POST',
+              headers: {
+                'Content-Type': 'application/json',
+                'Authorization': `Bearer ${newToken}`
+              },
+              body: JSON.stringify({ facilityId })
+            });
+
+            if (!retryResponse.ok) {
+              throw new Error('Authentication failed. Please sign in again.');
+            }
+
+            const retryData = await retryResponse.json();
+            return retryData as CheckoutResponse;
+          }
+        }
+
         throw new Error(data.message || data.error || `Failed to create checkout session (${response.status})`);
       }
 
       // Validate response data
       if (!data.sessionId) {
+        console.error('Invalid API response:', data);
         throw new Error('Invalid response: missing session ID');
       }
+
+      // Log successful response
+      console.log('Checkout session created successfully:', {
+        hasSessionId: !!data.sessionId,
+        hasUrl: !!data.url,
+        timestamp: new Date().toISOString()
+      });
 
       return data as CheckoutResponse;
     } catch (error) {
@@ -76,8 +137,16 @@ export const paymentsService = {
         message: error instanceof Error ? error.message : 'Unknown error',
         code: (error as any).code,
         name: error instanceof Error ? error.name : undefined,
-        stack: error instanceof Error ? error.stack : undefined
+        stack: error instanceof Error ? error.stack : undefined,
+        timestamp: new Date().toISOString(),
+        userId: auth.currentUser?.uid,
+        userEmail: auth.currentUser?.email
       });
+
+      // Handle Firebase Auth specific errors
+      if ((error as any).code?.startsWith('auth/')) {
+        throw new Error('Authentication error. Please sign in again.');
+      }
 
       // If it's already an Error object, rethrow it
       if (error instanceof Error) {
