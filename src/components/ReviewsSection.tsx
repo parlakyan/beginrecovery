@@ -77,7 +77,7 @@ export default function ReviewsSection({ facility }: ReviewsSectionProps) {
       </div>
 
       {/* Overall Rating */}
-      <div className="flex items-center gap-8 mb-8 p-6 bg-gray-50 rounded-xl">
+      <div className="flex items-center gap-8 mb-8 p-6 bg-surface rounded-xl">
         <div className="text-center">
           <div className="text-4xl font-bold text-gray-900 mb-2">{facility.rating}</div>
           <div className="flex items-center gap-1 mb-1">
@@ -117,7 +117,7 @@ export default function ReviewsSection({ facility }: ReviewsSectionProps) {
       </div>
 
       <div className="mt-8 text-center">
-        <button className="bg-gray-100 text-gray-800 px-6 py-3 rounded-lg font-semibold hover:bg-gray-200 transition-colors">
+        <button className="bg-surface text-gray-900 px-6 py-3 rounded-lg font-semibold hover:bg-surface-hover transition-colors">
           Show More Reviews
         </button>
       </div>

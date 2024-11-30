@@ -37,6 +37,12 @@ export default {
           700: '#0f766e',
           800: '#115e59',
           900: '#134e4a',
+        },
+        'surface': {
+          light: '#f9fafb', // gray-50 equivalent
+          DEFAULT: '#f3f4f6', // gray-100 equivalent
+          hover: '#f3f4f6', // gray-100 equivalent
+          active: '#e5e7eb', // gray-200 equivalent
         }
       }
     },

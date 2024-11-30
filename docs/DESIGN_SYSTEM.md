@@ -23,6 +23,12 @@
 --gray-100: #F3F4F6;         /* Backgrounds */
 --white: #FFFFFF;
 
+/* Surface Colors */
+--surface: #f3f4f6;          /* Default surface color */
+--surface-light: #f9fafb;    /* Lighter variant */
+--surface-hover: #f3f4f6;    /* Hover state */
+--surface-active: #e5e7eb;   /* Active/pressed state */
+
 /* Semantic Colors */
 --success: #22c55e;          /* green-600 */
 --error: #ef4444;            /* red-600 */
@@ -132,6 +138,13 @@ font-family: system-ui, -apple-system, sans-serif;
 // Interactive Card
 <div className="bg-white rounded-xl shadow-sm hover:shadow-lg transition-all p-6 cursor-pointer">
   {/* Card content */}
+</div>
+
+// Surface Card
+<div className="bg-surface rounded-lg p-6">
+  <h2 className="text-xl font-semibold text-gray-900">Title</h2>
+  <p className="text-gray-900">Content</p>
+  <a className="text-blue-600 hover:text-blue-700 font-semibold">Link</a>
 </div>
 ```
 

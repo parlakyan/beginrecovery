@@ -130,18 +130,8 @@ export default function ListingDetail() {
   }
 
   if (!facility) {
-    return (
-      <div className="min-h-screen bg-gray-50">
-        <Header />
-        <div className="flex justify-center items-center min-h-[60vh]">
-          <div className="text-center">
-            <h2 className="text-2xl font-bold text-gray-900">Facility Not Found</h2>
-            <p className="mt-2 text-gray-600">The facility you're looking for doesn't exist or isn't available.</p>
-          </div>
-        </div>
-        <Footer />
-      </div>
-    );
+    navigate('/404', { replace: true });
+    return null;
   }
 
   return (
@@ -225,21 +215,21 @@ export default function ListingDetail() {
                   <div className="flex-1">
                     <h1 className="text-3xl font-bold text-gray-900 mb-4">{facility.name}</h1>
                     
-                    {/* Location and Hours */}
-                    <div className="space-y-2">
+                    {/* Location and Hours - Now horizontally aligned */}
+                    <div className="flex flex-row gap-6">
                       <div className="flex items-center text-gray-600">
-                        <MapPin className="w-5 h-5 mr-2" />
+                        <MapPin className="w-5 h-5 mr-2 flex-shrink-0" />
                         <span>{facility.location}</span>
                       </div>
                       <div className="flex items-center text-gray-600">
-                        <Clock className="w-5 h-5 mr-2" />
+                        <Clock className="w-5 h-5 mr-2 flex-shrink-0" />
                         <span>Open 24/7</span>
                       </div>
                     </div>
                   </div>
 
-                  {/* Reviews Summary */}
-                  <div className="flex flex-col items-center bg-blue-50 px-6 py-4 rounded-lg">
+                  {/* Reviews Summary - Now with gray background */}
+                  <div className="flex flex-col items-center bg-gray-50 px-6 py-4 rounded-lg">
                     <div className="flex items-center gap-2 mb-1">
                       <Star className="w-6 h-6 text-yellow-400 fill-current" />
                       <span className="text-2xl font-bold">{facility.rating.toFixed(1)}</span>
@@ -262,6 +252,18 @@ export default function ListingDetail() {
                 <div className="mt-6 prose prose-blue max-w-none">
                   <h2 className="text-xl font-semibold mb-4">About This Facility</h2>
                   <p>{facility.description}</p>
+                </div>
+
+                {/* Insurance Section - Updated styling */}
+                <div className="mt-6 bg-gray-50 rounded-lg p-6">
+                  <h2 className="text-xl font-semibold mb-4 text-gray-900">Insurance Accepted</h2>
+                  <p className="text-gray-900 mb-2">We work with most major insurance providers.</p>
+                  <a 
+                    href="#check-insurance" 
+                    className="text-blue-600 hover:text-blue-700 font-semibold inline-block"
+                  >
+                    Check insurance coverage
+                  </a>
                 </div>
 
                 {/* Amenities */}
