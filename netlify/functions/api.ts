@@ -2,6 +2,22 @@ import { Handler } from '@netlify/functions';
 import Stripe from 'stripe';
 import { db, auth } from './firebase-admin';
 
+/**
+ * API Handler for BeginRecovery payment system
+ * 
+ * Environment Variables Required:
+ * - STRIPE_SECRET_KEY: Stripe API secret key
+ * - STRIPE_PRICE_ID: Subscription price ID
+ * - SITE_URL: Base URL for redirects
+ * - STRIPE_WEBHOOK_SECRET: Webhook signing secret
+ * 
+ * Endpoints:
+ * - POST /create-checkout: Create Stripe checkout session
+ * - POST /webhook: Handle Stripe webhook events
+ * - GET /user: Get user data and role
+ */
+
+// Validate required environment variables
 if (!process.env.STRIPE_SECRET_KEY) {
   throw new Error('Missing STRIPE_SECRET_KEY environment variable');
 }
@@ -18,15 +34,17 @@ if (!process.env.STRIPE_WEBHOOK_SECRET) {
   throw new Error('Missing STRIPE_WEBHOOK_SECRET environment variable');
 }
 
+// Initialize Stripe with API version
 const stripe = new Stripe(process.env.STRIPE_SECRET_KEY, {
   apiVersion: '2023-10-16'
 });
 
 export const handler: Handler = async (event, context) => {
+  // CORS headers for all responses
   const headers = {
     'Access-Control-Allow-Origin': '*',
     'Access-Control-Allow-Headers': 'Content-Type, Authorization',
-    'Access-Control-Allow-Methods': 'POST, OPTIONS'
+    'Access-Control-Allow-Methods': 'GET, POST, OPTIONS'
   };
 
   // Handle preflight requests
@@ -43,10 +61,74 @@ export const handler: Handler = async (event, context) => {
       path, 
       method: event.httpMethod,
       hasAuth: !!event.headers.authorization,
-      authHeader: event.headers.authorization?.substring(0, 20) + '...' // Log part of the auth header safely
+      authHeader: event.headers.authorization?.substring(0, 20) + '...'
     });
 
-    // Handle Stripe webhook events
+    /**
+     * User Data Endpoint
+     * 
+     * Returns user data including role
+     * Requires Firebase auth token
+     */
+    if (path === 'user' && event.httpMethod === 'GET') {
+      const authHeader = event.headers.authorization;
+      if (!authHeader?.startsWith('Bearer ')) {
+        return {
+          statusCode: 401,
+          headers,
+          body: JSON.stringify({ error: 'Unauthorized' })
+        };
+      }
+
+      try {
+        const token = authHeader.split('Bearer ')[1];
+        const decodedToken = await auth.verifyIdToken(token);
+        
+        // Get user data from Firestore
+        const userDoc = await db.collection('users').doc(decodedToken.uid).get();
+        const userData = userDoc.data();
+
+        // Special case for admin email
+        if (decodedToken.email === 'admin@beginrecovery.com') {
+          return {
+            statusCode: 200,
+            headers,
+            body: JSON.stringify({
+              id: decodedToken.uid,
+              email: decodedToken.email,
+              role: 'admin',
+              createdAt: userData?.createdAt || new Date().toISOString()
+            })
+          };
+        }
+
+        // Return user data with role
+        return {
+          statusCode: 200,
+          headers,
+          body: JSON.stringify({
+            id: decodedToken.uid,
+            email: decodedToken.email,
+            role: userData?.role || 'user',
+            createdAt: userData?.createdAt || new Date().toISOString()
+          })
+        };
+      } catch (error) {
+        console.error('Error getting user data:', error);
+        return {
+          statusCode: 401,
+          headers,
+          body: JSON.stringify({ error: 'Invalid token' })
+        };
+      }
+    }
+
+    /**
+     * Webhook Handler
+     * 
+     * Handles Stripe webhook events
+     * Requires Stripe signature
+     */
     if (path === 'webhook' && event.httpMethod === 'POST') {
       const sig = event.headers['stripe-signature'];
       
@@ -139,11 +221,15 @@ export const handler: Handler = async (event, context) => {
       }
     }
 
-    // Create checkout session endpoint
+    /**
+     * Checkout Session Creator
+     * 
+     * Creates Stripe checkout session
+     * Requires Firebase auth token
+     */
     if (path === 'create-checkout' && event.httpMethod === 'POST') {
       console.log('Processing checkout request');
       
-      // Verify Firebase auth token
       const authHeader = event.headers.authorization;
       if (!authHeader?.startsWith('Bearer ')) {
         console.error('Missing or invalid authorization header');
@@ -161,24 +247,13 @@ export const handler: Handler = async (event, context) => {
       console.log('Attempting to verify Firebase token');
       
       try {
-        // Log token details (safely)
-        console.log('Token details:', {
-          length: token.length,
-          start: token.substring(0, 10) + '...',
-          end: '...' + token.substring(token.length - 10)
-        });
-
         const decodedToken = await auth.verifyIdToken(token, true);
         console.log('Token verified successfully:', { 
           uid: decodedToken.uid,
           email: decodedToken.email,
-          hasEmail: !!decodedToken.email,
-          tokenIssuer: decodedToken.iss,
-          tokenAudience: decodedToken.aud,
-          authTime: new Date(decodedToken.auth_time * 1000).toISOString()
+          hasEmail: !!decodedToken.email
         });
 
-        // Parse request body
         if (!event.body) {
           throw new Error('Missing request body');
         }
@@ -190,8 +265,6 @@ export const handler: Handler = async (event, context) => {
           throw new Error('Missing facilityId');
         }
 
-        // Get facility data
-        console.log('Fetching facility data');
         const facilityDoc = await db.collection('facilities').doc(facilityId).get();
         if (!facilityDoc.exists) {
           throw new Error('Facility not found');
@@ -203,8 +276,6 @@ export const handler: Handler = async (event, context) => {
           hasData: !!facilityData 
         });
 
-        // Create Stripe checkout session
-        console.log('Creating Stripe checkout session');
         const session = await stripe.checkout.sessions.create({
           payment_method_types: ['card'],
           mode: 'subscription',
@@ -239,11 +310,9 @@ export const handler: Handler = async (event, context) => {
         console.error('Authentication error:', {
           message: authError instanceof Error ? authError.message : 'Unknown error',
           code: (authError as any).code,
-          name: authError instanceof Error ? authError.name : undefined,
-          stack: authError instanceof Error ? authError.stack : undefined
+          name: authError instanceof Error ? authError.name : undefined
         });
 
-        // Check for specific Firebase Auth errors
         const errorCode = (authError as any).code;
         if (errorCode === 'auth/id-token-expired') {
           return {

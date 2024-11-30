@@ -11,26 +11,38 @@ interface ErrorResponse {
 }
 
 export const paymentsService = {
+  /**
+   * Creates a Stripe subscription checkout session
+   * 
+   * @param {Object} params - Parameters for creating subscription
+   * @param {string} params.facilityId - ID of the facility to subscribe
+   * @returns {Promise<CheckoutResponse>} Checkout session details
+   * 
+   * Dependencies:
+   * - Requires authenticated user (Firebase Auth)
+   * - Requires valid facility ID in Firestore
+   * - Requires Stripe configuration in backend
+   * 
+   * Environment Variables Required:
+   * - STRIPE_PRICE_ID: Stripe subscription price ID
+   * - SITE_URL: Base URL for success/cancel redirects
+   */
   async createSubscription({ facilityId }: { facilityId: string }): Promise<CheckoutResponse> {
+    // Verify user is authenticated
     if (!auth.currentUser) {
       throw new Error('User must be authenticated');
     }
 
     try {
-      // Force refresh the token to ensure it's valid
-      await auth.currentUser.reload();
+      // Get fresh auth token to ensure it's valid
       const idToken = await auth.currentUser.getIdToken(true);
-      
-      console.log('Token details:', {
-        userId: auth.currentUser.uid,
-        email: auth.currentUser.email,
+      console.log('Got fresh ID token:', { 
         hasToken: !!idToken,
         tokenLength: idToken?.length,
-        emailVerified: auth.currentUser.emailVerified,
-        lastLoginTime: auth.currentUser.metadata.lastSignInTime,
-        creationTime: auth.currentUser.metadata.creationTime
+        userId: auth.currentUser.uid
       });
 
+      // Create checkout session via API
       const response = await fetch('/.netlify/functions/api/create-checkout', {
         method: 'POST',
         headers: {
@@ -40,65 +52,39 @@ export const paymentsService = {
         body: JSON.stringify({ facilityId })
       });
 
-      // Log response details
-      console.log('Checkout response:', {
-        status: response.status,
-        statusText: response.statusText,
-        headers: Object.fromEntries(response.headers.entries())
-      });
-
       const data = await response.json();
 
+      // Handle API errors
       if (!response.ok) {
         console.error('Checkout error response:', {
           status: response.status,
           statusText: response.statusText,
           data
         });
-
-        // Handle specific error cases
-        if (response.status === 401) {
-          // Force a new sign in if authentication failed
-          await auth.signOut();
-          throw new Error('Authentication expired. Please sign in again.');
-        }
-
         throw new Error(data.message || data.error || `Failed to create checkout session (${response.status})`);
       }
 
-      // Validate the response data
+      // Validate response data
       if (!data.sessionId) {
-        console.error('Invalid response data:', data);
         throw new Error('Invalid response: missing session ID');
       }
 
       return data as CheckoutResponse;
     } catch (error) {
-      // Log the full error for debugging
+      // Log detailed error for debugging
       console.error('Payment service error:', {
         message: error instanceof Error ? error.message : 'Unknown error',
         code: (error as any).code,
         name: error instanceof Error ? error.name : undefined,
-        stack: error instanceof Error ? error.stack : undefined,
-        user: auth.currentUser ? {
-          uid: auth.currentUser.uid,
-          email: auth.currentUser.email,
-          emailVerified: auth.currentUser.emailVerified
-        } : 'No user'
+        stack: error instanceof Error ? error.stack : undefined
       });
-
-      // Handle Firebase Auth errors
-      if ((error as any).code?.startsWith('auth/')) {
-        await auth.signOut();
-        throw new Error('Authentication error. Please sign in again.');
-      }
 
       // If it's already an Error object, rethrow it
       if (error instanceof Error) {
         throw error;
       }
 
-      // Otherwise, wrap it in an Error object with a generic message
+      // Otherwise, wrap it in an Error object
       throw new Error('Failed to create checkout session. Please try again.');
     }
   }

@@ -35,33 +35,39 @@ export const useAuthStore = create<AuthState>((set, get) => ({
     }
 
     try {
-      // Get additional user data from Firestore
-      const userDoc = await fetch('/.netlify/functions/api/user', {
+      // Get fresh token
+      const token = await firebaseUser.getIdToken(true);
+      
+      // Get user data from API
+      const response = await fetch('/.netlify/functions/api/user', {
         headers: {
-          'Authorization': `Bearer ${await firebaseUser.getIdToken()}`
+          'Authorization': `Bearer ${token}`
         }
-      }).then(res => res.json());
+      });
+
+      if (!response.ok) {
+        throw new Error('Failed to fetch user data');
+      }
+
+      const userData = await response.json();
+      console.log('User data fetched:', {
+        id: userData.id,
+        email: userData.email,
+        role: userData.role
+      });
 
       // Combine Firebase user with custom data
       const customUser: CustomUser = {
         ...firebaseUser,
-        id: firebaseUser.uid,
-        role: userDoc.role || 'user',
-        createdAt: userDoc.createdAt || new Date().toISOString()
+        id: userData.id,
+        role: userData.role,
+        createdAt: userData.createdAt
       };
 
       set({ user: customUser, initialized: true, loading: false });
-      
-      // Log auth state for debugging
-      console.log('Auth store updated:', {
-        isAuthenticated: true,
-        userId: customUser.id,
-        email: customUser.email,
-        emailVerified: customUser.emailVerified,
-        role: customUser.role
-      });
     } catch (error) {
       console.error('Error getting user data:', error);
+      // Fallback to basic user data if API call fails
       set({ 
         user: {
           ...firebaseUser,
@@ -130,15 +136,15 @@ export const useAuthStore = create<AuthState>((set, get) => ({
 
     try {
       console.log('Refreshing auth token');
-      // Force reload the user to get fresh data
+      // Force reload user data
       await user.reload();
-      // Get a fresh token
+      // Get fresh token
       const token = await user.getIdToken(true);
       console.log('Token refreshed successfully');
       return token;
     } catch (error) {
       console.error('Error refreshing token:', error);
-      // If there's an auth error, sign out the user
+      // Sign out if auth error occurs
       if ((error as any).code?.startsWith('auth/')) {
         await firebaseSignOut(auth);
         set({ user: null, error: 'Authentication expired. Please sign in again.' });
@@ -164,7 +170,7 @@ auth.onAuthStateChanged(
   }
 );
 
-// Set up token refresh
+// Set up automatic token refresh every 30 minutes
 let refreshInterval: NodeJS.Timeout;
 
 auth.onAuthStateChanged((user) => {
@@ -174,7 +180,6 @@ auth.onAuthStateChanged((user) => {
   }
 
   if (user) {
-    // Refresh token every 30 minutes
     refreshInterval = setInterval(async () => {
       await useAuthStore.getState().refreshToken();
     }, 30 * 60 * 1000); // 30 minutes

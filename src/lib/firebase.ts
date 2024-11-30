@@ -2,6 +2,7 @@ import { initializeApp } from 'firebase/app';
 import { getAuth, browserLocalPersistence, setPersistence, onAuthStateChanged } from 'firebase/auth';
 import { getFirestore, connectFirestoreEmulator } from 'firebase/firestore';
 
+// Firebase configuration from environment variables
 const firebaseConfig = {
   apiKey: import.meta.env.VITE_FIREBASE_API_KEY,
   authDomain: import.meta.env.VITE_FIREBASE_AUTH_DOMAIN,
@@ -12,13 +13,13 @@ const firebaseConfig = {
   measurementId: import.meta.env.VITE_FIREBASE_MEASUREMENT_ID
 };
 
-// Initialize Firebase
+// Initialize Firebase app
 const app = initializeApp(firebaseConfig);
 
 // Initialize Auth with persistence
 const auth = getAuth(app);
 
-// Set persistence to LOCAL
+// Set persistence to LOCAL to maintain auth state across page reloads
 setPersistence(auth, browserLocalPersistence)
   .then(() => {
     console.log('Firebase Auth persistence set to LOCAL');
@@ -30,7 +31,7 @@ setPersistence(auth, browserLocalPersistence)
 // Initialize Firestore
 const db = getFirestore(app);
 
-// Connect to emulators in development
+// Connect to emulators in development mode
 if (import.meta.env.DEV) {
   try {
     connectFirestoreEmulator(db, 'localhost', 8080);
@@ -40,7 +41,7 @@ if (import.meta.env.DEV) {
   }
 }
 
-// Log auth state changes
+// Log auth state changes for debugging
 onAuthStateChanged(auth, (user) => {
   console.log('Auth state changed:', {
     isAuthenticated: !!user,
@@ -51,9 +52,8 @@ onAuthStateChanged(auth, (user) => {
     creationTime: user?.metadata.creationTime
   });
 
-  // If user is logged in, set up token refresh
+  // If user is logged in, refresh token
   if (user) {
-    // Get current token
     user.getIdToken(true).then(token => {
       console.log('Token refreshed:', {
         tokenLength: token.length,
