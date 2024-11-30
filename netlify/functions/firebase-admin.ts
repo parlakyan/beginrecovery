@@ -4,47 +4,21 @@ import * as admin from 'firebase-admin';
  * Firebase Admin Initialization
  * 
  * Environment Variables Required:
- * - FIREBASE_PRIVATE_KEY: Service account private key (from JSON)
- * - FIREBASE_CLIENT_EMAIL: Service account email
- * - VITE_FIREBASE_PROJECT_ID: Firebase project ID
+ * - FIREBASE_SERVICE_ACCOUNT: The entire service account JSON as a string
  */
 
-const validateServiceAccount = () => {
-  const validation = {
-    hasPrivateKey: !!process.env.FIREBASE_PRIVATE_KEY,
-    hasClientEmail: !!process.env.FIREBASE_CLIENT_EMAIL,
-    hasProjectId: !!process.env.VITE_FIREBASE_PROJECT_ID,
-    timestamp: new Date().toISOString()
-  };
-
-  console.log('Firebase Admin: Environment validation:', validation);
-
-  if (!process.env.FIREBASE_PRIVATE_KEY) {
-    throw new Error('FIREBASE_PRIVATE_KEY is required');
-  }
-  if (!process.env.FIREBASE_CLIENT_EMAIL) {
-    throw new Error('FIREBASE_CLIENT_EMAIL is required');
-  }
-  if (!process.env.VITE_FIREBASE_PROJECT_ID) {
-    throw new Error('VITE_FIREBASE_PROJECT_ID is required');
-  }
-
-  return validation;
-};
-
-const formatPrivateKey = (rawKey: string): string => {
-  let key = rawKey;
-  
-  // Remove quotes if present
-  if (key.startsWith('"') && key.endsWith('"')) {
-    key = key.slice(1, -1);
-  }
-  
-  // Replace escaped newlines
-  key = key.replace(/\\n/g, '\n');
-  
-  return key;
-};
+interface ServiceAccount {
+  type: string;
+  project_id: string;
+  private_key_id: string;
+  private_key: string;
+  client_email: string;
+  client_id: string;
+  auth_uri: string;
+  token_uri: string;
+  auth_provider_x509_cert_url: string;
+  client_x509_cert_url: string;
+}
 
 const initializeFirebaseAdmin = () => {
   // Return existing instance if already initialized
@@ -54,19 +28,30 @@ const initializeFirebaseAdmin = () => {
   }
 
   try {
-    // Validate environment variables
-    validateServiceAccount();
+    console.log('Firebase Admin: Starting initialization');
 
-    // Format private key
-    const privateKey = formatPrivateKey(process.env.FIREBASE_PRIVATE_KEY!);
+    // Parse service account JSON
+    if (!process.env.FIREBASE_SERVICE_ACCOUNT) {
+      throw new Error('FIREBASE_SERVICE_ACCOUNT environment variable is required');
+    }
+
+    let serviceAccount: ServiceAccount;
+    try {
+      serviceAccount = JSON.parse(process.env.FIREBASE_SERVICE_ACCOUNT);
+      console.log('Firebase Admin: Service account parsed successfully', {
+        projectId: serviceAccount.project_id,
+        clientEmail: serviceAccount.client_email,
+        hasPrivateKey: !!serviceAccount.private_key,
+        timestamp: new Date().toISOString()
+      });
+    } catch (error) {
+      console.error('Firebase Admin: Failed to parse service account JSON:', error);
+      throw new Error('Invalid service account JSON format');
+    }
 
     // Initialize app with service account
     const app = admin.initializeApp({
-      credential: admin.credential.cert({
-        projectId: process.env.VITE_FIREBASE_PROJECT_ID!,
-        clientEmail: process.env.FIREBASE_CLIENT_EMAIL!,
-        privateKey: privateKey
-      })
+      credential: admin.credential.cert(serviceAccount as admin.ServiceAccount)
     });
 
     console.log('Firebase Admin: Initialized successfully');
@@ -83,7 +68,6 @@ const initializeFirebaseAdmin = () => {
 };
 
 // Initialize Firebase Admin
-console.log('Firebase Admin: Starting initialization');
 const app = initializeFirebaseAdmin();
 
 // Export initialized services
