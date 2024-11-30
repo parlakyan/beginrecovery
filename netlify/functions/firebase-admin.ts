@@ -19,6 +19,7 @@ interface ServiceAccountValidation {
     endsWithEnd: boolean;
     containsNewlines: boolean;
     newlineCount: number;
+    rawLength: number;
   };
   clientEmailFormat: {
     isValidEmail: boolean;
@@ -31,12 +32,23 @@ const validateServiceAccount = (): ServiceAccountValidation => {
   const clientEmail = process.env.FIREBASE_CLIENT_EMAIL;
   const projectId = process.env.VITE_FIREBASE_PROJECT_ID;
 
+  // Log raw private key length and format for debugging
+  console.log('Raw private key validation:', {
+    length: privateKey?.length,
+    firstChars: privateKey?.substring(0, 10),
+    lastChars: privateKey?.substring(privateKey.length - 10),
+    hasQuotes: privateKey?.startsWith('"') && privateKey?.endsWith('"'),
+    hasEscapedNewlines: privateKey?.includes('\\n'),
+    timestamp: new Date().toISOString()
+  });
+
   // Format private key if it exists
   const formattedKey = privateKey
     ? privateKey
         .replace(/\\n/g, '\n')
         .replace(/^"/, '')
         .replace(/"$/, '')
+        .trim()
     : '';
 
   return {
@@ -48,13 +60,41 @@ const validateServiceAccount = (): ServiceAccountValidation => {
       startsWithBegin: formattedKey.startsWith('-----BEGIN PRIVATE KEY-----'),
       endsWithEnd: formattedKey.endsWith('-----END PRIVATE KEY-----'),
       containsNewlines: formattedKey.includes('\n'),
-      newlineCount: (formattedKey.match(/\n/g) || []).length
+      newlineCount: (formattedKey.match(/\n/g) || []).length,
+      rawLength: privateKey?.length || 0
     },
     clientEmailFormat: {
       isValidEmail: clientEmail ? /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(clientEmail) : false,
       domain: clientEmail ? clientEmail.split('@')[1] : ''
     }
   };
+};
+
+const formatPrivateKey = (rawKey: string): string => {
+  // Remove quotes and trim
+  let key = rawKey.replace(/^"|"$/g, '').trim();
+  
+  // Replace escaped newlines with actual newlines
+  key = key.replace(/\\n/g, '\n');
+  
+  // Ensure key has proper header and footer
+  if (!key.startsWith('-----BEGIN PRIVATE KEY-----')) {
+    key = '-----BEGIN PRIVATE KEY-----\n' + key;
+  }
+  if (!key.endsWith('-----END PRIVATE KEY-----')) {
+    key = key + '\n-----END PRIVATE KEY-----';
+  }
+  
+  // Log formatted key details (without exposing the actual key)
+  console.log('Formatted private key details:', {
+    length: key.length,
+    hasHeader: key.startsWith('-----BEGIN PRIVATE KEY-----'),
+    hasFooter: key.endsWith('-----END PRIVATE KEY-----'),
+    newlineCount: (key.match(/\n/g) || []).length,
+    timestamp: new Date().toISOString()
+  });
+  
+  return key;
 };
 
 const initializeFirebaseAdmin = () => {
@@ -86,19 +126,8 @@ const initializeFirebaseAdmin = () => {
       throw new Error('VITE_FIREBASE_PROJECT_ID is required');
     }
 
-    // Format private key
-    const formattedKey = process.env.FIREBASE_PRIVATE_KEY
-      .replace(/\\n/g, '\n')
-      .replace(/^"/, '')
-      .replace(/"$/, '');
-
-    // Validate private key format
-    if (!formattedKey.startsWith('-----BEGIN PRIVATE KEY-----')) {
-      throw new Error('Invalid private key format: Missing BEGIN marker');
-    }
-    if (!formattedKey.endsWith('-----END PRIVATE KEY-----')) {
-      throw new Error('Invalid private key format: Missing END marker');
-    }
+    // Format private key with proper handling
+    const formattedKey = formatPrivateKey(process.env.FIREBASE_PRIVATE_KEY);
 
     // Log initialization attempt
     console.log('Firebase Admin: Initializing with:', {
