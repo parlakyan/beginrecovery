@@ -12,7 +12,6 @@ import { db, auth } from './firebase-admin';
  * - STRIPE_WEBHOOK_SECRET: Webhook signing secret
  */
 
-// Previous environment variable checks...
 if (!process.env.STRIPE_SECRET_KEY) {
   throw new Error('Missing STRIPE_SECRET_KEY environment variable');
 }
@@ -53,10 +52,7 @@ export const handler: Handler = async (event, context) => {
       hasAuth: !!event.headers.authorization
     });
 
-    /**
-     * User Data Endpoint
-     * Handles user data retrieval and role verification
-     */
+    // User Data Endpoint
     if (path === 'user' && event.httpMethod === 'GET') {
       const authHeader = event.headers.authorization;
       if (!authHeader?.startsWith('Bearer ')) {
@@ -139,11 +135,8 @@ export const handler: Handler = async (event, context) => {
       }
     }
 
-    /**
-     * Webhook Handler
-     */
+    // Webhook Handler
     if (path === 'webhook' && event.httpMethod === 'POST') {
-      // Previous webhook handler code remains the same...
       const sig = event.headers['stripe-signature'];
       
       if (!sig) {
@@ -165,11 +158,19 @@ export const handler: Handler = async (event, context) => {
           case 'checkout.session.completed': {
             const session = stripeEvent.data.object;
             const facilityId = session.metadata?.facilityId;
+            const userId = session.metadata?.userId;
             
-            if (!facilityId) {
-              throw new Error('Missing facilityId in session metadata');
+            if (!facilityId || !userId) {
+              throw new Error('Missing facilityId or userId in session metadata');
             }
 
+            console.log('Processing successful payment:', {
+              facilityId,
+              userId,
+              sessionId: session.id
+            });
+
+            // Update facility status
             await db.collection('facilities')
               .doc(facilityId)
               .update({
@@ -178,6 +179,15 @@ export const handler: Handler = async (event, context) => {
                 updatedAt: new Date().toISOString()
               });
 
+            // Update user role to owner
+            await db.collection('users')
+              .doc(userId)
+              .update({
+                role: 'owner',
+                updatedAt: new Date().toISOString()
+              });
+
+            console.log('Updated user role to owner and activated facility');
             break;
           }
 
@@ -217,11 +227,8 @@ export const handler: Handler = async (event, context) => {
       }
     }
 
-    /**
-     * Checkout Handler
-     */
+    // Checkout Handler
     if (path === 'create-checkout' && event.httpMethod === 'POST') {
-      // Previous checkout handler code remains the same...
       const authHeader = event.headers.authorization;
       if (!authHeader?.startsWith('Bearer ')) {
         return {

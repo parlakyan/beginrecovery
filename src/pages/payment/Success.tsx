@@ -10,7 +10,7 @@ export default function PaymentSuccess() {
   const [error, setError] = React.useState<string | null>(null);
   const navigate = useNavigate();
   const [searchParams] = useSearchParams();
-  const { user } = useAuthStore();
+  const { user, refreshToken } = useAuthStore();
 
   React.useEffect(() => {
     const checkSession = async () => {
@@ -23,6 +23,14 @@ export default function PaymentSuccess() {
         // Wait a moment for the webhook to process
         await new Promise(resolve => setTimeout(resolve, 2000));
 
+        // Refresh user data to get updated role
+        await refreshToken();
+        console.log('User data refreshed after payment:', {
+          email: user?.email,
+          role: user?.role,
+          timestamp: new Date().toISOString()
+        });
+
         // Redirect to account page
         navigate('/account', { replace: true });
       } catch (err) {
@@ -34,7 +42,7 @@ export default function PaymentSuccess() {
     };
 
     checkSession();
-  }, [navigate, searchParams]);
+  }, [navigate, searchParams, refreshToken, user?.email]);
 
   return (
     <div className="min-h-screen bg-gray-50">

@@ -33,14 +33,13 @@ export default function HomePage() {
       try {
         setLoading(true);
         
-        // First, migrate existing facilities to ensure they have slugs
-        await facilitiesService.migrateExistingSlugs();
-        
+        // Fetch facilities and featured facilities in parallel
         const [allFacilities, featured] = await Promise.all([
           facilitiesService.getFacilities(),
           facilitiesService.getFeaturedFacilities()
         ]);
         
+        // Filter valid facilities
         const validFacilities = (allFacilities.facilities || [])
           .filter((f: Facility) => f && 
                       typeof f.rating === 'number' && 
@@ -50,6 +49,11 @@ export default function HomePage() {
           .filter((f: Facility) => f && 
                       typeof f.rating === 'number' && 
                       f.moderationStatus === 'approved');
+        
+        console.log('Fetched facilities:', {
+          total: validFacilities.length,
+          featured: validFeatured.length
+        });
         
         setFacilities(validFacilities);
         setFeaturedFacilities(validFeatured);
