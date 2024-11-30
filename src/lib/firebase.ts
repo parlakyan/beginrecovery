@@ -8,7 +8,6 @@ import { getFirestore } from 'firebase/firestore';
  * Required Environment Variables:
  * - VITE_FIREBASE_API_KEY: Project API key
  * - VITE_FIREBASE_AUTH_DOMAIN: Auth domain for sign-in
- * - VITE_FIREBASE_PROJECT_ID: Project identifier
  * - VITE_FIREBASE_STORAGE_BUCKET: Storage bucket URL
  * - VITE_FIREBASE_MESSAGING_SENDER_ID: Cloud Messaging sender ID
  * - VITE_FIREBASE_APP_ID: Application ID
@@ -17,7 +16,7 @@ import { getFirestore } from 'firebase/firestore';
 const firebaseConfig = {
   apiKey: import.meta.env.VITE_FIREBASE_API_KEY,
   authDomain: import.meta.env.VITE_FIREBASE_AUTH_DOMAIN,
-  projectId: import.meta.env.VITE_FIREBASE_PROJECT_ID,
+  projectId: 'beginrecovery-bb288', // Hardcoded since it's public and matches service account
   storageBucket: import.meta.env.VITE_FIREBASE_STORAGE_BUCKET,
   messagingSenderId: import.meta.env.VITE_FIREBASE_MESSAGING_SENDER_ID,
   appId: import.meta.env.VITE_FIREBASE_APP_ID,
