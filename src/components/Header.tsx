@@ -4,12 +4,41 @@ import { Menu, X, LogOut, User, Loader2, LayoutGrid } from 'lucide-react';
 import { useAuthStore } from '../store/authStore';
 import Logo from './Logo';
 
+/**
+ * Header Component
+ * Main navigation component with responsive design
+ * 
+ * Features:
+ * - Responsive navigation
+ * - User authentication status
+ * - Admin dashboard access
+ * - Mobile menu
+ * 
+ * Admin Access:
+ * - Shows admin dashboard link when user.role === 'admin'
+ * - Available in both desktop and mobile views
+ */
 export default function Header() {
   const { user, loading, signOut } = useAuthStore();
   const navigate = useNavigate();
   const location = useLocation();
   const [isMobileMenuOpen, setIsMobileMenuOpen] = useState(false);
 
+  // Log user role for debugging
+  React.useEffect(() => {
+    if (user) {
+      console.log('Header - User Role Check:', {
+        email: user.email,
+        role: user.role,
+        isAdmin: user.role === 'admin'
+      });
+    }
+  }, [user]);
+
+  /**
+   * Handles user logout
+   * Clears auth state and redirects to login
+   */
   const handleLogout = async () => {
     try {
       await signOut();
@@ -20,6 +49,10 @@ export default function Header() {
     }
   };
 
+  /**
+   * Handles auth-related navigation
+   * Redirects to account page or login based on auth state
+   */
   const handleAuthAction = () => {
     setIsMobileMenuOpen(false);
     if (user) {
@@ -44,6 +77,7 @@ export default function Header() {
             <Link to="/resources" className="text-gray-600 hover:text-blue-600">Resources</Link>
             <Link to="/insurance" className="text-gray-600 hover:text-blue-600">Insurance</Link>
             <Link to="/about" className="text-gray-600 hover:text-blue-600">About Us</Link>
+            {/* Admin Dashboard Link - Only visible for admin users */}
             {user?.role === 'admin' && (
               <Link 
                 to="/admin" 
@@ -133,6 +167,7 @@ export default function Header() {
               >
                 About Us
               </Link>
+              {/* Admin Dashboard Link - Only visible for admin users */}
               {user?.role === 'admin' && (
                 <Link 
                   to="/admin" 

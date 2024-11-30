@@ -21,17 +21,32 @@ import { auth } from './lib/firebase';
 import { facilitiesService } from './services/firebase';
 import { Loader2 } from 'lucide-react';
 
+/**
+ * Main Application Component
+ * 
+ * Handles:
+ * - Route configuration
+ * - Authentication persistence
+ * - Protected routes
+ * - Role-based access control
+ * 
+ * Routes:
+ * - Public: Home, Login, Register, Reset Password
+ * - Protected: Account, Create Listing, Payment
+ * - Role-Based: Admin Dashboard (requires admin role)
+ */
 export default function App() {
   const { initialized } = useAuthStore();
 
+  // Initialize app settings and run migrations
   useEffect(() => {
     const initializeApp = async () => {
       try {
-        // Set auth persistence to LOCAL
+        // Set auth persistence to LOCAL to maintain session
         await setPersistence(auth, browserLocalPersistence);
         console.log('Auth persistence set to LOCAL');
 
-        // Run the migration when the app starts
+        // Run slug migration for facilities
         await facilitiesService.migrateExistingSlugs();
       } catch (error) {
         console.error('Initialization error:', error);
@@ -43,6 +58,7 @@ export default function App() {
     }
   }, [initialized]);
 
+  // Show loading screen while initializing
   if (!initialized) {
     return (
       <div className="min-h-screen flex items-center justify-center">
@@ -57,35 +73,53 @@ export default function App() {
   return (
     <>
       <Routes>
+        {/* Public Routes */}
         <Route path="/" element={<HomePage />} />
-        {/* Support both old and new URL formats */}
         <Route path="/listing/:id" element={<ListingDetail />} />
         <Route path="/:slug" element={<ListingDetail />} />
         <Route path="/login" element={<Login />} />
         <Route path="/register" element={<Register />} />
         <Route path="/reset-password" element={<ResetPassword />} />
-        <Route path="/create-listing" element={<CreateListing />} />
-        <Route path="/payment" element={<Payment />} />
-        <Route path="/payment/success" element={<PaymentSuccess />} />
-        <Route path="/payment/cancel" element={<PaymentCancel />} />
-        <Route 
-          path="/account/*" 
-          element={
-            <ProtectedRoute>
-              <AccountPage />
-            </ProtectedRoute>
-          } 
-        />
-        <Route 
-          path="/admin/*" 
-          element={
-            <ProtectedRoute requiredRole="admin">
-              <AdminDashboard />
-            </ProtectedRoute>
-          } 
-        />
+
+        {/* Protected Routes - Require Authentication */}
+        <Route path="/create-listing" element={
+          <ProtectedRoute>
+            <CreateListing />
+          </ProtectedRoute>
+        } />
+        <Route path="/payment" element={
+          <ProtectedRoute>
+            <Payment />
+          </ProtectedRoute>
+        } />
+        <Route path="/payment/success" element={
+          <ProtectedRoute>
+            <PaymentSuccess />
+          </ProtectedRoute>
+        } />
+        <Route path="/payment/cancel" element={
+          <ProtectedRoute>
+            <PaymentCancel />
+          </ProtectedRoute>
+        } />
+        <Route path="/account/*" element={
+          <ProtectedRoute>
+            <AccountPage />
+          </ProtectedRoute>
+        } />
+
+        {/* Admin Routes - Require Admin Role */}
+        <Route path="/admin/*" element={
+          <ProtectedRoute requiredRole="admin">
+            <AdminDashboard />
+          </ProtectedRoute>
+        } />
+
+        {/* 404 Route */}
         <Route path="*" element={<NotFound />} />
       </Routes>
+
+      {/* Network Status Indicator */}
       <NetworkStatus />
     </>
   );

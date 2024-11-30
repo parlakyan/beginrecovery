@@ -18,6 +18,7 @@ interface ProtectedRouteProps {
  * Protected Route Component
  * 
  * Handles route protection based on authentication and role requirements.
+ * Supports role-based access control for admin and owner routes.
  * 
  * Features:
  * - Shows loading state while checking auth
@@ -31,18 +32,23 @@ interface ProtectedRouteProps {
  *   <AdminDashboard />
  * </ProtectedRoute>
  * ```
- * 
- * Dependencies:
- * - useAuthStore: Authentication state management
- * - react-router-dom: Navigation and location handling
- * 
- * @param props.children - Components to render when access is granted
- * @param props.requiredRole - Optional role requirement
  */
 export default function ProtectedRoute({ children, requiredRole }: ProtectedRouteProps) {
-  // Get auth state and loading status
   const { user, loading } = useAuthStore();
   const location = useLocation();
+
+  // Debug logging for role checks
+  React.useEffect(() => {
+    if (user && requiredRole) {
+      console.log('ProtectedRoute - Role Check:', {
+        userEmail: user.email,
+        userRole: user.role,
+        requiredRole,
+        hasAccess: user.role === requiredRole,
+        path: location.pathname
+      });
+    }
+  }, [user, requiredRole, location]);
 
   // Show loading spinner while checking auth
   if (loading) {
@@ -58,11 +64,16 @@ export default function ProtectedRoute({ children, requiredRole }: ProtectedRout
 
   // Redirect to login if not authenticated
   if (!user) {
+    console.log('ProtectedRoute - Not authenticated, redirecting to login');
     return <Navigate to="/login" state={{ from: location }} replace />;
   }
 
-  // Redirect to home if role requirement not met
+  // Check role requirement if specified
   if (requiredRole && user.role !== requiredRole) {
+    console.log('ProtectedRoute - Insufficient role:', {
+      userRole: user.role,
+      requiredRole
+    });
     return <Navigate to="/" replace />;
   }
 

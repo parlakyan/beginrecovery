@@ -25,6 +25,27 @@ import Footer from '../components/Footer';
 import EditListingModal from '../components/EditListingModal';
 import ConfirmationDialog from '../components/ConfirmationDialog';
 
+/**
+ * Admin Dashboard Component
+ * 
+ * Features:
+ * - Facility management
+ * - Moderation controls (approve/reject)
+ * - Verification management
+ * - Archive/restore functionality
+ * - Facility search and filtering
+ * 
+ * Access Control:
+ * - Requires admin role
+ * - Redirects to home if not admin
+ * 
+ * States:
+ * - Active listings
+ * - Archived listings
+ * - Pending moderation
+ * - Verification status
+ * - Featured status
+ */
 export default function AdminDashboard() {
   const navigate = useNavigate();
   const { user } = useAuthStore();
@@ -36,6 +57,16 @@ export default function AdminDashboard() {
   const [editingFacility, setEditingFacility] = useState<Facility | null>(null);
   const [isEditModalOpen, setIsEditModalOpen] = useState(false);
   const [showArchived, setShowArchived] = useState(false);
+
+  // Debug logging for admin access
+  useEffect(() => {
+    console.log('AdminDashboard - Access Check:', {
+      userEmail: user?.email,
+      userRole: user?.role,
+      isAdmin: user?.role === 'admin',
+      timestamp: new Date().toISOString()
+    });
+  }, [user]);
 
   // Confirmation dialogs
   const [archiveDialog, setArchiveDialog] = useState<{ isOpen: boolean; facilityId: string | null }>({
@@ -52,6 +83,11 @@ export default function AdminDashboard() {
     window.scrollTo(0, 0);
     
     if (user?.role !== 'admin') {
+      console.log('AdminDashboard - Unauthorized Access:', {
+        userEmail: user?.email,
+        userRole: user?.role,
+        redirecting: true
+      });
       navigate('/');
     }
   }, [user, navigate]);

@@ -10,14 +10,9 @@ import { db, auth } from './firebase-admin';
  * - STRIPE_PRICE_ID: Subscription price ID
  * - SITE_URL: Base URL for redirects
  * - STRIPE_WEBHOOK_SECRET: Webhook signing secret
- * 
- * Endpoints:
- * - POST /create-checkout: Create Stripe checkout session
- * - POST /webhook: Handle Stripe webhook events
- * - GET /user: Get user data and role
  */
 
-// Validate required environment variables
+// Previous environment variable checks...
 if (!process.env.STRIPE_SECRET_KEY) {
   throw new Error('Missing STRIPE_SECRET_KEY environment variable');
 }
@@ -34,25 +29,20 @@ if (!process.env.STRIPE_WEBHOOK_SECRET) {
   throw new Error('Missing STRIPE_WEBHOOK_SECRET environment variable');
 }
 
-// Initialize Stripe with API version
+// Initialize Stripe
 const stripe = new Stripe(process.env.STRIPE_SECRET_KEY, {
   apiVersion: '2023-10-16'
 });
 
 export const handler: Handler = async (event, context) => {
-  // CORS headers for all responses
   const headers = {
     'Access-Control-Allow-Origin': '*',
     'Access-Control-Allow-Headers': 'Content-Type, Authorization',
     'Access-Control-Allow-Methods': 'GET, POST, OPTIONS'
   };
 
-  // Handle preflight requests
   if (event.httpMethod === 'OPTIONS') {
-    return { 
-      statusCode: 204, 
-      headers 
-    };
+    return { statusCode: 204, headers };
   }
 
   try {
@@ -60,8 +50,7 @@ export const handler: Handler = async (event, context) => {
     console.log('Processing request:', { 
       path, 
       method: event.httpMethod,
-      hasAuth: !!event.headers.authorization,
-      authHeader: event.headers.authorization?.substring(0, 20) + '...'
+      hasAuth: !!event.headers.authorization
     });
 
     /**
@@ -83,20 +72,20 @@ export const handler: Handler = async (event, context) => {
         const decodedToken = await auth.verifyIdToken(token);
         
         // Get user data from Firestore
-        const userDoc = await db.collection('users').doc(decodedToken.uid).get();
+        const userRef = db.collection('users').doc(decodedToken.uid);
+        const userDoc = await userRef.get();
         const userData = userDoc.data();
 
         console.log('User data retrieved:', {
           email: decodedToken.email,
           hasUserDoc: userDoc.exists,
-          storedRole: userData?.role
+          storedRole: userData?.role,
+          docId: userDoc.id
         });
-
-        // Check for admin status
-        const isAdmin = decodedToken.email === 'admin@beginrecovery.com' || userData?.role === 'admin';
 
         // If user document doesn't exist, create it
         if (!userDoc.exists) {
+          const isAdmin = decodedToken.email === 'admin@beginrecovery.com';
           const newUserData = {
             id: decodedToken.uid,
             email: decodedToken.email,
@@ -104,8 +93,8 @@ export const handler: Handler = async (event, context) => {
             createdAt: new Date().toISOString()
           };
 
-          await db.collection('users').doc(decodedToken.uid).set(newUserData);
-          console.log('Created new user document with role:', newUserData.role);
+          await userRef.set(newUserData);
+          console.log('Created new user document:', newUserData);
 
           return {
             statusCode: 200,
@@ -114,16 +103,31 @@ export const handler: Handler = async (event, context) => {
           };
         }
 
-        // Return existing user data with admin check
+        // For existing users, check if they should be admin
+        const isAdmin = decodedToken.email === 'admin@beginrecovery.com' || userData?.role === 'admin';
+        
+        // Update role if needed
+        if (isAdmin && userData?.role !== 'admin') {
+          await userRef.update({
+            role: 'admin'
+          });
+          console.log('Updated user to admin role');
+        }
+
+        // Return user data with correct role
+        const responseData = {
+          id: decodedToken.uid,
+          email: decodedToken.email,
+          role: isAdmin ? 'admin' : (userData?.role || 'user'),
+          createdAt: userData?.createdAt || new Date().toISOString()
+        };
+
+        console.log('Sending user data:', responseData);
+
         return {
           statusCode: 200,
           headers,
-          body: JSON.stringify({
-            id: decodedToken.uid,
-            email: decodedToken.email,
-            role: isAdmin ? 'admin' : (userData?.role || 'user'),
-            createdAt: userData?.createdAt || new Date().toISOString()
-          })
+          body: JSON.stringify(responseData)
         };
       } catch (error) {
         console.error('Error getting user data:', error);
@@ -137,9 +141,9 @@ export const handler: Handler = async (event, context) => {
 
     /**
      * Webhook Handler
-     * Handles Stripe webhook events
      */
     if (path === 'webhook' && event.httpMethod === 'POST') {
+      // Previous webhook handler code remains the same...
       const sig = event.headers['stripe-signature'];
       
       if (!sig) {
@@ -157,26 +161,14 @@ export const handler: Handler = async (event, context) => {
           process.env.STRIPE_WEBHOOK_SECRET || ''
         );
 
-        console.log('Processing webhook event:', {
-          type: stripeEvent.type,
-          id: stripeEvent.id
-        });
-
         switch (stripeEvent.type) {
           case 'checkout.session.completed': {
             const session = stripeEvent.data.object;
             const facilityId = session.metadata?.facilityId;
-            const userId = session.metadata?.userId;
             
             if (!facilityId) {
               throw new Error('Missing facilityId in session metadata');
             }
-
-            console.log('Processing successful checkout:', {
-              facilityId,
-              userId,
-              subscriptionId: session.subscription
-            });
 
             await db.collection('facilities')
               .doc(facilityId)
@@ -191,10 +183,6 @@ export const handler: Handler = async (event, context) => {
 
           case 'customer.subscription.deleted': {
             const subscription = stripeEvent.data.object;
-            console.log('Processing subscription deletion:', {
-              subscriptionId: subscription.id
-            });
-
             const facilitiesRef = db.collection('facilities');
             const snapshot = await facilitiesRef
               .where('subscriptionId', '==', subscription.id)
@@ -202,8 +190,6 @@ export const handler: Handler = async (event, context) => {
 
             if (!snapshot.empty) {
               const doc = snapshot.docs[0];
-              console.log('Deactivating facility:', { facilityId: doc.id });
-              
               await doc.ref.update({
                 status: 'inactive',
                 updatedAt: new Date().toISOString()
@@ -232,15 +218,12 @@ export const handler: Handler = async (event, context) => {
     }
 
     /**
-     * Checkout Session Creator
-     * Creates Stripe checkout session
+     * Checkout Handler
      */
     if (path === 'create-checkout' && event.httpMethod === 'POST') {
-      console.log('Processing checkout request');
-      
+      // Previous checkout handler code remains the same...
       const authHeader = event.headers.authorization;
       if (!authHeader?.startsWith('Bearer ')) {
-        console.error('Missing or invalid authorization header');
         return {
           statusCode: 401,
           headers,
@@ -252,23 +235,14 @@ export const handler: Handler = async (event, context) => {
       }
 
       const token = authHeader.split('Bearer ')[1];
-      console.log('Attempting to verify Firebase token');
       
       try {
         const decodedToken = await auth.verifyIdToken(token, true);
-        console.log('Token verified successfully:', { 
-          uid: decodedToken.uid,
-          email: decodedToken.email,
-          hasEmail: !!decodedToken.email
-        });
-
         if (!event.body) {
           throw new Error('Missing request body');
         }
 
         const { facilityId } = JSON.parse(event.body);
-        console.log('Processing facility:', { facilityId });
-        
         if (!facilityId) {
           throw new Error('Missing facilityId');
         }
@@ -279,10 +253,6 @@ export const handler: Handler = async (event, context) => {
         }
 
         const facilityData = facilityDoc.data();
-        console.log('Facility data retrieved:', { 
-          name: facilityData?.name,
-          hasData: !!facilityData 
-        });
 
         const session = await stripe.checkout.sessions.create({
           payment_method_types: ['card'],
@@ -301,11 +271,6 @@ export const handler: Handler = async (event, context) => {
           }
         });
 
-        console.log('Checkout session created:', { 
-          sessionId: session.id,
-          hasUrl: !!session.url 
-        });
-
         return {
           statusCode: 200,
           headers,
@@ -315,41 +280,13 @@ export const handler: Handler = async (event, context) => {
           })
         };
       } catch (authError) {
-        console.error('Authentication error:', {
-          message: authError instanceof Error ? authError.message : 'Unknown error',
-          code: (authError as any).code,
-          name: authError instanceof Error ? authError.name : undefined
-        });
-
-        const errorCode = (authError as any).code;
-        if (errorCode === 'auth/id-token-expired') {
-          return {
-            statusCode: 401,
-            headers,
-            body: JSON.stringify({ 
-              error: 'Token expired',
-              message: 'Please log in again'
-            })
-          };
-        }
-
-        if (errorCode === 'auth/invalid-id-token') {
-          return {
-            statusCode: 401,
-            headers,
-            body: JSON.stringify({ 
-              error: 'Invalid token',
-              message: 'Authentication failed. Please try again.'
-            })
-          };
-        }
-
+        console.error('Authentication error:', authError);
         return {
           statusCode: 401,
           headers,
           body: JSON.stringify({ 
             error: 'Authentication failed',
-            message: authError instanceof Error ? authError.message : 'Unknown authentication error'
+            message: authError instanceof Error ? authError.message : 'Unknown error'
           })
         };
       }
@@ -361,20 +298,13 @@ export const handler: Handler = async (event, context) => {
       body: JSON.stringify({ error: 'Not found' })
     };
   } catch (error) {
-    console.error('API error:', {
-      message: error instanceof Error ? error.message : 'Unknown error',
-      code: (error as any).code,
-      name: error instanceof Error ? error.name : undefined,
-      stack: error instanceof Error ? error.stack : undefined
-    });
-
+    console.error('API error:', error);
     return {
       statusCode: 500,
       headers,
       body: JSON.stringify({ 
         error: 'Internal server error',
-        message: error instanceof Error ? error.message : 'Unknown error',
-        details: error instanceof Error ? error.stack : undefined
+        message: error instanceof Error ? error.message : 'Unknown error'
       })
     };
   }

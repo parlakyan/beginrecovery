@@ -45,6 +45,11 @@ export const useAuthStore = create<AuthState>((set, get) => ({
   /**
    * Sets user data and fetches additional info from API
    * Includes role and other custom properties
+   * 
+   * Special handling for admin@beginrecovery.com:
+   * - Ensures admin role is properly set
+   * - Creates admin document if missing
+   * - Updates role if needed
    */
   setUser: async (firebaseUser) => {
     if (!firebaseUser) {
@@ -53,11 +58,11 @@ export const useAuthStore = create<AuthState>((set, get) => ({
     }
 
     try {
-      // Get fresh token for API call
+      // Force token refresh to ensure latest claims
       const token = await firebaseUser.getIdToken(true);
       console.log('Getting fresh token for user data fetch');
       
-      // Get user data from API
+      // Get user data from API with forced token refresh
       const response = await fetch('/.netlify/functions/api/user', {
         headers: {
           'Authorization': `Bearer ${token}`
@@ -72,7 +77,8 @@ export const useAuthStore = create<AuthState>((set, get) => ({
       console.log('User data fetched:', {
         id: userData.id,
         email: userData.email,
-        role: userData.role
+        role: userData.role,
+        isAdmin: userData.role === 'admin'
       });
 
       // Create custom user with API data
@@ -83,6 +89,18 @@ export const useAuthStore = create<AuthState>((set, get) => ({
         createdAt: userData.createdAt
       };
 
+      // Double-check admin status
+      if (firebaseUser.email === 'admin@beginrecovery.com' && customUser.role !== 'admin') {
+        console.log('Forcing admin role for admin email');
+        customUser.role = 'admin';
+        // Update role in database
+        await usersService.createUser({
+          email: firebaseUser.email,
+          role: 'admin',
+          createdAt: userData.createdAt || new Date().toISOString()
+        });
+      }
+
       set({ user: customUser, initialized: true, loading: false });
     } catch (error) {
       console.error('Error getting user data:', error);
@@ -91,7 +109,7 @@ export const useAuthStore = create<AuthState>((set, get) => ({
         user: {
           ...firebaseUser,
           id: firebaseUser.uid,
-          role: 'user',
+          role: firebaseUser.email === 'admin@beginrecovery.com' ? 'admin' : 'user',
           createdAt: new Date().toISOString()
         } as CustomUser,
         initialized: true,
@@ -126,6 +144,7 @@ export const useAuthStore = create<AuthState>((set, get) => ({
       });
 
       // Force token refresh and user data fetch
+      await userCredential.user.reload();
       await get().refreshToken();
     } catch (error) {
       console.error('Sign in error:', error);
@@ -153,13 +172,14 @@ export const useAuthStore = create<AuthState>((set, get) => ({
       // Create user document
       await usersService.createUser({
         email,
-        role,
+        role: email === 'admin@beginrecovery.com' ? 'admin' : role,
         createdAt: new Date().toISOString()
       });
 
       console.log('User document created with role:', role);
       
       // Force token refresh and user data fetch
+      await userCredential.user.reload();
       await get().refreshToken();
     } catch (error) {
       console.error('Registration error:', error);
