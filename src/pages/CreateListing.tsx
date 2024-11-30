@@ -25,7 +25,7 @@ export default function CreateListing() {
   const { register, handleSubmit, formState: { errors } } = useForm<CreateListingForm>();
   const [loading, setLoading] = React.useState(false);
   const [error, setError] = React.useState<string | null>(null);
-  const { user } = useAuthStore();
+  const { user, refreshToken } = useAuthStore();
   const navigate = useNavigate();
 
   // Redirect non-logged-in users to register
@@ -40,11 +40,19 @@ export default function CreateListing() {
     }
   }, [user, navigate]);
 
+  // Scroll to top on mount
+  React.useEffect(() => {
+    window.scrollTo(0, 0);
+  }, []);
+
   const onSubmit = async (data: CreateListingForm) => {
     setLoading(true);
     setError(null);
 
     try {
+      // Refresh auth token first
+      await refreshToken();
+
       // Process form data
       const formattedData = {
         ...data,
@@ -56,15 +64,38 @@ export default function CreateListing() {
       // Create facility
       const { id } = await facilitiesService.createFacility(formattedData);
 
-      // Navigate to payment with facility ID
+      // Store the data in sessionStorage as backup
+      sessionStorage.setItem('facilityData', JSON.stringify({
+        facilityId: id,
+        facility: formattedData
+      }));
+
+      // Navigate to payment with facility ID and scroll to top
       navigate('/payment', { 
         state: { 
           facilityId: id,
           facility: formattedData
-        }
+        },
+        replace: true // Use replace to prevent back navigation to form
       });
+
+      // Scroll to top after navigation
+      window.scrollTo(0, 0);
     } catch (err) {
       console.error('Error creating facility:', err);
+      
+      if ((err as any).code?.startsWith('auth/')) {
+        setError('Authentication error. Please try logging in again.');
+        setTimeout(() => {
+          navigate('/login', {
+            state: {
+              returnUrl: '/create-listing'
+            }
+          });
+        }, 2000);
+        return;
+      }
+      
       setError('Failed to create facility. Please try again.');
     } finally {
       setLoading(false);

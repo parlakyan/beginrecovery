@@ -15,8 +15,15 @@ export default function Payment() {
   const location = useLocation();
   const navigate = useNavigate();
   const { user, refreshToken } = useAuthStore();
-  const facilityId = location.state?.facilityId;
-  const facilityData = location.state?.facility;
+  
+  // Try to get data from location state or sessionStorage
+  const facilityId = location.state?.facilityId || JSON.parse(sessionStorage.getItem('facilityData') || '{}').facilityId;
+  const facilityData = location.state?.facility || JSON.parse(sessionStorage.getItem('facilityData') || '{}').facility;
+
+  // Scroll to top on mount
+  React.useEffect(() => {
+    window.scrollTo(0, 0);
+  }, []);
 
   // Ensure we have the required data
   React.useEffect(() => {
@@ -30,6 +37,10 @@ export default function Payment() {
     const checkAuth = async () => {
       if (!user) {
         // Store the current path and data for redirect after login
+        sessionStorage.setItem('paymentData', JSON.stringify({
+          facilityId,
+          facilityData
+        }));
         navigate('/login', { 
           state: { 
             returnUrl: '/payment', 
@@ -38,8 +49,22 @@ export default function Payment() {
           }
         });
       } else {
-        // Refresh the token to ensure it's valid
-        await refreshToken();
+        try {
+          // Refresh token to ensure it's valid
+          await refreshToken();
+        } catch (err) {
+          console.error('Error refreshing token:', err);
+          setError('Authentication expired. Please log in again.');
+          setTimeout(() => {
+            navigate('/login', { 
+              state: { 
+                returnUrl: '/payment',
+                facilityId,
+                facilityData
+              }
+            });
+          }, 2000);
+        }
       }
     };
 
@@ -111,6 +136,11 @@ export default function Payment() {
       if (err instanceof Error) {
         if (err.message.includes('Authentication') || err.message.includes('log in')) {
           setError('Please log in again to continue.');
+          // Store payment data before redirecting
+          sessionStorage.setItem('paymentData', JSON.stringify({
+            facilityId,
+            facilityData
+          }));
           // Redirect to login after a short delay
           setTimeout(() => {
             navigate('/login', { 
