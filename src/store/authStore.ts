@@ -1,6 +1,6 @@
 import { create } from 'zustand';
 import { auth } from '../lib/firebase';
-import type { User as FirebaseUser } from 'firebase/auth';
+import { signInWithEmailAndPassword, signOut as firebaseSignOut, User as FirebaseUser } from 'firebase/auth';
 
 // Extend Firebase User type with our custom properties
 interface CustomUser extends FirebaseUser {
@@ -16,14 +16,16 @@ interface AuthState {
   error: string | null;
   setUser: (user: FirebaseUser | null) => void;
   setError: (error: string | null) => void;
-  refreshToken: () => Promise<string | null>;
+  clearError: () => void;
+  signIn: (email: string, password: string) => Promise<void>;
   signOut: () => Promise<void>;
+  refreshToken: () => Promise<string | null>;
 }
 
 export const useAuthStore = create<AuthState>((set, get) => ({
   user: null,
   initialized: false,
-  loading: true,
+  loading: false,
   error: null,
 
   setUser: async (firebaseUser) => {
@@ -80,6 +82,45 @@ export const useAuthStore = create<AuthState>((set, get) => ({
     }
   },
 
+  clearError: () => {
+    set({ error: null });
+  },
+
+  signIn: async (email: string, password: string) => {
+    set({ loading: true, error: null });
+    try {
+      console.log('Attempting sign in for:', email);
+      const userCredential = await signInWithEmailAndPassword(auth, email, password);
+      console.log('Sign in successful:', {
+        userId: userCredential.user.uid,
+        email: userCredential.user.email
+      });
+      // setUser will be called by the auth state listener
+    } catch (error) {
+      console.error('Sign in error:', error);
+      const errorMessage = (error as any).code === 'auth/wrong-password' || (error as any).code === 'auth/user-not-found'
+        ? 'Invalid email or password'
+        : 'An error occurred during sign in';
+      set({ error: errorMessage, loading: false });
+      throw error;
+    }
+  },
+
+  signOut: async () => {
+    set({ loading: true, error: null });
+    try {
+      await firebaseSignOut(auth);
+      set({ user: null, loading: false });
+    } catch (error) {
+      console.error('Sign out error:', error);
+      set({ 
+        error: 'An error occurred during sign out',
+        loading: false 
+      });
+      throw error;
+    }
+  },
+
   refreshToken: async () => {
     const { user } = get();
     if (!user) {
@@ -99,20 +140,10 @@ export const useAuthStore = create<AuthState>((set, get) => ({
       console.error('Error refreshing token:', error);
       // If there's an auth error, sign out the user
       if ((error as any).code?.startsWith('auth/')) {
-        await auth.signOut();
+        await firebaseSignOut(auth);
         set({ user: null, error: 'Authentication expired. Please sign in again.' });
       }
       return null;
-    }
-  },
-
-  signOut: async () => {
-    try {
-      await auth.signOut();
-      set({ user: null, error: null });
-    } catch (error) {
-      console.error('Error signing out:', error);
-      set({ error: 'Error signing out. Please try again.' });
     }
   }
 }));

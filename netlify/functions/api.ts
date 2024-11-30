@@ -14,6 +14,10 @@ if (!process.env.SITE_URL) {
   throw new Error('Missing SITE_URL environment variable');
 }
 
+if (!process.env.STRIPE_WEBHOOK_SECRET) {
+  throw new Error('Missing STRIPE_WEBHOOK_SECRET environment variable');
+}
+
 const stripe = new Stripe(process.env.STRIPE_SECRET_KEY, {
   apiVersion: '2023-10-16'
 });
@@ -41,6 +45,99 @@ export const handler: Handler = async (event, context) => {
       hasAuth: !!event.headers.authorization,
       authHeader: event.headers.authorization?.substring(0, 20) + '...' // Log part of the auth header safely
     });
+
+    // Handle Stripe webhook events
+    if (path === 'webhook' && event.httpMethod === 'POST') {
+      const sig = event.headers['stripe-signature'];
+      
+      if (!sig) {
+        return {
+          statusCode: 400,
+          headers,
+          body: JSON.stringify({ error: 'Missing stripe-signature header' })
+        };
+      }
+
+      try {
+        const stripeEvent = stripe.webhooks.constructEvent(
+          event.body || '',
+          sig,
+          process.env.STRIPE_WEBHOOK_SECRET || ''
+        );
+
+        console.log('Processing webhook event:', {
+          type: stripeEvent.type,
+          id: stripeEvent.id
+        });
+
+        switch (stripeEvent.type) {
+          case 'checkout.session.completed': {
+            const session = stripeEvent.data.object;
+            const facilityId = session.metadata?.facilityId;
+            const userId = session.metadata?.userId;
+            
+            if (!facilityId) {
+              throw new Error('Missing facilityId in session metadata');
+            }
+
+            console.log('Processing successful checkout:', {
+              facilityId,
+              userId,
+              subscriptionId: session.subscription
+            });
+
+            await db.collection('facilities')
+              .doc(facilityId)
+              .update({
+                status: 'active',
+                subscriptionId: session.subscription,
+                updatedAt: new Date().toISOString()
+              });
+
+            break;
+          }
+
+          case 'customer.subscription.deleted': {
+            const subscription = stripeEvent.data.object;
+            console.log('Processing subscription deletion:', {
+              subscriptionId: subscription.id
+            });
+
+            const facilitiesRef = db.collection('facilities');
+            const snapshot = await facilitiesRef
+              .where('subscriptionId', '==', subscription.id)
+              .get();
+
+            if (!snapshot.empty) {
+              const doc = snapshot.docs[0];
+              console.log('Deactivating facility:', { facilityId: doc.id });
+              
+              await doc.ref.update({
+                status: 'inactive',
+                updatedAt: new Date().toISOString()
+              });
+            }
+            break;
+          }
+        }
+
+        return {
+          statusCode: 200,
+          headers,
+          body: JSON.stringify({ received: true })
+        };
+      } catch (err) {
+        console.error('Webhook error:', err);
+        return {
+          statusCode: 400,
+          headers,
+          body: JSON.stringify({ 
+            error: 'Webhook Error',
+            message: err instanceof Error ? err.message : 'Unknown webhook error'
+          })
+        };
+      }
+    }
 
     // Create checkout session endpoint
     if (path === 'create-checkout' && event.httpMethod === 'POST') {
