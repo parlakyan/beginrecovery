@@ -1,6 +1,12 @@
 import { create } from 'zustand';
 import { auth } from '../lib/firebase';
-import { signInWithEmailAndPassword, signOut as firebaseSignOut, User as FirebaseUser } from 'firebase/auth';
+import { 
+  signInWithEmailAndPassword, 
+  signOut as firebaseSignOut, 
+  createUserWithEmailAndPassword,
+  User as FirebaseUser 
+} from 'firebase/auth';
+import { usersService } from '../services/firebase';
 
 // Extend Firebase User type with our custom properties
 interface CustomUser extends FirebaseUser {
@@ -18,6 +24,7 @@ interface AuthState {
   setError: (error: string | null) => void;
   clearError: () => void;
   signIn: (email: string, password: string) => Promise<void>;
+  signUp: (email: string, password: string, role?: 'user' | 'owner' | 'admin') => Promise<void>;
   signOut: () => Promise<void>;
   refreshToken: () => Promise<string | null>;
 }
@@ -107,6 +114,42 @@ export const useAuthStore = create<AuthState>((set, get) => ({
       const errorMessage = (error as any).code === 'auth/wrong-password' || (error as any).code === 'auth/user-not-found'
         ? 'Invalid email or password'
         : 'An error occurred during sign in';
+      set({ error: errorMessage, loading: false });
+      throw error;
+    }
+  },
+
+  signUp: async (email: string, password: string, role: 'user' | 'owner' | 'admin' = 'user') => {
+    set({ loading: true, error: null });
+    try {
+      console.log('Creating account for:', email);
+      
+      // Create Firebase auth user
+      const userCredential = await createUserWithEmailAndPassword(auth, email, password);
+      console.log('Firebase user created:', userCredential.user.uid);
+
+      // Create user document in Firestore
+      await usersService.createUser({
+        email,
+        role,
+        createdAt: new Date().toISOString()
+      });
+
+      console.log('User document created with role:', role);
+      
+      // setUser will be called by the auth state listener
+    } catch (error) {
+      console.error('Registration error:', error);
+      let errorMessage = 'An error occurred during registration';
+      
+      if ((error as any).code === 'auth/email-already-in-use') {
+        errorMessage = 'This email is already registered';
+      } else if ((error as any).code === 'auth/invalid-email') {
+        errorMessage = 'Invalid email address';
+      } else if ((error as any).code === 'auth/weak-password') {
+        errorMessage = 'Password is too weak';
+      }
+      
       set({ error: errorMessage, loading: false });
       throw error;
     }
