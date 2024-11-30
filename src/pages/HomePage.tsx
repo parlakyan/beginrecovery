@@ -39,24 +39,13 @@ export default function HomePage() {
           facilitiesService.getFeaturedFacilities()
         ]);
         
-        // Filter valid facilities
-        const validFacilities = (allFacilities.facilities || [])
-          .filter((f: Facility) => f && 
-                      typeof f.rating === 'number' && 
-                      f.moderationStatus === 'approved');
-        
-        const validFeatured = (featured || [])
-          .filter((f: Facility) => f && 
-                      typeof f.rating === 'number' && 
-                      f.moderationStatus === 'approved');
-        
         console.log('Fetched facilities:', {
-          total: validFacilities.length,
-          featured: validFeatured.length
+          total: allFacilities.facilities.length,
+          featured: featured.length
         });
         
-        setFacilities(validFacilities);
-        setFeaturedFacilities(validFeatured);
+        setFacilities(allFacilities.facilities);
+        setFeaturedFacilities(featured);
       } catch (error) {
         console.error('Error fetching facilities:', error);
         setFacilities([]);
@@ -98,7 +87,7 @@ export default function HomePage() {
               </div>
               <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6 max-w-6xl mx-auto">
                 {featuredFacilities.map((facility) => (
-                  facility && <RehabCard key={facility.id} facility={facility} />
+                  <RehabCard key={facility.id} facility={facility} />
                 ))}
               </div>
             </div>
@@ -131,7 +120,7 @@ export default function HomePage() {
                 </div>
               ) : (
                 facilities.map((facility) => (
-                  facility && <RehabCard key={facility.id} facility={facility} />
+                  <RehabCard key={facility.id} facility={facility} />
                 ))
               )}
             </div>

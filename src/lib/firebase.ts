@@ -1,6 +1,6 @@
 import { initializeApp } from 'firebase/app';
 import { getAuth, browserLocalPersistence, setPersistence, onAuthStateChanged } from 'firebase/auth';
-import { getFirestore, connectFirestoreEmulator } from 'firebase/firestore';
+import { getFirestore } from 'firebase/firestore';
 
 /**
  * Firebase Configuration
@@ -23,6 +23,14 @@ const firebaseConfig = {
   appId: import.meta.env.VITE_FIREBASE_APP_ID,
   measurementId: import.meta.env.VITE_FIREBASE_MEASUREMENT_ID
 };
+
+// Log config for debugging (without sensitive values)
+console.log('Firebase Config:', {
+  hasApiKey: !!firebaseConfig.apiKey,
+  authDomain: firebaseConfig.authDomain,
+  projectId: firebaseConfig.projectId,
+  hasAppId: !!firebaseConfig.appId
+});
 
 /**
  * Initialize Firebase Application
@@ -54,20 +62,6 @@ setPersistence(auth, browserLocalPersistence)
  * Sets up the main database instance used for data storage
  */
 const db = getFirestore(app);
-
-/**
- * Development Environment Configuration
- * Connects to local emulators when running in development mode
- * This allows testing without affecting production data
- */
-if (import.meta.env.DEV) {
-  try {
-    connectFirestoreEmulator(db, 'localhost', 8080);
-    console.log('Connected to Firebase emulators');
-  } catch (error) {
-    console.error('Error connecting to emulators:', error);
-  }
-}
 
 /**
  * Authentication State Observer

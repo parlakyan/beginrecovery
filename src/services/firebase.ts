@@ -10,14 +10,10 @@ import {
   limit,
   DocumentData,
   QueryDocumentSnapshot,
-  enableNetwork,
-  disableNetwork,
   writeBatch,
   addDoc,
   updateDoc,
   deleteDoc,
-  startAfter,
-  Timestamp,
   setDoc
 } from 'firebase/firestore';
 import { getAuth } from 'firebase/auth';
@@ -40,141 +36,6 @@ interface CreateUserInput {
   role: 'user' | 'owner' | 'admin';
   createdAt: string;
 }
-
-/**
- * Search parameters for facilities
- */
-interface SearchParams {
-  query?: string;
-  location?: string;
-  tags?: string[];
-  insurance?: string[];
-  rating?: number;
-}
-
-/**
- * Network connectivity service
- * Handles online/offline functionality
- */
-export const networkService = {
-  goOnline: async () => {
-    try {
-      await enableNetwork(db);
-    } catch (error) {
-      console.error('Error enabling network:', error);
-    }
-  },
-  
-  goOffline: async () => {
-    try {
-      await disableNetwork(db);
-    } catch (error) {
-      console.error('Error disabling network:', error);
-    }
-  }
-};
-
-/**
- * User management service
- * Handles user document operations in Firestore
- */
-export const usersService = {
-  /**
-   * Creates a new user document in Firestore
-   * @param userData - User data including email, role, and creation date
-   * @returns Created user data
-   * @throws Error if no authenticated user or creation fails
-   */
-  async createUser(userData: CreateUserInput) {
-    if (!auth.currentUser) throw new Error('No authenticated user');
-    
-    try {
-      console.log('Creating new user:', userData);
-      const userRef = doc(db, USERS_COLLECTION, auth.currentUser.uid);
-      
-      const userDoc = await getDoc(userRef);
-      if (userDoc.exists()) {
-        console.log('User already exists, returning existing data');
-        return userDoc.data() as User;
-      }
-
-      const newUserData: User = {
-        id: auth.currentUser.uid,
-        email: userData.email,
-        role: userData.role,
-        createdAt: userData.createdAt
-      };
-
-      await setDoc(userRef, newUserData);
-      console.log('User created successfully');
-      
-      return newUserData;
-    } catch (error) {
-      console.error('Error creating user:', error);
-      throw error;
-    }
-  },
-
-  /**
-   * Retrieves user data by ID
-   * @param userId - Firebase Auth UID
-   * @returns User data or null if not found
-   */
-  async getUserById(userId: string): Promise<User | null> {
-    try {
-      console.log('Fetching user by ID:', userId);
-      const userDoc = await getDoc(doc(db, USERS_COLLECTION, userId));
-      if (!userDoc.exists()) {
-        console.log('No user found with ID:', userId);
-        return null;
-      }
-      
-      const data = userDoc.data();
-      const user: User = {
-        id: userDoc.id,
-        email: data.email || 'anonymous@user.com',
-        role: data.role || 'user',
-        createdAt: data.createdAt?.toDate?.()?.toISOString() || new Date().toISOString()
-      };
-      console.log('Found user:', user);
-      return user;
-    } catch (error) {
-      console.error('Error getting user:', error);
-      return null;
-    }
-  }
-};
-
-/**
- * Generates URL-friendly slug from facility name and location
- */
-const generateSlug = (name: string, location: string): string => {
-  const cleanName = name
-    .toLowerCase()
-    .replace(/[^a-z0-9\s-]/g, '')
-    .replace(/\s+/g, '-');
-
-  if (!location) {
-    return cleanName;
-  }
-
-  const parts = location.split(',');
-  if (parts.length < 2) {
-    return `${cleanName}-${location.toLowerCase().replace(/[^a-z0-9\s-]/g, '').replace(/\s+/g, '-')}`;
-  }
-
-  const [city, stateWithSpaces] = parts.map(part => part.trim());
-  const state = stateWithSpaces
-    .toLowerCase()
-    .replace(/[^a-z0-9\s-]/g, '')
-    .replace(/\s+/g, '-');
-  const cleanCity = city
-    .toLowerCase()
-    .replace(/[^a-z0-9\s-]/g, '')
-    .replace(/\s+/g, '-');
-
-  return `${cleanName}-${cleanCity}-${state}`;
-};
 
 /**
  * Transforms Firestore document to Facility type
@@ -210,13 +71,99 @@ const transformFacilityData = (doc: QueryDocumentSnapshot<DocumentData>): Facili
 };
 
 /**
+ * Generates URL-friendly slug from facility name and location
+ */
+const generateSlug = (name: string, location: string): string => {
+  const cleanName = name
+    .toLowerCase()
+    .replace(/[^a-z0-9\s-]/g, '')
+    .replace(/\s+/g, '-');
+
+  if (!location) {
+    return cleanName;
+  }
+
+  const parts = location.split(',');
+  if (parts.length < 2) {
+    return `${cleanName}-${location.toLowerCase().replace(/[^a-z0-9\s-]/g, '').replace(/\s+/g, '-')}`;
+  }
+
+  const [city, stateWithSpaces] = parts.map(part => part.trim());
+  const state = stateWithSpaces
+    .toLowerCase()
+    .replace(/[^a-z0-9\s-]/g, '')
+    .replace(/\s+/g, '-');
+  const cleanCity = city
+    .toLowerCase()
+    .replace(/[^a-z0-9\s-]/g, '')
+    .replace(/\s+/g, '-');
+
+  return `${cleanName}-${cleanCity}-${state}`;
+};
+
+/**
+ * User management service
+ */
+export const usersService = {
+  async createUser(userData: CreateUserInput) {
+    if (!auth.currentUser) throw new Error('No authenticated user');
+    
+    try {
+      console.log('Creating new user:', userData);
+      const userRef = doc(db, USERS_COLLECTION, auth.currentUser.uid);
+      
+      const userDoc = await getDoc(userRef);
+      if (userDoc.exists()) {
+        console.log('User already exists, returning existing data');
+        return userDoc.data() as User;
+      }
+
+      const newUserData: User = {
+        id: auth.currentUser.uid,
+        email: userData.email,
+        role: userData.role,
+        createdAt: userData.createdAt
+      };
+
+      await setDoc(userRef, newUserData);
+      console.log('User created successfully');
+      
+      return newUserData;
+    } catch (error) {
+      console.error('Error creating user:', error);
+      throw error;
+    }
+  },
+
+  async getUserById(userId: string): Promise<User | null> {
+    try {
+      console.log('Fetching user by ID:', userId);
+      const userDoc = await getDoc(doc(db, USERS_COLLECTION, userId));
+      if (!userDoc.exists()) {
+        console.log('No user found with ID:', userId);
+        return null;
+      }
+      
+      const data = userDoc.data();
+      const user: User = {
+        id: userDoc.id,
+        email: data.email || 'anonymous@user.com',
+        role: data.role || 'user',
+        createdAt: data.createdAt?.toDate?.()?.toISOString() || new Date().toISOString()
+      };
+      console.log('Found user:', user);
+      return user;
+    } catch (error) {
+      console.error('Error getting user:', error);
+      return null;
+    }
+  }
+};
+
+/**
  * Facilities management service
- * Handles facility CRUD operations and queries
  */
 export const facilitiesService = {
-  /**
-   * Migrates existing facilities to include slugs
-   */
   async migrateExistingSlugs() {
     try {
       console.log('Starting facility slug migration');
@@ -247,9 +194,6 @@ export const facilitiesService = {
     }
   },
 
-  /**
-   * Creates a new facility listing
-   */
   async createFacility(data: Partial<Facility>) {
     try {
       const facilitiesRef = collection(db, FACILITIES_COLLECTION);
@@ -275,69 +219,102 @@ export const facilitiesService = {
     }
   },
 
-  /**
-   * Retrieves paginated facilities list
-   */
-  async getFacilities(lastDoc?: QueryDocumentSnapshot<DocumentData>) {
+  async getFacilities() {
     try {
-      console.log('Fetching approved facilities');
-      
+      console.log('Fetching facilities');
       const facilitiesRef = collection(db, FACILITIES_COLLECTION);
-      const testQuery = query(facilitiesRef);
-      const testSnapshot = await getDocs(testQuery);
-      console.log('Total documents:', testSnapshot.size);
       
-      if (testSnapshot.size === 0) {
-        console.log('No documents found');
-        return { facilities: [], lastVisible: null, hasMore: false };
-      }
-
-      const baseQuery = query(
+      // Create index for compound query
+      const q = query(
         facilitiesRef,
-        where('moderationStatus', '==', 'approved')
+        where('moderationStatus', '==', 'approved'),
+        orderBy('createdAt', 'desc')
       );
       
-      const snapshot = await getDocs(baseQuery);
-      console.log('Query returned:', snapshot.size, 'approved facilities');
+      console.log('Executing facilities query');
+      const snapshot = await getDocs(q);
+      console.log('Total documents:', snapshot.size);
       
       const facilities = snapshot.docs.map(transformFacilityData);
-      const lastVisible = snapshot.docs[snapshot.docs.length - 1] || null;
-      const hasMore = snapshot.docs.length === BATCH_SIZE;
+      console.log('Transformed facilities:', facilities.length);
 
-      return { facilities, lastVisible, hasMore };
+      return { 
+        facilities, 
+        lastVisible: snapshot.docs[snapshot.docs.length - 1] || null,
+        hasMore: false
+      };
     } catch (error) {
       console.error('Error getting facilities:', error);
-      return { facilities: [], lastVisible: null, hasMore: false };
+      
+      // If compound query fails, try simple query
+      try {
+        console.log('Falling back to simple query');
+        const snapshot = await getDocs(collection(db, FACILITIES_COLLECTION));
+        
+        const facilities = snapshot.docs
+          .map(transformFacilityData)
+          .filter(f => f.moderationStatus === 'approved')
+          .sort((a, b) => new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime());
+        
+        console.log('Fallback query successful:', facilities.length);
+        
+        return {
+          facilities,
+          lastVisible: null,
+          hasMore: false
+        };
+      } catch (fallbackError) {
+        console.error('Fallback query failed:', fallbackError);
+        return { facilities: [], lastVisible: null, hasMore: false };
+      }
     }
   },
 
-  /**
-   * Gets featured facilities
-   */
   async getFeaturedFacilities() {
     try {
       console.log('Fetching featured facilities');
       const facilitiesRef = collection(db, FACILITIES_COLLECTION);
+      
+      // Create index for compound query
       const q = query(
         facilitiesRef,
         where('moderationStatus', '==', 'approved'),
         where('isFeatured', '==', true),
+        orderBy('createdAt', 'desc'),
         limit(BATCH_SIZE)
       );
       
+      console.log('Executing featured facilities query');
       const snapshot = await getDocs(q);
-      console.log('Found', snapshot.size, 'featured facilities');
+      console.log('Featured documents:', snapshot.size);
       
-      return snapshot.docs.map(transformFacilityData);
+      const facilities = snapshot.docs.map(transformFacilityData);
+      console.log('Transformed featured facilities:', facilities.length);
+      
+      return facilities;
     } catch (error) {
       console.error('Error getting featured facilities:', error);
-      return [];
+      
+      // If compound query fails, try simple query
+      try {
+        console.log('Falling back to simple query');
+        const snapshot = await getDocs(collection(db, FACILITIES_COLLECTION));
+        
+        const facilities = snapshot.docs
+          .map(transformFacilityData)
+          .filter(f => f.moderationStatus === 'approved' && f.isFeatured)
+          .sort((a, b) => new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime())
+          .slice(0, BATCH_SIZE);
+        
+        console.log('Fallback query successful:', facilities.length);
+        return facilities;
+      } catch (fallbackError) {
+        console.error('Fallback query failed:', fallbackError);
+        return [];
+      }
     }
   },
 
-  /**
-   * Gets facility by ID
-   */
   async getFacilityById(id: string) {
     try {
       console.log('Fetching facility by ID:', id);
@@ -356,9 +333,6 @@ export const facilitiesService = {
     }
   },
 
-  /**
-   * Gets facility by slug
-   */
   async getFacilityBySlug(slug: string) {
     try {
       console.log('Fetching facility by slug:', slug);
@@ -378,9 +352,6 @@ export const facilitiesService = {
     }
   },
 
-  /**
-   * Gets user's facility listings
-   */
   async getUserListings(userId: string) {
     try {
       console.log('Fetching listings for user:', userId);
@@ -399,16 +370,11 @@ export const facilitiesService = {
     }
   },
 
-  /**
-   * Gets all listings for admin
-   */
   async getAllListingsForAdmin() {
     try {
       console.log('Fetching all listings for admin');
       const facilitiesRef = collection(db, FACILITIES_COLLECTION);
-      const testQuery = query(facilitiesRef);
-      const snapshot = await getDocs(testQuery);
-      
+      const snapshot = await getDocs(facilitiesRef);
       return snapshot.docs.map(transformFacilityData);
     } catch (error) {
       console.error('Error getting all listings:', error);
@@ -416,9 +382,6 @@ export const facilitiesService = {
     }
   },
 
-  /**
-   * Gets archived listings
-   */
   async getArchivedListings() {
     try {
       console.log('Fetching archived listings');
@@ -436,9 +399,6 @@ export const facilitiesService = {
     }
   },
 
-  /**
-   * Updates facility data
-   */
   async updateFacility(id: string, data: Partial<Facility>) {
     try {
       const facilityRef = doc(db, FACILITIES_COLLECTION, id);
@@ -463,9 +423,6 @@ export const facilitiesService = {
     }
   },
 
-  /**
-   * Approves facility listing
-   */
   async approveFacility(id: string) {
     try {
       const facilityRef = doc(db, FACILITIES_COLLECTION, id);
@@ -480,9 +437,6 @@ export const facilitiesService = {
     }
   },
 
-  /**
-   * Rejects facility listing
-   */
   async rejectFacility(id: string) {
     try {
       const facilityRef = doc(db, FACILITIES_COLLECTION, id);
@@ -497,9 +451,6 @@ export const facilitiesService = {
     }
   },
 
-  /**
-   * Verifies facility listing
-   */
   async verifyFacility(id: string) {
     try {
       const facilityRef = doc(db, FACILITIES_COLLECTION, id);
@@ -514,9 +465,6 @@ export const facilitiesService = {
     }
   },
 
-  /**
-   * Removes verification from facility
-   */
   async unverifyFacility(id: string) {
     try {
       const facilityRef = doc(db, FACILITIES_COLLECTION, id);
@@ -531,9 +479,6 @@ export const facilitiesService = {
     }
   },
 
-  /**
-   * Features facility listing
-   */
   async featureFacility(id: string) {
     try {
       const facilityRef = doc(db, FACILITIES_COLLECTION, id);
@@ -548,9 +493,6 @@ export const facilitiesService = {
     }
   },
 
-  /**
-   * Removes facility from featured
-   */
   async unfeatureFacility(id: string) {
     try {
       const facilityRef = doc(db, FACILITIES_COLLECTION, id);
@@ -565,9 +507,6 @@ export const facilitiesService = {
     }
   },
 
-  /**
-   * Archives facility listing
-   */
   async archiveFacility(id: string) {
     try {
       const facilityRef = doc(db, FACILITIES_COLLECTION, id);
@@ -582,9 +521,6 @@ export const facilitiesService = {
     }
   },
 
-  /**
-   * Restores archived facility
-   */
   async restoreFacility(id: string) {
     try {
       const facilityRef = doc(db, FACILITIES_COLLECTION, id);
@@ -599,9 +535,6 @@ export const facilitiesService = {
     }
   },
 
-  /**
-   * Deletes facility listing
-   */
   async deleteFacility(id: string) {
     try {
       const facilityRef = doc(db, FACILITIES_COLLECTION, id);
