@@ -1,16 +1,55 @@
 import React from 'react';
-import { Star, MapPin, Phone, ArrowRight, ShieldCheck, ShieldAlert } from 'lucide-react';
+import { Star, MapPin, Phone, ArrowRight, ShieldCheck, ShieldAlert, Clock, CheckCircle, XCircle } from 'lucide-react';
 import { useNavigate } from 'react-router-dom';
+import { useAuthStore } from '../store/authStore';
 import ImageCarousel from './ImageCarousel';
 import { Tag } from './ui';
 import { Facility } from '../types';
 
 export default function RehabCard({ facility }: { facility: Facility }) {
   const navigate = useNavigate();
+  const { user } = useAuthStore();
+  const isOwner = user?.id === facility.ownerId;
 
   const handleNavigation = () => {
     window.scrollTo(0, 0);
     navigate(`/${facility.slug}`);
+  };
+
+  const ModerationBadge = () => {
+    if (!isOwner) return null;
+
+    const badges = {
+      pending: {
+        icon: <Clock className="w-4 h-4 text-yellow-600" />,
+        text: 'Pending Review',
+        classes: 'bg-yellow-50 border-yellow-200 text-yellow-700'
+      },
+      approved: {
+        icon: <CheckCircle className="w-4 h-4 text-green-600" />,
+        text: 'Approved',
+        classes: 'bg-green-50 border-green-200 text-green-700'
+      },
+      rejected: {
+        icon: <XCircle className="w-4 h-4 text-red-600" />,
+        text: 'Rejected',
+        classes: 'bg-red-50 border-red-200 text-red-700'
+      },
+      archived: {
+        icon: <XCircle className="w-4 h-4 text-gray-600" />,
+        text: 'Archived',
+        classes: 'bg-gray-50 border-gray-200 text-gray-700'
+      }
+    };
+
+    const badge = badges[facility.moderationStatus || 'pending'];
+
+    return (
+      <div className={`absolute top-16 left-4 backdrop-blur-sm px-3 py-1.5 rounded-full flex items-center gap-2 shadow-lg border z-20 ${badge.classes}`}>
+        {badge.icon}
+        <span className="text-sm font-medium">{badge.text}</span>
+      </div>
+    );
   };
 
   const VerificationBadge = () => (
@@ -39,6 +78,7 @@ export default function RehabCard({ facility }: { facility: Facility }) {
           paginationPosition="bottom"
         />
         <VerificationBadge />
+        <ModerationBadge />
         <div className="absolute top-4 right-4 bg-white/90 backdrop-blur-sm px-3 py-1 rounded-full flex items-center gap-1 shadow-lg z-20">
           <Star className="w-4 h-4 text-yellow-400 fill-current" />
           <span className="font-semibold">{facility.rating}</span>
