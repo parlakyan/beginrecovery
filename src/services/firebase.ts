@@ -387,17 +387,45 @@ export const facilitiesService = {
     try {
       console.log('Fetching listings for user:', userId);
       const facilitiesRef = collection(db, FACILITIES_COLLECTION);
+      
+      // Create index for compound query
       const q = query(
         facilitiesRef,
         where('ownerId', '==', userId),
         orderBy('createdAt', 'desc')
       );
       
+      console.log('Executing user listings query:', {
+        userId,
+        timestamp: new Date().toISOString()
+      });
+
       const snapshot = await getDocs(q);
-      return snapshot.docs.map(transformFacilityData);
+      console.log('User listings found:', snapshot.size);
+      
+      const facilities = snapshot.docs.map(transformFacilityData);
+      console.log('Transformed user listings:', facilities.length);
+      
+      return facilities;
     } catch (error) {
       console.error('Error getting user listings:', error);
-      return [];
+      
+      // If compound query fails, try simple query
+      try {
+        console.log('Falling back to simple query for user listings');
+        const snapshot = await getDocs(collection(db, FACILITIES_COLLECTION));
+        
+        const facilities = snapshot.docs
+          .map(transformFacilityData)
+          .filter(f => f.ownerId === userId)
+          .sort((a, b) => new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime());
+        
+        console.log('Fallback query successful:', facilities.length);
+        return facilities;
+      } catch (fallbackError) {
+        console.error('Fallback query failed:', fallbackError);
+        return [];
+      }
     }
   },
 

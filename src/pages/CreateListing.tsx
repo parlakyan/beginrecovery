@@ -4,6 +4,7 @@ import { useNavigate } from 'react-router-dom';
 import { Building2, Loader2 } from 'lucide-react';
 import { useAuthStore } from '../store/authStore';
 import { facilitiesService } from '../services/firebase';
+import { Facility } from '../types';
 import Header from '../components/Header';
 import Footer from '../components/Footer';
 
@@ -54,11 +55,12 @@ export default function CreateListing() {
       await refreshToken();
 
       // Process form data
-      const formattedData = {
+      const formattedData: Partial<Facility> = {
         ...data,
         images: data.images.split(',').map(url => url.trim()).filter(Boolean),
         amenities: data.amenities.split(',').map(a => a.trim()).filter(Boolean),
-        tags: data.tags.split(',').map(t => t.trim()).filter(Boolean)
+        tags: data.tags.split(',').map(t => t.trim()).filter(Boolean),
+        moderationStatus: 'pending' as const // Type assertion to ensure correct type
       };
 
       // Create facility
@@ -112,7 +114,7 @@ export default function CreateListing() {
 
       <div className="container mx-auto px-4 py-8">
         <div className="max-w-3xl mx-auto">
-          <div className="bg-white rounded-xl shadow-sm p-6">
+          <div className="bg-white rounded-xl shadow-md p-6">
             <div className="flex items-center gap-3 mb-8">
               <Building2 className="w-8 h-8 text-blue-600" />
               <h1 className="text-2xl font-bold">Create Your Listing</h1>

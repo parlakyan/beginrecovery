@@ -170,11 +170,13 @@ export const handler: Handler = async (event, context) => {
               sessionId: session.id
             });
 
-            // Update facility status
+            // Update facility status and ensure ownerId is set
             await db.collection('facilities')
               .doc(facilityId)
               .update({
                 status: 'active',
+                ownerId: userId,
+                moderationStatus: 'pending', // Ensure moderation status is set
                 subscriptionId: session.subscription,
                 updatedAt: new Date().toISOString()
               });
@@ -187,7 +189,13 @@ export const handler: Handler = async (event, context) => {
                 updatedAt: new Date().toISOString()
               });
 
-            console.log('Updated user role to owner and activated facility');
+            console.log('Updated user role to owner and activated facility:', {
+              facilityId,
+              userId,
+              status: 'active',
+              moderationStatus: 'pending',
+              subscriptionId: session.subscription
+            });
             break;
           }
 
