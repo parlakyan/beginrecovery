@@ -170,13 +170,11 @@ export const handler: Handler = async (event, context) => {
               sessionId: session.id
             });
 
-            // Update facility status and ensure ownerId is set
+            // Update facility payment status only
             await db.collection('facilities')
               .doc(facilityId)
               .update({
                 status: 'active',
-                ownerId: userId,
-                moderationStatus: 'pending', // Ensure moderation status is set
                 subscriptionId: session.subscription,
                 updatedAt: new Date().toISOString()
               });
@@ -193,7 +191,6 @@ export const handler: Handler = async (event, context) => {
               facilityId,
               userId,
               status: 'active',
-              moderationStatus: 'pending',
               subscriptionId: session.subscription
             });
             break;
@@ -209,7 +206,7 @@ export const handler: Handler = async (event, context) => {
             if (!snapshot.empty) {
               const doc = snapshot.docs[0];
               await doc.ref.update({
-                status: 'inactive',
+                status: 'suspended',
                 updatedAt: new Date().toISOString()
               });
             }
