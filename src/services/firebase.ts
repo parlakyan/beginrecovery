@@ -188,6 +188,19 @@ export const usersService = {
       console.error('Error getting user:', error);
       return null;
     }
+  },
+
+  async updateUserRole(userId: string, role: 'user' | 'owner' | 'admin'): Promise<boolean> {
+    try {
+      console.log('Updating user role:', { userId, role });
+      const userRef = doc(db, USERS_COLLECTION, userId);
+      await updateDoc(userRef, { role });
+      console.log('User role updated successfully');
+      return true;
+    } catch (error) {
+      console.error('Error updating user role:', error);
+      return false;
+    }
   }
 };
 

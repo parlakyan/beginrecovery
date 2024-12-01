@@ -3,7 +3,7 @@ import { useForm } from 'react-hook-form';
 import { useNavigate } from 'react-router-dom';
 import { Building2, Loader2 } from 'lucide-react';
 import { useAuthStore } from '../store/authStore';
-import { facilitiesService } from '../services/firebase';
+import { facilitiesService, usersService } from '../services/firebase';
 import { Facility } from '../types';
 import Header from '../components/Header';
 import Footer from '../components/Footer';
@@ -34,8 +34,7 @@ export default function CreateListing() {
     if (!user) {
       navigate('/register', { 
         state: { 
-          returnUrl: '/create-listing',
-          userType: 'owner'
+          returnUrl: '/create-listing'
         }
       });
     }
@@ -65,6 +64,13 @@ export default function CreateListing() {
 
       // Create facility
       const { id } = await facilitiesService.createFacility(formattedData);
+
+      // Update user role to owner if they're currently a regular user
+      if (user && user.role === 'user') {
+        await usersService.updateUserRole(user.id, 'owner');
+        // Force token refresh to update role in auth state
+        await refreshToken();
+      }
 
       // Store the data in sessionStorage as backup
       sessionStorage.setItem('facilityData', JSON.stringify({
