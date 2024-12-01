@@ -195,6 +195,7 @@ export const usersService = {
  * Facilities management service
  */
 export const facilitiesService = {
+  // Previous methods remain the same...
   async migrateExistingSlugs() {
     try {
       console.log('Starting facility slug migration');
@@ -227,10 +228,14 @@ export const facilitiesService = {
 
   async createFacility(data: Partial<Facility>) {
     try {
+      if (!auth.currentUser?.uid) {
+        throw new Error('User must be authenticated to create facility');
+      }
+
       const facilitiesRef = collection(db, FACILITIES_COLLECTION);
       const facilityData = {
         ...data,
-        ownerId: auth.currentUser?.uid,
+        ownerId: auth.currentUser.uid,
         rating: 0,
         reviewCount: 0,
         status: 'pending',
@@ -242,7 +247,22 @@ export const facilitiesService = {
         slug: generateSlug(data.name || '', data.location || '')
       };
 
+      console.log('Creating facility with data:', {
+        name: facilityData.name,
+        ownerId: facilityData.ownerId,
+        status: facilityData.status,
+        moderationStatus: facilityData.moderationStatus,
+        timestamp: new Date().toISOString()
+      });
+
       const docRef = await addDoc(facilitiesRef, facilityData);
+      
+      console.log('Facility created successfully:', {
+        facilityId: docRef.id,
+        ownerId: facilityData.ownerId,
+        timestamp: new Date().toISOString()
+      });
+
       return { id: docRef.id };
     } catch (error) {
       console.error('Error creating facility:', error);
@@ -387,17 +407,77 @@ export const facilitiesService = {
     try {
       console.log('Fetching listings for user:', userId);
       const facilitiesRef = collection(db, FACILITIES_COLLECTION);
+      
+      // Create index for compound query
       const q = query(
         facilitiesRef,
         where('ownerId', '==', userId),
         orderBy('createdAt', 'desc')
       );
       
+      console.log('Executing user listings query:', {
+        userId,
+        timestamp: new Date().toISOString(),
+        query: {
+          collection: FACILITIES_COLLECTION,
+          where: `ownerId == ${userId}`,
+          orderBy: 'createdAt desc'
+        }
+      });
+
       const snapshot = await getDocs(q);
-      return snapshot.docs.map(transformFacilityData);
+      console.log('User listings found:', {
+        count: snapshot.size,
+        listings: snapshot.docs.map(doc => ({
+          id: doc.id,
+          name: doc.data().name,
+          ownerId: doc.data().ownerId,
+          status: doc.data().status,
+          moderationStatus: doc.data().moderationStatus
+        }))
+      });
+      
+      const facilities = snapshot.docs.map(transformFacilityData);
+      console.log('Transformed user listings:', {
+        count: facilities.length,
+        listings: facilities.map(f => ({
+          id: f.id,
+          name: f.name,
+          ownerId: f.ownerId,
+          status: f.status,
+          moderationStatus: f.moderationStatus
+        }))
+      });
+      
+      return facilities;
     } catch (error) {
       console.error('Error getting user listings:', error);
-      return [];
+      
+      // If compound query fails, try simple query
+      try {
+        console.log('Falling back to simple query for user listings');
+        const snapshot = await getDocs(collection(db, FACILITIES_COLLECTION));
+        
+        const facilities = snapshot.docs
+          .map(transformFacilityData)
+          .filter(f => f.ownerId === userId)
+          .sort((a, b) => new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime());
+        
+        console.log('Fallback query successful:', {
+          count: facilities.length,
+          listings: facilities.map(f => ({
+            id: f.id,
+            name: f.name,
+            ownerId: f.ownerId,
+            status: f.status,
+            moderationStatus: f.moderationStatus
+          }))
+        });
+        return facilities;
+      } catch (fallbackError) {
+        console.error('Fallback query failed:', fallbackError);
+        return [];
+      }
     }
   },
 

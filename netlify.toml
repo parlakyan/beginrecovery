@@ -15,10 +15,12 @@
   status = 200
   force = true
 
+# This redirect should be last - handles client-side routing
 [[redirects]]
   from = "/*"
   to = "/index.html"
   status = 200
+  force = true
 
 [build.environment]
   NODE_VERSION = "18"

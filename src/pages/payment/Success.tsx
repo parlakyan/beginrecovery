@@ -31,8 +31,14 @@ export default function PaymentSuccess() {
           timestamp: new Date().toISOString()
         });
 
-        // Redirect to account page
-        navigate('/account', { replace: true });
+        // Redirect to account page with listings tab active
+        navigate('/account', { 
+          replace: true,
+          state: { activeTab: 'listings' }
+        });
+
+        // Scroll to top after navigation
+        window.scrollTo(0, 0);
       } catch (err) {
         console.error('Error verifying payment:', err);
         setError(err instanceof Error ? err.message : 'Failed to verify payment');
@@ -50,7 +56,7 @@ export default function PaymentSuccess() {
 
       <div className="container mx-auto px-4 py-16">
         <div className="max-w-lg mx-auto">
-          <div className="bg-white rounded-xl shadow-lg p-8 text-center">
+          <div className="bg-white rounded-xl shadow-md p-8 text-center">
             {loading ? (
               <div className="flex flex-col items-center gap-4">
                 <Loader2 className="w-12 h-12 text-blue-600 animate-spin" />
@@ -74,10 +80,13 @@ export default function PaymentSuccess() {
                 <CheckCircle className="w-16 h-16 text-green-500" />
                 <h1 className="text-2xl font-bold">Payment Successful!</h1>
                 <p className="text-gray-600">
-                  Your facility listing has been activated.
+                  Your facility listing has been created and is pending review.
+                </p>
+                <p className="text-sm text-gray-500">
+                  Your listing will be reviewed by our admin team before being published.
                 </p>
                 <button
-                  onClick={() => navigate('/account')}
+                  onClick={() => navigate('/account', { state: { activeTab: 'listings' } })}
                   className="px-6 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700"
                 >
                   View Your Listing

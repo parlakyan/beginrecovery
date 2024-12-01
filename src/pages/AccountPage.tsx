@@ -1,5 +1,5 @@
 import React from 'react';
-import { Link, useNavigate } from 'react-router-dom';
+import { Link, useNavigate, useLocation } from 'react-router-dom';
 import { 
   User, 
   Settings, 
@@ -22,55 +22,40 @@ import RehabCard from '../components/RehabCard';
 /**
  * Account Page Component
  * Displays user profile and account management features
- * 
- * Features:
- * - Profile information
- * - Role-based access (admin/owner/user)
- * - Facility listings management (for owners)
- * - Account settings
- * - Saved facilities
- * - Notifications
- * - Privacy settings
  */
 export default function AccountPage() {
   const navigate = useNavigate();
+  const location = useLocation();
   const { user, loading, signOut } = useAuthStore();
-  const [activeTab, setActiveTab] = React.useState('profile');
+  const [activeTab, setActiveTab] = React.useState(() => {
+    // Get initial tab from location state or default to 'profile'
+    return (location.state as any)?.activeTab || 'profile';
+  });
   const [userListings, setUserListings] = React.useState<Facility[]>([]);
   const [listingsLoading, setListingsLoading] = React.useState(false);
 
-  // Debug logging for user role
-  React.useEffect(() => {
-    if (user) {
-      console.log('AccountPage - User Data:', {
-        email: user.email,
-        role: user.role,
-        isAdmin: user.role === 'admin',
-        createdAt: user.createdAt
-      });
-    }
-  }, [user]);
-
   // Load user's facility listings
-  React.useEffect(() => {
-    const loadUserListings = async () => {
-      if (!user?.id) return;
-      
-      try {
-        setListingsLoading(true);
-        const listings = await facilitiesService.getUserListings(user.id);
-        setUserListings(listings);
-      } catch (error) {
-        console.error('Error loading user listings:', error);
-      } finally {
-        setListingsLoading(false);
-      }
-    };
+  const loadUserListings = React.useCallback(async () => {
+    if (!user?.id) return;
+    
+    try {
+      setListingsLoading(true);
+      const listings = await facilitiesService.getUserListings(user.id);
+      console.log('Loaded user listings:', listings.length);
+      setUserListings(listings);
+    } catch (error) {
+      console.error('Error loading user listings:', error);
+    } finally {
+      setListingsLoading(false);
+    }
+  }, [user?.id]);
 
+  // Load listings when tab changes or location state changes
+  React.useEffect(() => {
     if (activeTab === 'listings') {
       loadUserListings();
     }
-  }, [user?.id, activeTab]);
+  }, [activeTab, loadUserListings, location.state]);
 
   // Loading state
   if (loading) {
@@ -178,7 +163,7 @@ export default function AccountPage() {
             <div className="flex-1">
               {/* Profile Tab */}
               {activeTab === 'profile' && (
-                <div className="bg-white rounded-xl shadow-sm p-6">
+                <div className="bg-white rounded-xl shadow-md p-6">
                   <div className="flex items-center justify-between mb-6">
                     <h2 className="text-2xl font-bold">Profile Information</h2>
                     <button className="flex items-center gap-2 text-blue-600 hover:text-blue-700">
@@ -227,7 +212,7 @@ export default function AccountPage() {
                       <Loader2 className="w-6 h-6 animate-spin text-blue-600" />
                     </div>
                   ) : userListings.length === 0 ? (
-                    <div className="bg-white rounded-xl shadow-sm p-12 text-center">
+                    <div className="bg-white rounded-xl shadow-md p-12 text-center">
                       <Building2 className="w-12 h-12 text-gray-400 mx-auto mb-4" />
                       <h3 className="text-lg font-semibold mb-2">No Listings Yet</h3>
                       <p className="text-gray-600 mb-6">Create your first facility listing to get started</p>
@@ -254,7 +239,7 @@ export default function AccountPage() {
 
               {/* Settings Tab */}
               {activeTab === 'settings' && (
-                <div className="bg-white rounded-xl shadow-sm p-6">
+                <div className="bg-white rounded-xl shadow-md p-6">
                   <h2 className="text-2xl font-bold mb-6">Account Settings</h2>
                   
                   <div className="space-y-6">
@@ -295,7 +280,7 @@ export default function AccountPage() {
 
               {/* Saved Facilities Tab */}
               {activeTab === 'saved' && (
-                <div className="bg-white rounded-xl shadow-sm p-6">
+                <div className="bg-white rounded-xl shadow-md p-6">
                   <h2 className="text-2xl font-bold mb-6">Saved Facilities</h2>
                   
                   <div className="text-center py-8 text-gray-500">
@@ -313,7 +298,7 @@ export default function AccountPage() {
 
               {/* Notifications Tab */}
               {activeTab === 'notifications' && (
-                <div className="bg-white rounded-xl shadow-sm p-6">
+                <div className="bg-white rounded-xl shadow-md p-6">
                   <h2 className="text-2xl font-bold mb-6">Notifications</h2>
                   
                   <div className="text-center py-8 text-gray-500">
@@ -325,7 +310,7 @@ export default function AccountPage() {
 
               {/* Privacy & Security Tab */}
               {activeTab === 'privacy' && (
-                <div className="bg-white rounded-xl shadow-sm p-6">
+                <div className="bg-white rounded-xl shadow-md p-6">
                   <h2 className="text-2xl font-bold mb-6">Privacy & Security</h2>
                   
                   <div className="space-y-6">

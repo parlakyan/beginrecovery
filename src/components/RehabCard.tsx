@@ -23,21 +23,25 @@ export default function RehabCard({ facility }: { facility: Facility }) {
       pending: {
         icon: <Clock className="w-4 h-4 text-yellow-600" />,
         text: 'Pending Review',
+        tooltip: 'Awaiting moderation by the admin',
         classes: 'bg-yellow-50 border-yellow-200 text-yellow-700'
       },
       approved: {
         icon: <CheckCircle className="w-4 h-4 text-green-600" />,
         text: 'Approved',
+        tooltip: 'Your listing is live',
         classes: 'bg-green-50 border-green-200 text-green-700'
       },
       rejected: {
         icon: <XCircle className="w-4 h-4 text-red-600" />,
         text: 'Rejected',
+        tooltip: 'Your listing was not approved',
         classes: 'bg-red-50 border-red-200 text-red-700'
       },
       archived: {
         icon: <XCircle className="w-4 h-4 text-gray-600" />,
         text: 'Archived',
+        tooltip: 'Your listing is archived',
         classes: 'bg-gray-50 border-gray-200 text-gray-700'
       }
     };
@@ -45,9 +49,15 @@ export default function RehabCard({ facility }: { facility: Facility }) {
     const badge = badges[facility.moderationStatus || 'pending'];
 
     return (
-      <div className={`absolute top-16 left-4 backdrop-blur-sm px-3 py-1.5 rounded-full flex items-center gap-2 shadow-lg border z-20 ${badge.classes}`}>
+      <div 
+        className={`absolute top-16 left-4 backdrop-blur-sm px-3 py-1.5 rounded-full flex items-center gap-2 shadow-lg border z-20 ${badge.classes} group cursor-help`}
+        title={badge.tooltip}
+      >
         {badge.icon}
         <span className="text-sm font-medium">{badge.text}</span>
+        <div className="absolute invisible group-hover:visible bg-gray-900 text-white text-xs rounded py-1 px-2 -bottom-8 left-1/2 transform -translate-x-1/2 w-max">
+          {badge.tooltip}
+        </div>
       </div>
     );
   };

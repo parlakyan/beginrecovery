@@ -259,7 +259,7 @@ export default function AdminDashboard() {
       <Header />
       
       <div className="container mx-auto px-4 py-8">
-        <div className="bg-white rounded-xl shadow-sm">
+        <div className="bg-white rounded-xl shadow-md">
           <div className="p-6 border-b">
             <div className="flex justify-between items-center">
               <h1 className="text-2xl font-bold">Admin Dashboard</h1>
