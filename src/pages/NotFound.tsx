@@ -1,43 +1,77 @@
-import React from 'react';
-import { Link, useNavigate } from 'react-router-dom';
-import { Home, ArrowLeft } from 'lucide-react';
+import React, { useEffect } from 'react';
+import { Link, useNavigate, useLocation } from 'react-router-dom';
+import { Home, ArrowLeft, FileSearch } from 'lucide-react';
+import Button from '../components/ui/Button';
 import Header from '../components/Header';
 import Footer from '../components/Footer';
 
+/**
+ * NotFound (404) Page Component
+ * 
+ * Displays a user-friendly 404 error page when a route is not found
+ * Includes options to go back or return to home page
+ */
 export default function NotFound() {
   const navigate = useNavigate();
+  const location = useLocation();
+
+  // Update document title and meta tags
+  useEffect(() => {
+    document.title = '404 - Page Not Found | Recovery Directory';
+    
+    // Update meta description
+    const metaDesc = document.querySelector('meta[name="description"]');
+    if (metaDesc) {
+      metaDesc.setAttribute('content', 'The page you\'re looking for cannot be found. Please check the URL or return to the Recovery Directory homepage.');
+    }
+  }, []);
 
   return (
-    <div className="min-h-screen bg-gray-50">
+    <div className="min-h-screen bg-surface flex flex-col">
       <Header />
       
-      <div className="container mx-auto px-4 py-16">
-        <div className="max-w-lg mx-auto text-center">
-          <h1 className="text-6xl font-bold text-blue-600 mb-6">404</h1>
-          <h2 className="text-3xl font-bold text-gray-900 mb-4">Page Not Found</h2>
-          <p className="text-gray-600 mb-8">
-            The page you're looking for doesn't exist or has been moved.
-          </p>
-          
-          <div className="flex flex-col sm:flex-row gap-4 justify-center">
-            <button
-              onClick={() => navigate(-1)}
-              className="inline-flex items-center justify-center gap-2 px-6 py-3 border border-gray-300 rounded-lg text-gray-700 hover:bg-gray-50 transition-colors"
-            >
-              <ArrowLeft className="w-5 h-5" />
-              Go Back
-            </button>
-            
-            <Link
-              to="/"
-              className="inline-flex items-center justify-center gap-2 px-6 py-3 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition-colors"
-            >
-              <Home className="w-5 h-5" />
-              Return Home
-            </Link>
+      <main className="flex-grow flex items-center justify-center py-16 px-4">
+        <div className="max-w-lg w-full mx-auto">
+          <div className="text-center space-y-6">
+            {/* Icon */}
+            <div className="flex justify-center">
+              <div className="w-24 h-24 rounded-full bg-blue-100 flex items-center justify-center">
+                <FileSearch className="w-12 h-12 text-blue-600" />
+              </div>
+            </div>
+
+            {/* Text Content */}
+            <div className="space-y-4">
+              <h1 className="text-4xl font-bold text-gray-900">
+                <span className="text-blue-600">404</span> - Page Not Found
+              </h1>
+              <p className="text-lg text-gray-600">
+                We couldn't find the page at <span className="font-medium">{location.pathname}</span>.<br />
+                Please check the URL or use the options below to get back on track.
+              </p>
+            </div>
+
+            {/* Actions */}
+            <div className="flex flex-col sm:flex-row gap-4 justify-center pt-4">
+              <Button
+                variant="secondary"
+                onClick={() => navigate(-1)}
+                className="sm:w-auto"
+              >
+                <ArrowLeft className="w-5 h-5" />
+                Go Back
+              </Button>
+              
+              <Link to="/" className="inline-flex">
+                <Button variant="primary" className="w-full sm:w-auto">
+                  <Home className="w-5 h-5" />
+                  Return Home
+                </Button>
+              </Link>
+            </div>
           </div>
         </div>
-      </div>
+      </main>
 
       <Footer />
     </div>

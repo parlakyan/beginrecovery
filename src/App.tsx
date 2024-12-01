@@ -76,7 +76,6 @@ export default function App() {
         {/* Public Routes */}
         <Route path="/" element={<HomePage />} />
         <Route path="/listing/:id" element={<ListingDetail />} />
-        <Route path="/:slug" element={<ListingDetail />} />
         <Route path="/login" element={<Login />} />
         <Route path="/register" element={<Register />} />
         <Route path="/reset-password" element={<ResetPassword />} />
@@ -115,7 +114,13 @@ export default function App() {
           </ProtectedRoute>
         } />
 
-        {/* 404 Route */}
+        {/* 404 Route - Must come after other routes */}
+        <Route path="/404" element={<NotFound />} />
+        
+        {/* Facility Slug Route - Must come after other routes to avoid conflicts */}
+        <Route path="/:slug" element={<ListingDetail />} />
+        
+        {/* Catch-all Route - Must be last */}
         <Route path="*" element={<NotFound />} />
       </Routes>
 
