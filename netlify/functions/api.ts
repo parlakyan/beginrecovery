@@ -175,8 +175,9 @@ export const handler: Handler = async (event, context) => {
               .doc(facilityId)
               .update({
                 status: 'active',
+                isVerified: true, // Set verified status
                 ownerId: userId,
-                moderationStatus: 'pending', // Ensure moderation status is set
+                moderationStatus: 'pending',
                 subscriptionId: session.subscription,
                 updatedAt: new Date().toISOString()
               });
@@ -189,10 +190,11 @@ export const handler: Handler = async (event, context) => {
                 updatedAt: new Date().toISOString()
               });
 
-            console.log('Updated user role to owner and activated facility:', {
+            console.log('Updated facility and user:', {
               facilityId,
               userId,
               status: 'active',
+              isVerified: true,
               moderationStatus: 'pending',
               subscriptionId: session.subscription
             });
@@ -210,6 +212,7 @@ export const handler: Handler = async (event, context) => {
               const doc = snapshot.docs[0];
               await doc.ref.update({
                 status: 'inactive',
+                isVerified: false, // Remove verified status
                 updatedAt: new Date().toISOString()
               });
             }

@@ -62,7 +62,10 @@ export default function PaymentSuccess() {
                 <Loader2 className="w-12 h-12 text-blue-600 animate-spin" />
                 <h1 className="text-2xl font-bold">Processing Payment</h1>
                 <p className="text-gray-600">
-                  Please wait while we confirm your payment...
+                  Please wait while we verify your payment...
+                </p>
+                <p className="text-sm text-gray-500">
+                  You will be redirected to your listings automatically.
                 </p>
               </div>
             ) : error ? (
@@ -72,7 +75,7 @@ export default function PaymentSuccess() {
                   onClick={() => navigate('/account', { state: { activeTab: 'listings' } })}
                   className="px-6 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700"
                 >
-                  Go to Account
+                  Go to My Listings
                 </button>
               </div>
             ) : (
@@ -80,17 +83,11 @@ export default function PaymentSuccess() {
                 <CheckCircle className="w-16 h-16 text-green-500" />
                 <h1 className="text-2xl font-bold">Payment Successful!</h1>
                 <p className="text-gray-600">
-                  Your facility listing has been created and is pending review.
+                  Your facility has been upgraded to Verified status.
                 </p>
                 <p className="text-sm text-gray-500">
-                  You can view and manage your listing in your account.
+                  Redirecting you to your listings...
                 </p>
-                <button
-                  onClick={() => navigate('/account', { state: { activeTab: 'listings' } })}
-                  className="px-6 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700"
-                >
-                  View Your Listing
-                </button>
               </div>
             )}
           </div>

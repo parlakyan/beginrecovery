@@ -10,6 +10,7 @@ import TreatmentFinder from '../components/TreatmentFinder';
 import InsuranceSection from '../components/InsuranceSection';
 import LocationBrowser from '../components/LocationBrowser';
 import CoreValues from '../components/CoreValues';
+import EditListingModal from '../components/EditListingModal';
 
 const defaultFilters = {
   treatmentTypes: [],
@@ -25,6 +26,7 @@ export default function HomePage() {
   const [loading, setLoading] = useState(true);
   const [isFiltersOpen, setIsFiltersOpen] = useState(false);
   const [filters, setFilters] = useState(defaultFilters);
+  const [editingFacility, setEditingFacility] = useState<Facility | null>(null);
 
   useEffect(() => {
     window.scrollTo(0, 0);
@@ -58,6 +60,23 @@ export default function HomePage() {
     fetchFacilities();
   }, []);
 
+  const handleSave = async (data: Partial<Facility>) => {
+    if (!editingFacility) return;
+    try {
+      await facilitiesService.updateFacility(editingFacility.id, data);
+      // Refresh facilities after update
+      const [allFacilities, featured] = await Promise.all([
+        facilitiesService.getFacilities(),
+        facilitiesService.getFeaturedFacilities()
+      ]);
+      setFacilities(allFacilities.facilities);
+      setFeaturedFacilities(featured);
+      setEditingFacility(null);
+    } catch (error) {
+      console.error('Error updating facility:', error);
+    }
+  };
+
   return (
     <div className="min-h-screen bg-gray-50">
       <Header />
@@ -87,7 +106,11 @@ export default function HomePage() {
               </div>
               <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6 max-w-6xl mx-auto">
                 {featuredFacilities.map((facility) => (
-                  <RehabCard key={facility.id} facility={facility} />
+                  <RehabCard 
+                    key={facility.id} 
+                    facility={facility} 
+                    onEdit={setEditingFacility}
+                  />
                 ))}
               </div>
             </div>
@@ -120,7 +143,11 @@ export default function HomePage() {
                 </div>
               ) : (
                 facilities.map((facility) => (
-                  <RehabCard key={facility.id} facility={facility} />
+                  <RehabCard 
+                    key={facility.id} 
+                    facility={facility} 
+                    onEdit={setEditingFacility}
+                  />
                 ))
               )}
             </div>
@@ -135,6 +162,16 @@ export default function HomePage() {
 
         {/* Core Values Section */}
         <CoreValues />
+
+        {/* Edit Modal */}
+        {editingFacility && (
+          <EditListingModal
+            facility={editingFacility}
+            isOpen={!!editingFacility}
+            onClose={() => setEditingFacility(null)}
+            onSave={handleSave}
+          />
+        )}
       </main>
 
       <Footer />
