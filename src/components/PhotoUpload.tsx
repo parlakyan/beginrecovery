@@ -1,4 +1,4 @@
-import React, { useCallback, useState } from 'react';
+import React, { useCallback, useState, useEffect } from 'react';
 import { Upload, X, Image as ImageIcon, Loader2, AlertCircle } from 'lucide-react';
 import { storageService } from '../services/storage';
 
@@ -28,6 +28,11 @@ export default function PhotoUpload({
   const [error, setError] = useState<string | null>(null);
   const [photos, setPhotos] = useState<string[]>(existingPhotos);
   const [uploadProgress, setUploadProgress] = useState<number>(0);
+
+  // Update photos when existingPhotos prop changes
+  useEffect(() => {
+    setPhotos(existingPhotos);
+  }, [existingPhotos]);
 
   const maxPhotos = 12;
   const remainingSlots = maxPhotos - photos.length;
@@ -129,6 +134,16 @@ export default function PhotoUpload({
     e.currentTarget.classList.remove('border-blue-500', 'bg-blue-50');
   }, []);
 
+  // Debug logging
+  useEffect(() => {
+    console.log('PhotoUpload state:', {
+      existingPhotos,
+      currentPhotos: photos,
+      facilityId,
+      isVerified
+    });
+  }, [existingPhotos, photos, facilityId, isVerified]);
+
   return (
     <div className="space-y-4">
       {/* Upload Area */}
@@ -192,7 +207,7 @@ export default function PhotoUpload({
       {photos.length > 0 && (
         <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
           {photos.map((url, index) => (
-            <div key={url} className="relative group aspect-square">
+            <div key={`${url}-${index}`} className="relative group aspect-square">
               <img
                 src={url}
                 alt={`Facility photo ${index + 1}`}

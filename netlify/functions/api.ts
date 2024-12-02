@@ -170,17 +170,21 @@ export const handler: Handler = async (event, context) => {
               sessionId: session.id
             });
 
-            // Update facility status and ensure ownerId is set
-            await db.collection('facilities')
-              .doc(facilityId)
-              .update({
-                status: 'active',
-                isVerified: true, // Set verified status
-                ownerId: userId,
-                moderationStatus: 'pending',
-                subscriptionId: session.subscription,
-                updatedAt: new Date().toISOString()
-              });
+            // Get current facility data
+            const facilityRef = db.collection('facilities').doc(facilityId);
+            const facilityDoc = await facilityRef.get();
+            const facilityData = facilityDoc.data();
+
+            // Update facility - only change verification status and subscription details
+            await facilityRef.update({
+              status: 'active',
+              isVerified: true,
+              ownerId: userId,
+              subscriptionId: session.subscription,
+              // Keep existing moderation status
+              moderationStatus: facilityData?.moderationStatus || 'pending',
+              updatedAt: new Date().toISOString()
+            });
 
             // Update user role to owner
             await db.collection('users')
@@ -195,7 +199,7 @@ export const handler: Handler = async (event, context) => {
               userId,
               status: 'active',
               isVerified: true,
-              moderationStatus: 'pending',
+              moderationStatus: facilityData?.moderationStatus || 'pending',
               subscriptionId: session.subscription
             });
             break;
@@ -210,9 +214,12 @@ export const handler: Handler = async (event, context) => {
 
             if (!snapshot.empty) {
               const doc = snapshot.docs[0];
+              const facilityData = doc.data();
               await doc.ref.update({
                 status: 'inactive',
-                isVerified: false, // Remove verified status
+                isVerified: false,
+                // Keep existing moderation status
+                moderationStatus: facilityData.moderationStatus,
                 updatedAt: new Date().toISOString()
               });
             }
