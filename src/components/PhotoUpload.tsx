@@ -1,5 +1,5 @@
 import React, { useCallback, useState } from 'react';
-import { Upload, X, Image as ImageIcon, Loader2 } from 'lucide-react';
+import { Upload, X, Image as ImageIcon, Loader2, AlertCircle } from 'lucide-react';
 import { storageService } from '../services/storage';
 
 interface PhotoUploadProps {
@@ -27,6 +27,7 @@ export default function PhotoUpload({
   const [isUploading, setIsUploading] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [photos, setPhotos] = useState<string[]>(existingPhotos);
+  const [uploadProgress, setUploadProgress] = useState<number>(0);
 
   const maxPhotos = 12;
   const remainingSlots = maxPhotos - photos.length;
@@ -42,6 +43,7 @@ export default function PhotoUpload({
     }
 
     setIsUploading(true);
+    setUploadProgress(0);
     try {
       const results = await storageService.uploadImages(files, facilityId);
       const uploadedUrls = results
@@ -62,9 +64,11 @@ export default function PhotoUpload({
         onPhotosChange(newPhotos);
       }
     } catch (err) {
+      console.error('Error uploading photos:', err);
       setError('Failed to upload photos. Please try again.');
     } finally {
       setIsUploading(false);
+      setUploadProgress(0);
     }
   }, [facilityId, photos, remainingSlots, onPhotosChange]);
 
@@ -78,6 +82,7 @@ export default function PhotoUpload({
     }
 
     setIsUploading(true);
+    setUploadProgress(0);
     try {
       const results = await storageService.uploadImages(files, facilityId);
       const uploadedUrls = results
@@ -98,9 +103,11 @@ export default function PhotoUpload({
         onPhotosChange(newPhotos);
       }
     } catch (err) {
+      console.error('Error uploading photos:', err);
       setError('Failed to upload photos. Please try again.');
     } finally {
       setIsUploading(false);
+      setUploadProgress(0);
       // Reset input value to allow uploading the same file again
       e.target.value = '';
     }
@@ -146,27 +153,37 @@ export default function PhotoUpload({
             className="cursor-pointer flex flex-col items-center"
           >
             {isUploading ? (
-              <Loader2 className="w-8 h-8 text-blue-500 animate-spin" />
+              <>
+                <Loader2 className="w-8 h-8 text-blue-500 animate-spin" />
+                <p className="mt-2 text-sm text-gray-600">Uploading...</p>
+                {uploadProgress > 0 && (
+                  <div className="w-full max-w-xs mt-2 bg-gray-200 rounded-full h-2.5">
+                    <div 
+                      className="bg-blue-600 h-2.5 rounded-full transition-all duration-300"
+                      style={{ width: `${uploadProgress}%` }}
+                    />
+                  </div>
+                )}
+              </>
             ) : (
-              <Upload className="w-8 h-8 text-blue-500" />
-            )}
-            <p className="mt-2 text-sm text-gray-600">
-              {isUploading ? 'Uploading...' : (
-                <>
+              <>
+                <Upload className="w-8 h-8 text-blue-500" />
+                <p className="mt-2 text-sm text-gray-600">
                   Drag photos here or <span className="text-blue-500">browse</span>
-                </>
-              )}
-            </p>
-            <p className="mt-1 text-xs text-gray-500">
-              {remainingSlots} slot{remainingSlots === 1 ? '' : 's'} remaining
-            </p>
+                </p>
+                <p className="mt-1 text-xs text-gray-500">
+                  {remainingSlots} slot{remainingSlots === 1 ? '' : 's'} remaining
+                </p>
+              </>
+            )}
           </label>
         </div>
       )}
 
       {/* Error Message */}
       {error && (
-        <div className="text-red-600 text-sm">
+        <div className="flex items-center gap-2 text-red-600 text-sm bg-red-50 p-3 rounded-lg">
+          <AlertCircle className="w-4 h-4" />
           {error}
         </div>
       )}
