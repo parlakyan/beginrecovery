@@ -24,6 +24,9 @@ export default function ListingDetail() {
   const [isEditModalOpen, setIsEditModalOpen] = useState(false);
   const coordinates = { lat: 34.0522, lng: -118.2437 };
 
+  // Check if current user is owner or admin
+  const canEdit = user && (user.role === 'admin' || (facility && user.id === facility.ownerId));
+
   useEffect(() => {
     window.scrollTo(0, 0);
     
@@ -202,10 +205,11 @@ export default function ListingDetail() {
             images={facility.images} 
             showNavigation={facility.images.length > 1}
             paginationPosition="elevated"
+            isVerified={facility.isVerified}
           />
           
-          {/* Admin Controls */}
-          {user?.role === 'admin' && (
+          {/* Admin and Owner Controls */}
+          {canEdit && (
             <div className="absolute top-4 right-4 flex items-center gap-2 z-20">
               <Button
                 variant="secondary"
@@ -216,29 +220,33 @@ export default function ListingDetail() {
                 Edit Facility
               </Button>
 
-              <Button
-                variant="secondary"
-                onClick={handleVerificationToggle}
-                className={`flex items-center gap-2 ${
-                  facility.isVerified 
-                    ? 'bg-green-50 text-green-700 hover:bg-green-100' 
-                    : 'bg-gray-50 text-gray-700 hover:bg-gray-100'
-                }`}
-              >
-                {facility.isVerified ? (
-                  <>
-                    <ShieldCheck className="w-4 h-4" />
-                    Verified
-                  </>
-                ) : (
-                  <>
-                    <ShieldAlert className="w-4 h-4" />
-                    Unverified
-                  </>
-                )}
-              </Button>
+              {user.role === 'admin' && (
+                <>
+                  <Button
+                    variant="secondary"
+                    onClick={handleVerificationToggle}
+                    className={`flex items-center gap-2 ${
+                      facility.isVerified 
+                        ? 'bg-green-50 text-green-700 hover:bg-green-100' 
+                        : 'bg-gray-50 text-gray-700 hover:bg-gray-100'
+                    }`}
+                  >
+                    {facility.isVerified ? (
+                      <>
+                        <ShieldCheck className="w-4 h-4" />
+                        Verified
+                      </>
+                    ) : (
+                      <>
+                        <ShieldAlert className="w-4 h-4" />
+                        Unverified
+                      </>
+                    )}
+                  </Button>
 
-              {getModerationButtons()}
+                  {getModerationButtons()}
+                </>
+              )}
             </div>
           )}
         </div>

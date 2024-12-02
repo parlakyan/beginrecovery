@@ -1,4 +1,5 @@
 import { useState, useEffect } from 'react';
+import { useForm } from 'react-hook-form';
 import { X, Plus } from 'lucide-react';
 import { Facility } from '../types';
 import { Tag } from './ui';
@@ -11,13 +12,20 @@ interface EditListingModalProps {
   onSave: (data: Partial<Facility>) => Promise<void>;
 }
 
+interface EditListingForm {
+  name: string;
+  description: string;
+  location: string;
+  phone: string;
+  email: string;
+}
+
+const emailRegex = /^[A-Z0-9._%+-]+@[A-Z0-9.-]+\.[A-Z]{2,}$/i;
+const phoneRegex = /^(\+\d{1,2}\s?)?\(?\d{3}\)?[\s.-]?\d{3}[\s.-]?\d{4}$/;
+
 const EditListingModal = ({ facility, isOpen, onClose, onSave }: EditListingModalProps) => {
+  const { register, handleSubmit, formState: { errors }, setValue } = useForm<EditListingForm>();
   const [formData, setFormData] = useState<Partial<Facility>>({
-    name: '',
-    description: '',
-    location: '',
-    phone: '',
-    email: '',
     amenities: [],
     images: [],
     tags: []
@@ -28,24 +36,28 @@ const EditListingModal = ({ facility, isOpen, onClose, onSave }: EditListingModa
 
   useEffect(() => {
     if (facility) {
+      setValue('name', facility.name);
+      setValue('description', facility.description);
+      setValue('location', facility.location);
+      setValue('phone', facility.phone || '');
+      setValue('email', facility.email || '');
       setFormData({
-        name: facility.name,
-        description: facility.description,
-        location: facility.location,
-        phone: facility.phone || '',
-        email: facility.email || '',
         amenities: facility.amenities,
         images: facility.images,
         tags: facility.tags
       });
     }
-  }, [facility]);
+  }, [facility, setValue]);
 
-  const handleSubmit = async (e: React.FormEvent) => {
-    e.preventDefault();
+  const onSubmit = async (data: EditListingForm) => {
     try {
       setLoading(true);
-      await onSave(formData);
+      await onSave({
+        ...data,
+        amenities: formData.amenities,
+        images: formData.images,
+        tags: formData.tags
+      });
       onClose();
     } catch (error) {
       console.error('Error saving facility:', error);
@@ -112,7 +124,7 @@ const EditListingModal = ({ facility, isOpen, onClose, onSave }: EditListingModa
           </div>
         </div>
 
-        <form onSubmit={handleSubmit} className="p-6 space-y-6">
+        <form onSubmit={handleSubmit(onSubmit)} className="p-6 space-y-6">
           {/* Basic Information */}
           <div className="space-y-4">
             <div>
@@ -120,12 +132,13 @@ const EditListingModal = ({ facility, isOpen, onClose, onSave }: EditListingModa
                 Facility Name
               </label>
               <input
+                {...register('name', { required: 'Facility name is required' })}
                 type="text"
-                value={formData.name}
-                onChange={(e) => setFormData({ ...formData, name: e.target.value })}
                 className="w-full px-3 py-2 border rounded-lg focus:ring-2 focus:ring-blue-500 outline-none"
-                required
               />
+              {errors.name && (
+                <p className="mt-1 text-sm text-red-600">{errors.name.message}</p>
+              )}
             </div>
 
             <div>
@@ -133,12 +146,13 @@ const EditListingModal = ({ facility, isOpen, onClose, onSave }: EditListingModa
                 Description
               </label>
               <textarea
-                value={formData.description}
-                onChange={(e) => setFormData({ ...formData, description: e.target.value })}
+                {...register('description', { required: 'Description is required' })}
                 className="w-full px-3 py-2 border rounded-lg focus:ring-2 focus:ring-blue-500 outline-none"
                 rows={4}
-                required
               />
+              {errors.description && (
+                <p className="mt-1 text-sm text-red-600">{errors.description.message}</p>
+              )}
             </div>
 
             <div>
@@ -146,12 +160,13 @@ const EditListingModal = ({ facility, isOpen, onClose, onSave }: EditListingModa
                 Location
               </label>
               <input
+                {...register('location', { required: 'Location is required' })}
                 type="text"
-                value={formData.location}
-                onChange={(e) => setFormData({ ...formData, location: e.target.value })}
                 className="w-full px-3 py-2 border rounded-lg focus:ring-2 focus:ring-blue-500 outline-none"
-                required
               />
+              {errors.location && (
+                <p className="mt-1 text-sm text-red-600">{errors.location.message}</p>
+              )}
             </div>
 
             <div>
@@ -159,12 +174,19 @@ const EditListingModal = ({ facility, isOpen, onClose, onSave }: EditListingModa
                 Phone
               </label>
               <input
+                {...register('phone', {
+                  required: 'Phone number is required',
+                  pattern: {
+                    value: phoneRegex,
+                    message: 'Please enter a valid phone number'
+                  }
+                })}
                 type="tel"
-                value={formData.phone}
-                onChange={(e) => setFormData({ ...formData, phone: e.target.value })}
                 className="w-full px-3 py-2 border rounded-lg focus:ring-2 focus:ring-blue-500 outline-none"
-                required
               />
+              {errors.phone && (
+                <p className="mt-1 text-sm text-red-600">{errors.phone.message}</p>
+              )}
             </div>
 
             <div>
@@ -172,12 +194,19 @@ const EditListingModal = ({ facility, isOpen, onClose, onSave }: EditListingModa
                 Email Address
               </label>
               <input
+                {...register('email', {
+                  required: 'Email is required',
+                  pattern: {
+                    value: emailRegex,
+                    message: 'Please enter a valid email address'
+                  }
+                })}
                 type="email"
-                value={formData.email}
-                onChange={(e) => setFormData({ ...formData, email: e.target.value })}
                 className="w-full px-3 py-2 border rounded-lg focus:ring-2 focus:ring-blue-500 outline-none"
-                required
               />
+              {errors.email && (
+                <p className="mt-1 text-sm text-red-600">{errors.email.message}</p>
+              )}
             </div>
           </div>
 
@@ -188,7 +217,7 @@ const EditListingModal = ({ facility, isOpen, onClose, onSave }: EditListingModa
             </label>
             <PhotoUpload
               facilityId={facility.id}
-              existingPhotos={formData.images}
+              existingPhotos={formData.images || []}
               onPhotosChange={handlePhotosChange}
               isVerified={facility.isVerified}
             />

@@ -31,6 +31,62 @@ gs://beginrecovery-bb288.appspot.com/facilities/abc123/1684789123456-x7y9z2-phot
 - Allowed file types: JPEG, PNG, WebP
 - Maximum photos per facility: 12
 
+## Firebase Configuration
+
+### Firebase Initialization
+Located in `src/lib/firebase.ts`
+```typescript
+import { getStorage } from 'firebase/storage';
+// ... other imports
+
+const storage = getStorage(app);
+export { storage };
+```
+
+### Storage Rules
+Located in `storage.rules`
+```
+rules_version = '2';
+
+service firebase.storage {
+  match /b/{bucket}/o {
+    match /{allPaths=**} {
+      allow read: if true;
+      allow write: if request.auth != null 
+        && request.resource.size < 5 * 1024 * 1024
+        && request.resource.contentType.matches('image/.*')
+        && request.resource.name.matches('facilities/[^/]+/.+');
+    }
+  }
+}
+```
+
+### CORS Configuration
+Located in `firebase.json`
+```json
+{
+  "storage": {
+    "rules": "storage.rules",
+    "cors": [{
+      "origin": [
+        "https://beginrecovery.org",
+        "http://localhost:3000",
+        "http://localhost:5173"
+      ],
+      "method": ["GET", "POST", "PUT", "DELETE", "HEAD"],
+      "maxAgeSeconds": 3600,
+      "responseHeader": [
+        "Content-Type",
+        "Access-Control-Allow-Origin",
+        "Access-Control-Allow-Methods",
+        "Access-Control-Allow-Headers",
+        "Cache-Control"
+      ]
+    }]
+  }
+}
+```
+
 ## Components
 
 ### PhotoUpload Component
@@ -48,34 +104,8 @@ Located in `src/services/storage.ts`
 - Generates unique filenames
 - Tracks upload progress
 
-## Firebase Configuration
-
-### Storage Rules
-Located in `storage.rules`
-```
-rules_version = '2';
-
-service firebase.storage {
-  match /b/{bucket}/o {
-    match /{allPaths=**} {
-      allow read: if true;
-      allow write: if request.auth != null;
-    }
-  }
-}
-```
-
-### Project Configuration
-Located in `firebase.json`
-```json
-{
-  "storage": {
-    "rules": "storage.rules"
-  }
-}
-```
-
 ## Setup Process
+
 1. Install Firebase CLI:
 ```bash
 npm install -g firebase-tools
@@ -94,7 +124,7 @@ firebase init
 - Use existing project: beginrecovery-bb288
 - Accept default storage.rules file
 
-4. Deploy storage rules:
+4. Deploy storage rules and CORS configuration:
 ```bash
 firebase deploy --only storage
 ```
@@ -137,6 +167,7 @@ Located in `src/components/ImageCarousel.tsx`
 - Clear error messages
 - Network error handling
 - Authentication checks
+- CORS error handling
 
 ## Security
 - Public read access
@@ -144,6 +175,29 @@ Located in `src/components/ImageCarousel.tsx`
 - Unique filenames to prevent collisions
 - File type restrictions
 - Size limitations
+- CORS restrictions to allowed domains
+
+## Troubleshooting
+
+### CORS Issues
+If you encounter CORS errors:
+1. Verify the domain is listed in firebase.json CORS configuration
+2. Ensure storage rules are deployed
+3. Check authentication status
+4. Verify file meets size and type restrictions
+
+### Upload Fails
+1. Check file size (max 5MB)
+2. Verify file type (JPEG, PNG, WebP)
+3. Ensure user is authenticated
+4. Check network connection
+5. Verify CORS configuration
+
+### Images Not Displaying
+1. Verify URL format
+2. Check storage rules
+3. Confirm file exists in storage
+4. Check browser console for CORS errors
 
 ## Best Practices
 1. Always validate files before upload
@@ -153,22 +207,7 @@ Located in `src/components/ImageCarousel.tsx`
 5. Show upload progress
 6. Clean up unused images
 7. Optimize images for web display
-
-## Troubleshooting
-1. Upload fails:
-   - Check file size (max 5MB)
-   - Verify file type (JPEG, PNG, WebP)
-   - Ensure user is authenticated
-   - Check network connection
-
-2. Images not displaying:
-   - Verify URL format
-   - Check storage rules
-   - Confirm file exists in storage
-
-3. CORS issues:
-   - Storage rules handle CORS configuration
-   - No additional CORS setup needed
+8. Maintain proper CORS configuration
 
 ## Future Improvements
 1. Image compression
@@ -177,3 +216,5 @@ Located in `src/components/ImageCarousel.tsx`
 4. Automatic image optimization
 5. CDN integration
 6. Backup storage
+7. Enhanced error reporting
+8. Automated cleanup of unused images
