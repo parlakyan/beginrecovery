@@ -1,5 +1,22 @@
 {
   "storage": {
-    "rules": "storage.rules"
+    "rules": "storage.rules",
+    "cors": [{
+      "origin": ["https://beginrecovery.org", "http://localhost:3000", "http://localhost:5173"],
+      "method": ["GET", "POST", "PUT", "DELETE", "HEAD"],
+      "maxAgeSeconds": 3600,
+      "responseHeader": [
+        "Content-Type",
+        "Access-Control-Allow-Origin",
+        "Access-Control-Allow-Methods",
+        "Access-Control-Allow-Headers",
+        "Cache-Control"
+      ]
+    }]
+  },
+  "emulators": {
+    "storage": {
+      "port": 9199
+    }
   }
 }

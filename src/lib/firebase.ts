@@ -1,6 +1,7 @@
 import { initializeApp } from 'firebase/app';
 import { getAuth, browserLocalPersistence, setPersistence, onAuthStateChanged } from 'firebase/auth';
 import { getFirestore } from 'firebase/firestore';
+import { getStorage } from 'firebase/storage';
 
 /**
  * Firebase Configuration
@@ -28,6 +29,7 @@ console.log('Firebase Config:', {
   hasApiKey: !!firebaseConfig.apiKey,
   authDomain: firebaseConfig.authDomain,
   projectId: firebaseConfig.projectId,
+  storageBucket: firebaseConfig.storageBucket,
   hasAppId: !!firebaseConfig.appId
 });
 
@@ -42,6 +44,12 @@ const app = initializeApp(firebaseConfig);
  * Sets up auth instance with local persistence for session management
  */
 const auth = getAuth(app);
+
+/**
+ * Initialize Firebase Storage
+ * Sets up storage instance for handling file uploads
+ */
+const storage = getStorage(app);
 
 /**
  * Configure Authentication Persistence
@@ -99,4 +107,4 @@ onAuthStateChanged(auth, (user) => {
 });
 
 // Export initialized Firebase instances
-export { app, auth, db };
+export { app, auth, db, storage };

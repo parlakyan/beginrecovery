@@ -1,10 +1,31 @@
 rules_version = '2';
 
+// Craft rules based on https://firebase.google.com/docs/storage/security/
 service firebase.storage {
   match /b/{bucket}/o {
+    // Allow public read access to all files
     match /{allPaths=**} {
       allow read: if true;
-      allow write: if request.auth != null;
+      
+      // Allow write access only to authenticated users
+      // and only to their own facility folders
+      allow write: if request.auth != null 
+        && request.resource.size < 5 * 1024 * 1024 // 5MB max
+        && request.resource.contentType.matches('image/.*') // Only images
+        && (
+          // Allow writing to facilities folder with proper structure
+          request.resource.name.matches('facilities/[^/]+/[^/]+') ||
+          // Or allow writing directly to a facility's folder
+          request.resource.name.matches('facilities/[^/]+/.+')
+        );
+    }
+
+    // Special rules for facilities folder
+    match /facilities/{facilityId}/{fileName} {
+      allow read: if true;
+      allow write: if request.auth != null
+        && request.resource.size < 5 * 1024 * 1024
+        && request.resource.contentType.matches('image/.*');
     }
   }
 }
