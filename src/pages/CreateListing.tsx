@@ -7,6 +7,7 @@ import { facilitiesService, usersService } from '../services/firebase';
 import { Facility } from '../types';
 import Header from '../components/Header';
 import Footer from '../components/Footer';
+import PhotoUpload from '../components/PhotoUpload';
 
 interface CreateListingForm {
   name: string;
@@ -14,7 +15,6 @@ interface CreateListingForm {
   location: string;
   phone: string;
   email: string;
-  images: string;
   amenities: string;
   tags: string;
 }
@@ -26,8 +26,12 @@ export default function CreateListing() {
   const { register, handleSubmit, formState: { errors } } = useForm<CreateListingForm>();
   const [loading, setLoading] = React.useState(false);
   const [error, setError] = React.useState<string | null>(null);
+  const [photos, setPhotos] = React.useState<string[]>([]);
   const { user, refreshToken } = useAuthStore();
   const navigate = useNavigate();
+
+  // Generate a temporary ID for photo uploads
+  const tempId = React.useMemo(() => 'temp-' + Date.now(), []);
 
   // Redirect non-logged-in users to register
   React.useEffect(() => {
@@ -56,10 +60,10 @@ export default function CreateListing() {
       // Process form data
       const formattedData: Partial<Facility> = {
         ...data,
-        images: data.images.split(',').map(url => url.trim()).filter(Boolean),
+        images: photos,
         amenities: data.amenities.split(',').map(a => a.trim()).filter(Boolean),
         tags: data.tags.split(',').map(t => t.trim()).filter(Boolean),
-        moderationStatus: 'pending' as const // Type assertion to ensure correct type
+        moderationStatus: 'pending' as const
       };
 
       // Create facility
@@ -222,15 +226,14 @@ export default function CreateListing() {
 
               <div>
                 <label className="block text-sm font-medium text-gray-700 mb-1">
-                  Images
+                  Photos
                 </label>
-                <input
-                  {...register('images')}
-                  type="text"
-                  placeholder="Enter image URLs separated by commas"
-                  className="w-full px-4 py-2 border rounded-lg focus:ring-2 focus:ring-blue-500 outline-none"
+                <PhotoUpload
+                  facilityId={tempId}
+                  existingPhotos={photos}
+                  onPhotosChange={setPhotos}
+                  isVerified={false}
                 />
-                <p className="mt-1 text-sm text-gray-500">Add multiple image URLs separated by commas</p>
               </div>
 
               <div>

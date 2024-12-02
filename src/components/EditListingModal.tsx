@@ -1,7 +1,8 @@
 import { useState, useEffect } from 'react';
-import { X, Plus, Trash } from 'lucide-react';
+import { X, Plus } from 'lucide-react';
 import { Facility } from '../types';
 import { Tag } from './ui';
+import PhotoUpload from './PhotoUpload';
 
 interface EditListingModalProps {
   facility: Facility;
@@ -85,10 +86,10 @@ const EditListingModal = ({ facility, isOpen, onClose, onSave }: EditListingModa
     }));
   };
 
-  const handleImageRemove = (index: number) => {
+  const handlePhotosChange = (photos: string[]) => {
     setFormData(prev => ({
       ...prev,
-      images: prev.images?.filter((_, i) => i !== index)
+      images: photos
     }));
   };
 
@@ -165,6 +166,19 @@ const EditListingModal = ({ facility, isOpen, onClose, onSave }: EditListingModa
             </div>
           </div>
 
+          {/* Photos */}
+          <div>
+            <label className="block text-sm font-medium text-gray-700 mb-2">
+              Photos
+            </label>
+            <PhotoUpload
+              facilityId={facility.id}
+              existingPhotos={formData.images}
+              onPhotosChange={handlePhotosChange}
+              isVerified={facility.isVerified}
+            />
+          </div>
+
           {/* Amenities */}
           <div>
             <label className="block text-sm font-medium text-gray-700 mb-2">
@@ -238,31 +252,6 @@ const EditListingModal = ({ facility, isOpen, onClose, onSave }: EditListingModa
                       <X className="w-4 h-4" />
                     </button>
                   </Tag>
-                </div>
-              ))}
-            </div>
-          </div>
-
-          {/* Images */}
-          <div>
-            <label className="block text-sm font-medium text-gray-700 mb-2">
-              Images
-            </label>
-            <div className="grid grid-cols-2 md:grid-cols-3 gap-4">
-              {formData.images?.map((image, index) => (
-                <div key={index} className="relative">
-                  <img
-                    src={image}
-                    alt={`Facility ${index + 1}`}
-                    className="w-full h-32 object-cover rounded-lg"
-                  />
-                  <button
-                    type="button"
-                    onClick={() => handleImageRemove(index)}
-                    className="absolute top-2 right-2 p-1 bg-red-600 text-white rounded-full hover:bg-red-700"
-                  >
-                    <Trash className="w-4 h-4" />
-                  </button>
                 </div>
               ))}
             </div>

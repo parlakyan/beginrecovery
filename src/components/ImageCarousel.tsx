@@ -6,14 +6,24 @@ interface ImageCarouselProps {
   showNavigation?: boolean;
   onImageClick?: () => void;
   paginationPosition?: 'bottom' | 'elevated';
+  isVerified?: boolean;
 }
 
+/**
+ * ImageCarousel component
+ * Shows all images for verified listings
+ * Shows only the first image for unverified listings
+ */
 export default function ImageCarousel({ 
   images, 
   showNavigation = true, 
   onImageClick,
-  paginationPosition = 'bottom' 
+  paginationPosition = 'bottom',
+  isVerified = false
 }: ImageCarouselProps) {
+  // For unverified listings, only use the first image
+  const displayImages = isVerified ? images : images.slice(0, 1);
+  
   const [currentIndex, setCurrentIndex] = useState(0);
   const [isTransitioning, setIsTransitioning] = useState(false);
   const [touchStart, setTouchStart] = useState<number | null>(null);
@@ -28,8 +38,8 @@ export default function ImageCarousel({
     if (isTransitioning) return;
     
     setIsTransitioning(true);
-    setCurrentIndex((prevIndex) => (prevIndex + 1) % images.length);
-  }, [isTransitioning, images.length]);
+    setCurrentIndex((prevIndex) => (prevIndex + 1) % displayImages.length);
+  }, [isTransitioning, displayImages.length]);
 
   const prevSlide = useCallback((e?: React.MouseEvent) => {
     if (e) {
@@ -38,8 +48,8 @@ export default function ImageCarousel({
     if (isTransitioning) return;
     
     setIsTransitioning(true);
-    setCurrentIndex((prevIndex) => (prevIndex - 1 + images.length) % images.length);
-  }, [isTransitioning, images.length]);
+    setCurrentIndex((prevIndex) => (prevIndex - 1 + displayImages.length) % displayImages.length);
+  }, [isTransitioning, displayImages.length]);
 
   const onTouchStart = (e: React.TouchEvent) => {
     setTouchEnd(null);
@@ -74,7 +84,7 @@ export default function ImageCarousel({
     }
   }, [isTransitioning]);
 
-  if (!images.length) {
+  if (!displayImages.length) {
     return (
       <div className="w-full h-full bg-gray-200 flex items-center justify-center">
         <span className="text-gray-400">No images available</span>
@@ -100,7 +110,7 @@ export default function ImageCarousel({
     >
       {/* Image Container */}
       <div className="absolute inset-0">
-        {images.map((image, index) => (
+        {displayImages.map((image, index) => (
           <div
             key={index}
             className={`absolute inset-0 transition-opacity duration-500 ease-in-out ${
@@ -118,8 +128,8 @@ export default function ImageCarousel({
         ))}
       </div>
 
-      {/* Navigation */}
-      {showNavigation && images.length > 1 && (
+      {/* Navigation - Only show for verified listings with multiple images */}
+      {showNavigation && isVerified && displayImages.length > 1 && (
         <>
           {/* Previous/Next Buttons */}
           <button
@@ -139,7 +149,7 @@ export default function ImageCarousel({
 
           {/* Dots */}
           <div className={`absolute left-1/2 -translate-x-1/2 flex gap-2 z-10 ${paginationClasses[paginationPosition]}`}>
-            {images.map((_, index) => (
+            {displayImages.map((_, index) => (
               <button
                 key={index}
                 onClick={(e) => {
