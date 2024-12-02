@@ -34,6 +34,7 @@ export interface User {
  * @property updatedAt - ISO timestamp of last update
  * @property subscriptionId - Stripe subscription ID
  * @property phone - Contact phone number
+ * @property email - Contact email address
  * @property tags - Treatment types and categories
  * @property isVerified - Official verification status
  * @property isFeatured - Featured listing status
@@ -55,6 +56,7 @@ export interface Facility {
   updatedAt: string;
   subscriptionId?: string;
   phone?: string;
+  email?: string;
   tags: string[];
   isVerified: boolean;
   isFeatured: boolean;

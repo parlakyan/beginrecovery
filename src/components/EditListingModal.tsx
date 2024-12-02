@@ -17,6 +17,7 @@ const EditListingModal = ({ facility, isOpen, onClose, onSave }: EditListingModa
     description: '',
     location: '',
     phone: '',
+    email: '',
     amenities: [],
     images: [],
     tags: []
@@ -31,7 +32,8 @@ const EditListingModal = ({ facility, isOpen, onClose, onSave }: EditListingModa
         name: facility.name,
         description: facility.description,
         location: facility.location,
-        phone: facility.phone,
+        phone: facility.phone || '',
+        email: facility.email || '',
         amenities: facility.amenities,
         images: facility.images,
         tags: facility.tags
@@ -160,6 +162,19 @@ const EditListingModal = ({ facility, isOpen, onClose, onSave }: EditListingModa
                 type="tel"
                 value={formData.phone}
                 onChange={(e) => setFormData({ ...formData, phone: e.target.value })}
+                className="w-full px-3 py-2 border rounded-lg focus:ring-2 focus:ring-blue-500 outline-none"
+                required
+              />
+            </div>
+
+            <div>
+              <label className="block text-sm font-medium text-gray-700 mb-1">
+                Email Address
+              </label>
+              <input
+                type="email"
+                value={formData.email}
+                onChange={(e) => setFormData({ ...formData, email: e.target.value })}
                 className="w-full px-3 py-2 border rounded-lg focus:ring-2 focus:ring-blue-500 outline-none"
                 required
               />
