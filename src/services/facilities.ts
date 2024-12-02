@@ -61,14 +61,6 @@ const filterFacilities = (facilities: Facility[], filters: SearchFilters): Facil
       return false;
     }
 
-    // Price Range filter - Not implemented yet as price is not in the model
-    // if (filters.priceRange !== null) {
-    //   const [min, max] = filters.priceRange;
-    //   if (facility.price < min || facility.price > max) {
-    //     return false;
-    //   }
-    // }
-
     return true;
   });
 };
@@ -234,6 +226,74 @@ export const facilitiesService = {
       return true;
     } catch (error) {
       console.error('Error deleting facility:', error);
+      throw error;
+    }
+  },
+
+  /**
+   * Approve facility
+   */
+  async approveFacility(id: string) {
+    try {
+      const facilityRef = doc(db, 'facilities', id);
+      await updateDoc(facilityRef, {
+        moderationStatus: 'approved',
+        updatedAt: serverTimestamp()
+      });
+      return true;
+    } catch (error) {
+      console.error('Error approving facility:', error);
+      throw error;
+    }
+  },
+
+  /**
+   * Reject facility
+   */
+  async rejectFacility(id: string) {
+    try {
+      const facilityRef = doc(db, 'facilities', id);
+      await updateDoc(facilityRef, {
+        moderationStatus: 'rejected',
+        updatedAt: serverTimestamp()
+      });
+      return true;
+    } catch (error) {
+      console.error('Error rejecting facility:', error);
+      throw error;
+    }
+  },
+
+  /**
+   * Verify facility
+   */
+  async verifyFacility(id: string) {
+    try {
+      const facilityRef = doc(db, 'facilities', id);
+      await updateDoc(facilityRef, {
+        isVerified: true,
+        updatedAt: serverTimestamp()
+      });
+      return true;
+    } catch (error) {
+      console.error('Error verifying facility:', error);
+      throw error;
+    }
+  },
+
+  /**
+   * Unverify facility
+   */
+  async unverifyFacility(id: string) {
+    try {
+      const facilityRef = doc(db, 'facilities', id);
+      await updateDoc(facilityRef, {
+        isVerified: false,
+        updatedAt: serverTimestamp()
+      });
+      return true;
+    } catch (error) {
+      console.error('Error unverifying facility:', error);
       throw error;
     }
   }

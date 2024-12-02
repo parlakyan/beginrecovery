@@ -1,7 +1,7 @@
-import { useEffect, useState } from 'react';
+import { useEffect, useState, useCallback } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
 import { Edit2, ShieldCheck, ShieldAlert, CheckCircle, XCircle, Clock, MapPin, Star } from 'lucide-react';
-import { facilitiesService } from '../services/firebase';
+import { facilitiesService } from '../services/facilities'; // Fix import path
 import { useAuthStore } from '../store/authStore';
 import { Facility } from '../types';
 import Header from '../components/Header';
@@ -27,56 +27,48 @@ export default function ListingDetail() {
   // Check if current user is owner or admin
   const canEdit = user && (user.role === 'admin' || (facility && user.id === facility.ownerId));
 
+  const fetchFacility = useCallback(async () => {
+    try {
+      setLoading(true);
+      let data = null;
+
+      if (id) {
+        // If we have an ID, fetch by ID and redirect to slug URL
+        data = await facilitiesService.getFacilityById(id);
+        if (data && data.slug) {
+          navigate(`/${data.slug}`, { replace: true });
+        }
+      } else if (slug) {
+        // If we have a slug, fetch by slug
+        data = await facilitiesService.getFacilityBySlug(slug);
+      }
+
+      if (!data) {
+        // If no facility found, redirect to 404
+        navigate('/404', { replace: true });
+        return;
+      }
+
+      setFacility(data);
+    } catch (error) {
+      console.error('Error fetching facility:', error);
+      // On error, redirect to 404
+      navigate('/404', { replace: true });
+    } finally {
+      setLoading(false);
+    }
+  }, [id, slug, navigate]);
+
   useEffect(() => {
     window.scrollTo(0, 0);
-    
-    const fetchFacility = async () => {
-      try {
-        setLoading(true);
-        let data = null;
-
-        if (id) {
-          // If we have an ID, fetch by ID and redirect to slug URL
-          data = await facilitiesService.getFacilityById(id);
-          if (data && data.slug) {
-            navigate(`/${data.slug}`, { replace: true });
-          }
-        } else if (slug) {
-          // If we have a slug, fetch by slug
-          data = await facilitiesService.getFacilityBySlug(slug);
-        }
-
-        if (!data) {
-          // If no facility found, redirect to 404
-          navigate('/404', { replace: true });
-          return;
-        }
-
-        setFacility(data);
-      } catch (error) {
-        console.error('Error fetching facility:', error);
-        // On error, redirect to 404
-        navigate('/404', { replace: true });
-      } finally {
-        setLoading(false);
-      }
-    };
-
     fetchFacility();
-  }, [id, slug, navigate]);
+  }, [fetchFacility, slug]); // Add slug as dependency to refetch when URL changes
 
   const handleApprove = async () => {
     if (!facility) return;
     try {
       await facilitiesService.approveFacility(facility.id);
-      const updatedFacility = await facilitiesService.getFacilityById(facility.id);
-      if (updatedFacility) {
-        setFacility(updatedFacility);
-        // Update URL if slug changed
-        if (updatedFacility.slug !== slug) {
-          navigate(`/${updatedFacility.slug}`, { replace: true });
-        }
-      }
+      await fetchFacility(); // Refetch facility data
     } catch (error) {
       console.error('Error approving facility:', error);
     }
@@ -86,8 +78,7 @@ export default function ListingDetail() {
     if (!facility) return;
     try {
       await facilitiesService.rejectFacility(facility.id);
-      const updatedFacility = await facilitiesService.getFacilityById(facility.id);
-      if (updatedFacility) setFacility(updatedFacility);
+      await fetchFacility(); // Refetch facility data
     } catch (error) {
       console.error('Error rejecting facility:', error);
     }
@@ -101,8 +92,7 @@ export default function ListingDetail() {
       } else {
         await facilitiesService.verifyFacility(facility.id);
       }
-      const updatedFacility = await facilitiesService.getFacilityById(facility.id);
-      if (updatedFacility) setFacility(updatedFacility);
+      await fetchFacility(); // Refetch facility data
     } catch (error) {
       console.error('Error toggling verification:', error);
     }
@@ -112,14 +102,7 @@ export default function ListingDetail() {
     if (!facility) return;
     try {
       await facilitiesService.updateFacility(facility.id, data);
-      const updatedFacility = await facilitiesService.getFacilityById(facility.id);
-      if (updatedFacility) {
-        setFacility(updatedFacility);
-        // Update URL if name or location was changed (which affects the slug)
-        if (updatedFacility.slug !== slug) {
-          navigate(`/${updatedFacility.slug}`, { replace: true });
-        }
-      }
+      await fetchFacility(); // Refetch facility data
       setIsEditModalOpen(false);
     } catch (error) {
       console.error('Error updating facility:', error);
