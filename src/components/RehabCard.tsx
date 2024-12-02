@@ -1,22 +1,46 @@
 import React from 'react';
-import { Star, MapPin, Phone, ArrowRight, ShieldCheck, ShieldAlert, Clock, CheckCircle, XCircle, AlertCircle } from 'lucide-react';
+import { Star, MapPin, Phone, ArrowRight, ShieldCheck, ShieldAlert, Clock, CheckCircle, XCircle, AlertCircle, Edit, CreditCard } from 'lucide-react';
 import { useNavigate } from 'react-router-dom';
 import { useAuthStore } from '../store/authStore';
 import ImageCarousel from './ImageCarousel';
 import { Tag } from './ui';
 import { Facility } from '../types';
 
-export default function RehabCard({ facility }: { facility: Facility }) {
+interface RehabCardProps {
+  facility: Facility;
+  onEdit?: (facility: Facility) => void;
+}
+
+export default function RehabCard({ facility, onEdit }: RehabCardProps) {
   const navigate = useNavigate();
   const { user } = useAuthStore();
   const isOwner = user?.id === facility.ownerId;
+  const isAdmin = user?.role === 'admin';
 
   const handleNavigation = () => {
     window.scrollTo(0, 0);
     navigate(`/${facility.slug}`);
   };
 
-  const StatusBadge = () => {
+  const handleUpgrade = (e: React.MouseEvent) => {
+    e.stopPropagation();
+    navigate('/payment', { 
+      state: { 
+        facilityId: facility.id,
+        facility: facility
+      }
+    });
+  };
+
+  const handleEdit = (e: React.MouseEvent) => {
+    e.stopPropagation();
+    if (onEdit) {
+      onEdit(facility);
+    }
+  };
+
+  // Moderation status badge - only visible to owners
+  const ModerationBadge = () => {
     if (!isOwner) return null;
 
     const badges = {
@@ -52,37 +76,7 @@ export default function RehabCard({ facility }: { facility: Facility }) {
     );
   };
 
-  const PaymentStatusBadge = () => {
-    if (!isOwner) return null;
-
-    const badges = {
-      pending: {
-        icon: <AlertCircle className="w-4 h-4 text-yellow-600" />,
-        text: 'Payment Pending',
-        classes: 'bg-yellow-50 border-yellow-200 text-yellow-700'
-      },
-      active: {
-        icon: <CheckCircle className="w-4 h-4 text-green-600" />,
-        text: 'Active',
-        classes: 'bg-green-50 border-green-200 text-green-700'
-      },
-      suspended: {
-        icon: <XCircle className="w-4 h-4 text-red-600" />,
-        text: 'Suspended',
-        classes: 'bg-red-50 border-red-200 text-red-700'
-      }
-    };
-
-    const badge = badges[facility.status || 'pending'];
-
-    return (
-      <div className={`absolute top-28 left-4 backdrop-blur-sm px-3 py-1.5 rounded-full flex items-center gap-2 shadow-lg border z-20 ${badge.classes}`}>
-        {badge.icon}
-        <span className="text-sm font-medium">{badge.text}</span>
-      </div>
-    );
-  };
-
+  // Verification badge - visible to everyone
   const VerificationBadge = () => (
     <div className={`absolute top-4 left-4 ${facility.isVerified ? 'bg-green-50' : 'bg-gray-50'} backdrop-blur-sm px-3 py-1.5 rounded-full flex items-center gap-2 shadow-lg border ${facility.isVerified ? 'border-green-200' : 'border-gray-200'} z-20`}>
       {facility.isVerified ? (
@@ -109,8 +103,7 @@ export default function RehabCard({ facility }: { facility: Facility }) {
           paginationPosition="bottom"
         />
         <VerificationBadge />
-        <StatusBadge />
-        <PaymentStatusBadge />
+        <ModerationBadge />
         <div className="absolute top-4 right-4 bg-white/90 backdrop-blur-sm px-3 py-1 rounded-full flex items-center gap-1 shadow-lg z-20">
           <Star className="w-4 h-4 text-yellow-400 fill-current" />
           <span className="font-semibold">{facility.rating}</span>
@@ -162,6 +155,29 @@ export default function RehabCard({ facility }: { facility: Facility }) {
           )}
         </div>
 
+        {/* Owner Actions */}
+        {isOwner && (
+          <div className="flex gap-2 mb-4">
+            <button 
+              onClick={handleEdit}
+              className="flex-1 bg-gray-100 text-gray-700 py-2 rounded-lg hover:bg-gray-200 transition-all duration-200 flex items-center justify-center gap-2"
+            >
+              <Edit className="w-4 h-4" />
+              Edit Facility
+            </button>
+            {!facility.isVerified && (
+              <button 
+                onClick={handleUpgrade}
+                className="flex-1 bg-blue-600 text-white py-2 rounded-lg hover:bg-blue-700 transition-all duration-200 flex items-center justify-center gap-2"
+              >
+                <CreditCard className="w-4 h-4" />
+                Upgrade to Verified
+              </button>
+            )}
+          </div>
+        )}
+
+        {/* View Details Button */}
         <button 
           className="w-full bg-gradient-to-r from-blue-600 to-blue-700 text-white py-3 rounded-xl hover:from-blue-700 hover:to-blue-800 transition-all duration-200 flex items-center justify-center gap-2 group/button"
         >

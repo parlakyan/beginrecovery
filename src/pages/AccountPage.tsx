@@ -18,6 +18,7 @@ import { Facility } from '../types';
 import Header from '../components/Header';
 import Footer from '../components/Footer';
 import RehabCard from '../components/RehabCard';
+import EditListingModal from '../components/EditListingModal';
 
 /**
  * Account Page Component
@@ -33,6 +34,7 @@ export default function AccountPage() {
   });
   const [userListings, setUserListings] = React.useState<Facility[]>([]);
   const [listingsLoading, setListingsLoading] = React.useState(false);
+  const [editingFacility, setEditingFacility] = React.useState<Facility | null>(null);
 
   // Load user's facility listings
   const loadUserListings = React.useCallback(async () => {
@@ -51,12 +53,24 @@ export default function AccountPage() {
     }
   }, [user?.id]);
 
+  // Handle facility update
+  const handleUpdateFacility = async (data: Partial<Facility>) => {
+    if (!editingFacility) return;
+    try {
+      await facilitiesService.updateFacility(editingFacility.id, data);
+      await loadUserListings();
+    } catch (error) {
+      console.error('Error updating facility:', error);
+      throw error;
+    }
+  };
+
   // Load listings when component mounts or when user changes
   React.useEffect(() => {
-    if (user?.id) {
+    if (user?.id && user.role === 'owner') {
       loadUserListings();
     }
-  }, [user?.id, loadUserListings]);
+  }, [user?.id, user?.role, loadUserListings]);
 
   // Debug logging for user role
   React.useEffect(() => {
@@ -100,18 +114,20 @@ export default function AccountPage() {
                 Profile
               </button>
               
-              {/* Listings tab - Visible to all users */}
-              <button
-                onClick={() => setActiveTab('listings')}
-                className={`w-full flex items-center gap-3 px-4 py-2 rounded-lg text-left ${
-                  activeTab === 'listings'
-                    ? 'bg-blue-50 text-blue-600'
-                    : 'hover:bg-gray-100'
-                }`}
-              >
-                <Building2 className="w-5 h-5" />
-                My Listings
-              </button>
+              {/* Listings tab - Only visible to owners */}
+              {user?.role === 'owner' && (
+                <button
+                  onClick={() => setActiveTab('listings')}
+                  className={`w-full flex items-center gap-3 px-4 py-2 rounded-lg text-left ${
+                    activeTab === 'listings'
+                      ? 'bg-blue-50 text-blue-600'
+                      : 'hover:bg-gray-100'
+                  }`}
+                >
+                  <Building2 className="w-5 h-5" />
+                  My Listings
+                </button>
+              )}
               
               <button
                 onClick={() => setActiveTab('settings')}
@@ -205,7 +221,7 @@ export default function AccountPage() {
               )}
 
               {/* Listings Tab */}
-              {activeTab === 'listings' && (
+              {activeTab === 'listings' && user?.role === 'owner' && (
                 <div className="space-y-6">
                   <div className="flex items-center justify-between">
                     <h2 className="text-2xl font-bold">My Listings</h2>
@@ -241,6 +257,7 @@ export default function AccountPage() {
                         <RehabCard 
                           key={facility.id} 
                           facility={facility}
+                          onEdit={setEditingFacility}
                         />
                       ))}
                     </div>
@@ -357,6 +374,16 @@ export default function AccountPage() {
           </div>
         </div>
       </div>
+
+      {/* Edit Listing Modal */}
+      {editingFacility && (
+        <EditListingModal
+          facility={editingFacility}
+          isOpen={!!editingFacility}
+          onClose={() => setEditingFacility(null)}
+          onSave={handleUpdateFacility}
+        />
+      )}
 
       <Footer />
     </div>

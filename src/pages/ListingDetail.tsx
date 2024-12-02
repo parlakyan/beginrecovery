@@ -123,6 +123,58 @@ export default function ListingDetail() {
     }
   };
 
+  const getModerationButtons = () => {
+    if (!user || user.role !== 'admin' || !facility) return null;
+
+    switch (facility.moderationStatus) {
+      case 'pending':
+        return (
+          <>
+            <Button
+              variant="primary"
+              onClick={handleApprove}
+              className="flex items-center gap-2"
+            >
+              <CheckCircle className="w-4 h-4" />
+              Approve
+            </Button>
+            <Button
+              variant="secondary"
+              onClick={handleReject}
+              className="flex items-center gap-2 !bg-red-50 !text-red-700 hover:!bg-red-100"
+            >
+              <XCircle className="w-4 h-4" />
+              Reject
+            </Button>
+          </>
+        );
+      case 'approved':
+        return (
+          <Button
+            variant="secondary"
+            onClick={handleReject}
+            className="flex items-center gap-2 !bg-red-50 !text-red-700 hover:!bg-red-100"
+          >
+            <XCircle className="w-4 h-4" />
+            Reject
+          </Button>
+        );
+      case 'rejected':
+        return (
+          <Button
+            variant="primary"
+            onClick={handleApprove}
+            className="flex items-center gap-2"
+          >
+            <CheckCircle className="w-4 h-4" />
+            Approve
+          </Button>
+        );
+      default:
+        return null;
+    }
+  };
+
   if (loading) {
     return (
       <div className="min-h-screen bg-gray-50">
@@ -186,26 +238,7 @@ export default function ListingDetail() {
                 )}
               </Button>
 
-              {facility.moderationStatus === 'pending' && (
-                <>
-                  <Button
-                    variant="primary"
-                    onClick={handleApprove}
-                    className="flex items-center gap-2"
-                  >
-                    <CheckCircle className="w-4 h-4" />
-                    Approve
-                  </Button>
-                  <Button
-                    variant="secondary"
-                    onClick={handleReject}
-                    className="flex items-center gap-2 !bg-red-50 !text-red-700 hover:!bg-red-100"
-                  >
-                    <XCircle className="w-4 h-4" />
-                    Reject
-                  </Button>
-                </>
-              )}
+              {getModerationButtons()}
             </div>
           )}
         </div>
