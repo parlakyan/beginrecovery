@@ -1,5 +1,5 @@
 import { useEffect, useState } from 'react';
-import { facilitiesService } from '../services/firebase';
+import { facilitiesService } from '../services/facilities';
 import { Facility } from '../types';
 import Header from '../components/Header';
 import Footer from '../components/Footer';
@@ -28,52 +28,61 @@ export default function HomePage() {
   const [filters, setFilters] = useState(defaultFilters);
   const [editingFacility, setEditingFacility] = useState<Facility | null>(null);
 
+  const fetchFacilities = async (currentFilters = filters) => {
+    try {
+      setLoading(true);
+      
+      // Fetch facilities and featured facilities in parallel
+      const [allFacilities, featured] = await Promise.all([
+        facilitiesService.getFacilities(currentFilters),
+        facilitiesService.getFeaturedFacilities()
+      ]);
+      
+      console.log('Fetched facilities:', {
+        total: allFacilities.facilities.length,
+        featured: featured.length,
+        filters: currentFilters
+      });
+      
+      setFacilities(allFacilities.facilities);
+      setFeaturedFacilities(featured);
+    } catch (error) {
+      console.error('Error fetching facilities:', error);
+      setFacilities([]);
+      setFeaturedFacilities([]);
+    } finally {
+      setLoading(false);
+    }
+  };
+
   useEffect(() => {
     window.scrollTo(0, 0);
-    
-    const fetchFacilities = async () => {
-      try {
-        setLoading(true);
-        
-        // Fetch facilities and featured facilities in parallel
-        const [allFacilities, featured] = await Promise.all([
-          facilitiesService.getFacilities(),
-          facilitiesService.getFeaturedFacilities()
-        ]);
-        
-        console.log('Fetched facilities:', {
-          total: allFacilities.facilities.length,
-          featured: featured.length
-        });
-        
-        setFacilities(allFacilities.facilities);
-        setFeaturedFacilities(featured);
-      } catch (error) {
-        console.error('Error fetching facilities:', error);
-        setFacilities([]);
-        setFeaturedFacilities([]);
-      } finally {
-        setLoading(false);
-      }
-    };
-
     fetchFacilities();
   }, []);
+
+  const handleFilterChange = (newFilters: typeof defaultFilters) => {
+    setFilters(newFilters);
+    fetchFacilities(newFilters);
+  };
 
   const handleSave = async (data: Partial<Facility>) => {
     if (!editingFacility) return;
     try {
       await facilitiesService.updateFacility(editingFacility.id, data);
       // Refresh facilities after update
-      const [allFacilities, featured] = await Promise.all([
-        facilitiesService.getFacilities(),
-        facilitiesService.getFeaturedFacilities()
-      ]);
-      setFacilities(allFacilities.facilities);
-      setFeaturedFacilities(featured);
+      fetchFacilities();
       setEditingFacility(null);
     } catch (error) {
       console.error('Error updating facility:', error);
+    }
+  };
+
+  const handleOpenFilters = () => {
+    setIsFiltersOpen(true);
+    // Scroll to results section
+    const resultsSection = document.getElementById('results-section');
+    if (resultsSection) {
+      resultsSection.scrollIntoView({ behavior: 'smooth' });
     }
   };
 
@@ -82,13 +91,13 @@ export default function HomePage() {
       <Header />
       
       <main>
-        <HeroSection />
+        <HeroSection onOpenFilters={handleOpenFilters} />
         
         <SearchFilters 
           isOpen={isFiltersOpen}
           onClose={() => setIsFiltersOpen(false)}
           filters={filters}
-          onFilterChange={setFilters}
+          onFilterChange={handleFilterChange}
         />
 
         {/* Featured Treatment Centers */}
@@ -100,8 +109,11 @@ export default function HomePage() {
                   <h2 className="text-3xl font-bold mb-2">Featured Treatment Centers</h2>
                   <p className="text-gray-600">Discover our highly-rated rehabilitation facilities</p>
                 </div>
-                <button className="text-blue-600 hover:text-blue-700 font-medium">
-                  View All
+                <button 
+                  onClick={() => setIsFiltersOpen(true)}
+                  className="text-blue-600 hover:text-blue-700 font-medium"
+                >
+                  Filter Results
                 </button>
               </div>
               <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6 max-w-6xl mx-auto">
@@ -121,15 +133,18 @@ export default function HomePage() {
         <TreatmentFinder />
 
         {/* Recent Treatment Centers */}
-        <section className="py-20 bg-white">
+        <section id="results-section" className="py-20 bg-white">
           <div className="container mx-auto px-4">
             <div className="flex justify-between items-center mb-12">
               <div className="text-center md:text-left">
                 <h2 className="text-3xl font-bold mb-2">Recent Treatment Centers</h2>
                 <p className="text-gray-600">Browse our latest verified rehabilitation facilities</p>
               </div>
-              <button className="text-blue-600 hover:text-blue-700 font-medium">
-                View All
+              <button 
+                onClick={() => setIsFiltersOpen(true)}
+                className="text-blue-600 hover:text-blue-700 font-medium"
+              >
+                Filter Results
               </button>
             </div>
             <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6 max-w-6xl mx-auto">
@@ -139,7 +154,16 @@ export default function HomePage() {
                 </div>
               ) : facilities.length === 0 ? (
                 <div className="col-span-3 text-center py-12">
-                  <p className="text-gray-600">No treatment centers found.</p>
+                  <p className="text-gray-600">No treatment centers found matching your criteria.</p>
+                  <button
+                    onClick={() => {
+                      setFilters(defaultFilters);
+                      fetchFacilities(defaultFilters);
+                    }}
+                    className="mt-4 text-blue-600 hover:text-blue-700 font-medium"
+                  >
+                    Clear Filters
+                  </button>
                 </div>
               ) : (
                 facilities.map((facility) => (

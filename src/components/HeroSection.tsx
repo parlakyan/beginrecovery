@@ -1,7 +1,29 @@
-import React from 'react';
+import React, { useState } from 'react';
 import { Search, Shield, MapPin, Clock } from 'lucide-react';
 
-export default function HeroSection() {
+interface HeroSectionProps {
+  onOpenFilters?: () => void;
+}
+
+export default function HeroSection({ onOpenFilters }: HeroSectionProps) {
+  const [searchQuery, setSearchQuery] = useState('');
+
+  const handleSearch = (e: React.FormEvent) => {
+    e.preventDefault();
+    if (onOpenFilters) {
+      onOpenFilters();
+    }
+  };
+
+  const handleKeyPress = (e: React.KeyboardEvent) => {
+    if (e.key === 'Enter') {
+      e.preventDefault();
+      if (onOpenFilters) {
+        onOpenFilters();
+      }
+    }
+  };
+
   return (
     <div className="relative min-h-[80vh] flex items-center">
       {/* Background with overlay */}
@@ -25,17 +47,23 @@ export default function HeroSection() {
             Find trusted rehabilitation centers that match your needs and accept your insurance
           </p>
 
-          <div className="relative max-w-2xl animate-fade-in-delay-2">
+          <form onSubmit={handleSearch} className="relative max-w-2xl animate-fade-in-delay-2">
             <Search className="absolute left-4 top-1/2 -translate-y-1/2 text-gray-400 w-5 h-5" />
             <input
               type="text"
+              value={searchQuery}
+              onChange={(e) => setSearchQuery(e.target.value)}
+              onKeyPress={handleKeyPress}
               placeholder="Search by location or treatment type..."
               className="w-full pl-12 pr-32 py-4 rounded-xl bg-white shadow-lg text-gray-800 placeholder-gray-400 focus:ring-2 focus:ring-blue-400 outline-none"
             />
-            <button className="absolute right-2 top-1/2 -translate-y-1/2 bg-blue-600 text-white px-6 py-2 rounded-lg hover:bg-blue-700 transition-all duration-200">
+            <button 
+              type="submit"
+              className="absolute right-2 top-1/2 -translate-y-1/2 bg-blue-600 text-white px-6 py-2 rounded-lg hover:bg-blue-700 transition-all duration-200"
+            >
               Search
             </button>
-          </div>
+          </form>
 
           <div className="flex flex-wrap gap-8 mt-12 animate-fade-in-delay-3">
             <div className="flex items-center gap-3">

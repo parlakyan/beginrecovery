@@ -24,7 +24,7 @@ const emailRegex = /^[A-Z0-9._%+-]+@[A-Z0-9.-]+\.[A-Z]{2,}$/i;
 const phoneRegex = /^(\+\d{1,2}\s?)?\(?\d{3}\)?[\s.-]?\d{3}[\s.-]?\d{4}$/;
 
 const EditListingModal = ({ facility, isOpen, onClose, onSave }: EditListingModalProps) => {
-  const { register, handleSubmit, formState: { errors }, setValue } = useForm<EditListingForm>();
+  const { register, handleSubmit, formState: { errors }, setValue, reset } = useForm<EditListingForm>();
   const [formData, setFormData] = useState<Partial<Facility>>({
     amenities: [],
     images: [],
@@ -34,20 +34,30 @@ const EditListingModal = ({ facility, isOpen, onClose, onSave }: EditListingModa
   const [newTag, setNewTag] = useState('');
   const [loading, setLoading] = useState(false);
 
+  // Reset form when modal opens or facility changes
   useEffect(() => {
-    if (facility) {
-      setValue('name', facility.name);
-      setValue('description', facility.description);
-      setValue('location', facility.location);
-      setValue('phone', facility.phone || '');
-      setValue('email', facility.email || '');
-      setFormData({
-        amenities: facility.amenities,
-        images: facility.images,
-        tags: facility.tags
+    if (isOpen && facility) {
+      // Reset form fields
+      reset({
+        name: facility.name,
+        description: facility.description,
+        location: facility.location,
+        phone: facility.phone || '',
+        email: facility.email || ''
       });
+
+      // Reset form data
+      setFormData({
+        amenities: facility.amenities || [],
+        images: facility.images || [],
+        tags: facility.tags || []
+      });
+
+      // Reset other state
+      setNewAmenity('');
+      setNewTag('');
     }
-  }, [facility, setValue]);
+  }, [facility, isOpen, reset]);
 
   const onSubmit = async (data: EditListingForm) => {
     try {
@@ -107,6 +117,17 @@ const EditListingModal = ({ facility, isOpen, onClose, onSave }: EditListingModa
     }));
   };
 
+  const handleClose = () => {
+    // Reset form state before closing
+    reset();
+    setFormData({
+      amenities: [],
+      images: [],
+      tags: []
+    });
+    onClose();
+  };
+
   if (!isOpen) return null;
 
   return (
@@ -116,7 +137,7 @@ const EditListingModal = ({ facility, isOpen, onClose, onSave }: EditListingModa
           <div className="flex justify-between items-center">
             <h2 className="text-2xl font-bold">Edit Facility</h2>
             <button
-              onClick={onClose}
+              onClick={handleClose}
               className="p-2 hover:bg-gray-100 rounded-lg transition-colors"
             >
               <X className="w-5 h-5" />
@@ -304,7 +325,7 @@ const EditListingModal = ({ facility, isOpen, onClose, onSave }: EditListingModa
           <div className="flex justify-end gap-4 pt-4 border-t">
             <button
               type="button"
-              onClick={onClose}
+              onClick={handleClose}
               className="px-4 py-2 text-gray-600 hover:text-gray-800"
             >
               Cancel
