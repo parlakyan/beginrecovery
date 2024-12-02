@@ -23,6 +23,9 @@ import EditListingModal from '../components/EditListingModal';
 /**
  * Account Page Component
  * Displays user profile and account management features
+ * My Listings grid layout:
+ * - Mobile (< 768px): 1 column
+ * - Desktop (≥ 768px): 2 columns
  */
 export default function AccountPage() {
   const navigate = useNavigate();
@@ -252,7 +255,7 @@ export default function AccountPage() {
                       </Link>
                     </div>
                   ) : (
-                    <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+                    <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
                       {userListings.map((facility) => (
                         <RehabCard 
                           key={facility.id} 

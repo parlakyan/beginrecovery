@@ -1,5 +1,5 @@
 import React from 'react';
-import { Star, MapPin, Phone, ArrowRight, ShieldCheck, ShieldAlert, Clock, CheckCircle, XCircle, AlertCircle, Edit, CreditCard } from 'lucide-react';
+import { Star, MapPin, Phone, ArrowRight, ShieldCheck, ShieldAlert, Clock, XCircle, AlertCircle, Edit, CreditCard } from 'lucide-react';
 import { useNavigate } from 'react-router-dom';
 import { useAuthStore } from '../store/authStore';
 import ImageCarousel from './ImageCarousel';
@@ -11,6 +11,14 @@ interface RehabCardProps {
   onEdit?: (facility: Facility) => void;
 }
 
+/**
+ * RehabCard component displays facility information in a card format
+ * Status badges are only shown for:
+ * - Pending (yellow)
+ * - Rejected (red)
+ * - Archived (gray)
+ * Owner actions (Edit/Upgrade) are stacked vertically when both present
+ */
 export default function RehabCard({ facility, onEdit }: RehabCardProps) {
   const navigate = useNavigate();
   const { user } = useAuthStore();
@@ -39,20 +47,15 @@ export default function RehabCard({ facility, onEdit }: RehabCardProps) {
     }
   };
 
-  // Moderation status badge - only visible to owners
+  // Moderation status badge - only visible to owners and only for pending/rejected/archived status
   const ModerationBadge = () => {
-    if (!isOwner) return null;
+    if (!isOwner || facility.moderationStatus === 'approved') return null;
 
     const badges = {
       pending: {
         icon: <Clock className="w-4 h-4 text-yellow-600" />,
         text: 'Pending Review',
         classes: 'bg-yellow-50 border-yellow-200 text-yellow-700'
-      },
-      approved: {
-        icon: <CheckCircle className="w-4 h-4 text-green-600" />,
-        text: 'Approved',
-        classes: 'bg-green-50 border-green-200 text-green-700'
       },
       rejected: {
         icon: <XCircle className="w-4 h-4 text-red-600" />,
@@ -67,6 +70,7 @@ export default function RehabCard({ facility, onEdit }: RehabCardProps) {
     };
 
     const badge = badges[facility.moderationStatus || 'pending'];
+    if (!badge) return null;
 
     return (
       <div className={`absolute top-16 left-4 backdrop-blur-sm px-3 py-1.5 rounded-full flex items-center gap-2 shadow-lg border z-20 ${badge.classes}`}>
@@ -155,12 +159,12 @@ export default function RehabCard({ facility, onEdit }: RehabCardProps) {
           )}
         </div>
 
-        {/* Owner Actions */}
+        {/* Owner Actions - Stacked vertically */}
         {isOwner && (
-          <div className="flex gap-2 mb-4">
+          <div className="flex flex-col gap-2 mb-4">
             <button 
               onClick={handleEdit}
-              className="flex-1 bg-gray-100 text-gray-700 py-2 rounded-lg hover:bg-gray-200 transition-all duration-200 flex items-center justify-center gap-2"
+              className="w-full bg-gray-100 text-gray-700 py-2 rounded-lg hover:bg-gray-200 transition-all duration-200 flex items-center justify-center gap-2"
             >
               <Edit className="w-4 h-4" />
               Edit Facility
@@ -168,7 +172,7 @@ export default function RehabCard({ facility, onEdit }: RehabCardProps) {
             {!facility.isVerified && (
               <button 
                 onClick={handleUpgrade}
-                className="flex-1 bg-blue-600 text-white py-2 rounded-lg hover:bg-blue-700 transition-all duration-200 flex items-center justify-center gap-2"
+                className="w-full bg-blue-600 text-white py-2 rounded-lg hover:bg-blue-700 transition-all duration-200 flex items-center justify-center gap-2"
               >
                 <CreditCard className="w-4 h-4" />
                 Upgrade to Verified

@@ -6,6 +6,12 @@ interface ContactBoxProps {
   facility: Facility;
 }
 
+/**
+ * ContactBox component displays facility contact information and actions
+ * Features vary based on verification status:
+ * - Verified facilities: Show logo, call button, message button, website button, and status
+ * - Unverified facilities: Show only website button
+ */
 export default function ContactBox({ facility }: ContactBoxProps) {
   return (
     <div className="bg-white rounded-lg shadow-lg overflow-hidden">
@@ -40,9 +46,9 @@ export default function ContactBox({ facility }: ContactBoxProps) {
           </p>
         </div>
 
-        {/* CTA Buttons */}
+        {/* CTA Buttons - Call and Message only shown for verified facilities */}
         <div className="space-y-3">
-          {facility.phone && (
+          {facility.isVerified && facility.phone && (
             <Button
               variant="primary"
               fullWidth
@@ -50,20 +56,23 @@ export default function ContactBox({ facility }: ContactBoxProps) {
               className="flex items-center justify-center gap-2"
             >
               <Phone className="w-5 h-5" />
-              <span>Call {facility.name}</span>
+              <span>Call</span>
             </Button>
           )}
 
-          <Button
-            variant="secondary"
-            fullWidth
-            onClick={() => {/* Add message handler */}}
-            className="flex items-center justify-center gap-2"
-          >
-            <MessageCircle className="w-5 h-5" />
-            <span>Message</span>
-          </Button>
+          {facility.isVerified && (
+            <Button
+              variant="secondary"
+              fullWidth
+              onClick={() => {/* Add message handler */}}
+              className="flex items-center justify-center gap-2"
+            >
+              <MessageCircle className="w-5 h-5" />
+              <span>Message</span>
+            </Button>
+          )}
 
+          {/* Website button shown for all facilities */}
           <Button
             variant="secondary"
             fullWidth
