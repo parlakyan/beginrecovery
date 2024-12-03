@@ -19,7 +19,14 @@ export interface Coordinates {
 /**
  * Collection Types
  */
-export type CollectionType = 'treatmentTypes' | 'amenities' | 'insurance';
+export type CollectionType = 
+  | 'highlights'
+  | 'treatmentTypes'
+  | 'substances'
+  | 'amenities'
+  | 'insurance'
+  | 'accreditation'
+  | 'languages';
 
 /**
  * Facility Interface
@@ -42,7 +49,11 @@ export interface Facility {
   phone?: string;
   email?: string;
   tags: string[];
+  highlights: string[];
+  substances: string[];
   insurance: string[];
+  accreditation: string[];
+  languages: string[];
   isVerified: boolean;
   isFeatured: boolean;
   moderationStatus: 'pending' | 'approved' | 'rejected' | 'archived';

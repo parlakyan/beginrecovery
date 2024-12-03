@@ -62,6 +62,37 @@ interface CreateUserInput {
 }
 
 /**
+ * Generates URL-friendly slug from facility name and location
+ */
+const generateSlug = (name: string, location: string): string => {
+  const cleanName = name
+    .toLowerCase()
+    .replace(/[^a-z0-9\s-]/g, '')
+    .replace(/\s+/g, '-');
+
+  if (!location) {
+    return cleanName;
+  }
+
+  const parts = location.split(',');
+  if (parts.length < 2) {
+    return `${cleanName}-${location.toLowerCase().replace(/[^a-z0-9\s-]/g, '').replace(/\s+/g, '-')}`;
+  }
+
+  const [city, stateWithSpaces] = parts.map(part => part.trim());
+  const state = stateWithSpaces
+    .toLowerCase()
+    .replace(/[^a-z0-9\s-]/g, '')
+    .replace(/\s+/g, '-');
+  const cleanCity = city
+    .toLowerCase()
+    .replace(/[^a-z0-9\s-]/g, '')
+    .replace(/\s+/g, '-');
+
+  return `${cleanName}-${cleanCity}-${state}`;
+};
+
+/**
  * Transforms Firestore document to Facility type
  */
 const transformFacilityData = (doc: QueryDocumentSnapshot<DocumentData>): Facility => {
@@ -96,43 +127,16 @@ const transformFacilityData = (doc: QueryDocumentSnapshot<DocumentData>): Facili
     phone: data.phone || '',
     email: data.email || '',
     tags: data.tags || [],
-    insurance: data.insurance || [], // Add default empty array for insurance
+    highlights: data.highlights || [],
+    substances: data.substances || [],
+    insurance: data.insurance || [],
+    accreditation: data.accreditation || [],
+    languages: data.languages || [],
     isVerified: Boolean(data.isVerified),
     isFeatured: Boolean(data.isFeatured),
     moderationStatus: data.moderationStatus || 'pending',
     slug: data.slug || generateSlug(name, location)
   };
-};
-
-/**
- * Generates URL-friendly slug from facility name and location
- */
-const generateSlug = (name: string, location: string): string => {
-  const cleanName = name
-    .toLowerCase()
-    .replace(/[^a-z0-9\s-]/g, '')
-    .replace(/\s+/g, '-');
-
-  if (!location) {
-    return cleanName;
-  }
-
-  const parts = location.split(',');
-  if (parts.length < 2) {
-    return `${cleanName}-${location.toLowerCase().replace(/[^a-z0-9\s-]/g, '').replace(/\s+/g, '-')}`;
-  }
-
-  const [city, stateWithSpaces] = parts.map(part => part.trim());
-  const state = stateWithSpaces
-    .toLowerCase()
-    .replace(/[^a-z0-9\s-]/g, '')
-    .replace(/\s+/g, '-');
-  const cleanCity = city
-    .toLowerCase()
-    .replace(/[^a-z0-9\s-]/g, '')
-    .replace(/\s+/g, '-');
-
-  return `${cleanName}-${cleanCity}-${state}`;
 };
 
 /**
@@ -211,36 +215,6 @@ export const usersService = {
  * Facilities management service
  */
 export const facilitiesService = {
-  async migrateExistingSlugs() {
-    try {
-      console.log('Starting facility slug migration');
-      const facilitiesRef = collection(db, FACILITIES_COLLECTION);
-      const snapshot = await getDocs(facilitiesRef);
-      const batch = writeBatch(db);
-      let updateCount = 0;
-
-      snapshot.docs.forEach((doc) => {
-        const data = doc.data();
-        const name = data.name || '';
-        const location = data.location || '';
-        const slug = generateSlug(name, location);
-        
-        batch.update(doc.ref, { slug });
-        updateCount++;
-      });
-
-      if (updateCount > 0) {
-        await batch.commit();
-        console.log(`Updated ${updateCount} facilities with slugs`);
-      } else {
-        console.log('No facilities needed slug updates');
-      }
-    } catch (error) {
-      console.error('Error migrating facility slugs:', error);
-      throw error;
-    }
-  },
-
   async createFacility(data: Partial<Facility>) {
     try {
       const facilitiesRef = collection(db, FACILITIES_COLLECTION);
@@ -253,7 +227,13 @@ export const facilitiesService = {
         moderationStatus: 'pending',
         isVerified: false,
         isFeatured: false,
-        insurance: data.insurance || [], // Add default empty array for insurance
+        highlights: data.highlights || [],
+        amenities: data.amenities || [],
+        tags: data.tags || [],
+        substances: data.substances || [],
+        insurance: data.insurance || [],
+        accreditation: data.accreditation || [],
+        languages: data.languages || [],
         createdAt: serverTimestamp(),
         updatedAt: serverTimestamp(),
         slug: generateSlug(data.name || '', data.location || '')
@@ -400,81 +380,6 @@ export const facilitiesService = {
     }
   },
 
-  async getUserListings(userId: string) {
-    try {
-      console.log('Fetching listings for user:', userId);
-      const facilitiesRef = collection(db, FACILITIES_COLLECTION);
-      
-      // Create index for compound query
-      const q = query(
-        facilitiesRef,
-        where('ownerId', '==', userId),
-        orderBy('createdAt', 'desc')
-      );
-      
-      console.log('Executing user listings query:', {
-        userId,
-        timestamp: new Date().toISOString()
-      });
-
-      const snapshot = await getDocs(q);
-      console.log('User listings found:', snapshot.size);
-      
-      const facilities = snapshot.docs.map(transformFacilityData);
-      console.log('Transformed user listings:', facilities.length);
-      
-      return facilities;
-    } catch (error) {
-      console.error('Error getting user listings:', error);
-      
-      // If compound query fails, try simple query
-      try {
-        console.log('Falling back to simple query for user listings');
-        const snapshot = await getDocs(collection(db, FACILITIES_COLLECTION));
-        
-        const facilities = snapshot.docs
-          .map(transformFacilityData)
-          .filter(f => f.ownerId === userId)
-          .sort((a, b) => new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime());
-        
-        console.log('Fallback query successful:', facilities.length);
-        return facilities;
-      } catch (fallbackError) {
-        console.error('Fallback query failed:', fallbackError);
-        return [];
-      }
-    }
-  },
-
-  async getAllListingsForAdmin() {
-    try {
-      console.log('Fetching all listings for admin');
-      const facilitiesRef = collection(db, FACILITIES_COLLECTION);
-      const snapshot = await getDocs(facilitiesRef);
-      return snapshot.docs.map(transformFacilityData);
-    } catch (error) {
-      console.error('Error getting all listings:', error);
-      return [];
-    }
-  },
-
-  async getArchivedListings() {
-    try {
-      console.log('Fetching archived listings');
-      const facilitiesRef = collection(db, FACILITIES_COLLECTION);
-      const q = query(
-        facilitiesRef,
-        where('moderationStatus', '==', 'archived')
-      );
-      
-      const snapshot = await getDocs(q);
-      return snapshot.docs.map(transformFacilityData);
-    } catch (error) {
-      console.error('Error getting archived listings:', error);
-      return [];
-    }
-  },
-
   async updateFacility(id: string, data: Partial<Facility>) {
     try {
       const facilityRef = doc(db, FACILITIES_COLLECTION, id);
@@ -495,34 +400,6 @@ export const facilitiesService = {
       return true;
     } catch (error) {
       console.error('Error updating facility:', error);
-      throw error;
-    }
-  },
-
-  async approveFacility(id: string) {
-    try {
-      const facilityRef = doc(db, FACILITIES_COLLECTION, id);
-      await updateDoc(facilityRef, {
-        moderationStatus: 'approved',
-        updatedAt: serverTimestamp()
-      });
-      return true;
-    } catch (error) {
-      console.error('Error approving facility:', error);
-      throw error;
-    }
-  },
-
-  async rejectFacility(id: string) {
-    try {
-      const facilityRef = doc(db, FACILITIES_COLLECTION, id);
-      await updateDoc(facilityRef, {
-        moderationStatus: 'rejected',
-        updatedAt: serverTimestamp()
-      });
-      return true;
-    } catch (error) {
-      console.error('Error rejecting facility:', error);
       throw error;
     }
   },
@@ -551,73 +428,6 @@ export const facilitiesService = {
       return true;
     } catch (error) {
       console.error('Error unverifying facility:', error);
-      throw error;
-    }
-  },
-
-  async featureFacility(id: string) {
-    try {
-      const facilityRef = doc(db, FACILITIES_COLLECTION, id);
-      await updateDoc(facilityRef, {
-        isFeatured: true,
-        updatedAt: serverTimestamp()
-      });
-      return true;
-    } catch (error) {
-      console.error('Error featuring facility:', error);
-      throw error;
-    }
-  },
-
-  async unfeatureFacility(id: string) {
-    try {
-      const facilityRef = doc(db, FACILITIES_COLLECTION, id);
-      await updateDoc(facilityRef, {
-        isFeatured: false,
-        updatedAt: serverTimestamp()
-      });
-      return true;
-    } catch (error) {
-      console.error('Error unfeaturing facility:', error);
-      throw error;
-    }
-  },
-
-  async archiveFacility(id: string) {
-    try {
-      const facilityRef = doc(db, FACILITIES_COLLECTION, id);
-      await updateDoc(facilityRef, {
-        moderationStatus: 'archived',
-        updatedAt: serverTimestamp()
-      });
-      return true;
-    } catch (error) {
-      console.error('Error archiving facility:', error);
-      throw error;
-    }
-  },
-
-  async restoreFacility(id: string) {
-    try {
-      const facilityRef = doc(db, FACILITIES_COLLECTION, id);
-      await updateDoc(facilityRef, {
-        moderationStatus: 'pending',
-        updatedAt: serverTimestamp()
-      });
-      return true;
-    } catch (error) {
-      console.error('Error restoring facility:', error);
-      throw error;
-    }
-  },
-
-  async deleteFacility(id: string) {
-    try {
-      const facilityRef = doc(db, FACILITIES_COLLECTION, id);
-      await deleteDoc(facilityRef);
-      return true;
-    } catch (error) {
-      console.error('Error deleting facility:', error);
       throw error;
     }
   }

@@ -23,9 +23,13 @@ interface EditListingForm {
   };
   phone: string;
   email: string;
+  highlights: string[];
   treatmentTypes: string[];
+  substances: string[];
   amenities: string[];
   insurance: string[];
+  accreditation: string[];
+  languages: string[];
 }
 
 const emailRegex = /^[A-Z0-9._%+-]+@[A-Z0-9.-]+\.[A-Z]{2,}$/i;
@@ -39,9 +43,13 @@ const EditListingModal = ({ facility, isOpen, onClose, onSave }: EditListingModa
   });
 
   // Watch form values for DropdownSelect components
+  const highlights = watch('highlights', []);
   const treatmentTypes = watch('treatmentTypes', []);
+  const substances = watch('substances', []);
   const amenities = watch('amenities', []);
   const insurance = watch('insurance', []);
+  const accreditation = watch('accreditation', []);
+  const languages = watch('languages', []);
 
   // Reset form when modal opens or facility changes
   useEffect(() => {
@@ -54,9 +62,13 @@ const EditListingModal = ({ facility, isOpen, onClose, onSave }: EditListingModa
         coordinates: facility.coordinates,
         phone: facility.phone || '',
         email: facility.email || '',
+        highlights: facility.highlights || [],
         treatmentTypes: facility.tags || [],
+        substances: facility.substances || [],
         amenities: facility.amenities || [],
-        insurance: facility.insurance || []
+        insurance: facility.insurance || [],
+        accreditation: facility.accreditation || [],
+        languages: facility.languages || []
       });
 
       // Reset form data
@@ -195,11 +207,27 @@ const EditListingModal = ({ facility, isOpen, onClose, onSave }: EditListingModa
           {/* Collection Inputs */}
           <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
             <DropdownSelect
+              label="Highlights"
+              type="highlights"
+              value={highlights}
+              onChange={(values) => setValue('highlights', values)}
+              error={errors.highlights?.message}
+            />
+
+            <DropdownSelect
               label="Treatment Types"
               type="treatmentTypes"
               value={treatmentTypes}
               onChange={(values) => setValue('treatmentTypes', values)}
               error={errors.treatmentTypes?.message}
+            />
+
+            <DropdownSelect
+              label="Substances We Treat"
+              type="substances"
+              value={substances}
+              onChange={(values) => setValue('substances', values)}
+              error={errors.substances?.message}
             />
 
             <DropdownSelect
@@ -216,6 +244,22 @@ const EditListingModal = ({ facility, isOpen, onClose, onSave }: EditListingModa
               value={insurance}
               onChange={(values) => setValue('insurance', values)}
               error={errors.insurance?.message}
+            />
+
+            <DropdownSelect
+              label="Accreditation"
+              type="accreditation"
+              value={accreditation}
+              onChange={(values) => setValue('accreditation', values)}
+              error={errors.accreditation?.message}
+            />
+
+            <DropdownSelect
+              label="Languages"
+              type="languages"
+              value={languages}
+              onChange={(values) => setValue('languages', values)}
+              error={errors.languages?.message}
             />
           </div>
 

@@ -4,9 +4,13 @@ import { CollectionType } from '../types';
 
 // Collection names mapping
 const COLLECTION_NAMES: Record<CollectionType, string> = {
+  highlights: 'highlightOptions',
   treatmentTypes: 'treatmentOptions',
+  substances: 'substanceOptions',
   amenities: 'amenityOptions',
-  insurance: 'insuranceOptions'
+  insurance: 'insuranceOptions',
+  accreditation: 'accreditationOptions',
+  languages: 'languageOptions'
 };
 
 /**

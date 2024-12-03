@@ -21,9 +21,13 @@ interface CreateListingForm {
   };
   phone: string;
   email: string;
+  highlights: string[];
   treatmentTypes: string[];
+  substances: string[];
   amenities: string[];
   insurance: string[];
+  accreditation: string[];
+  languages: string[];
 }
 
 const phoneRegex = /^(\+\d{1,2}\s?)?\(?\d{3}\)?[\s.-]?\d{3}[\s.-]?\d{4}$/;
@@ -32,9 +36,13 @@ const emailRegex = /^[A-Z0-9._%+-]+@[A-Z0-9.-]+\.[A-Z]{2,}$/i;
 export default function CreateListing() {
   const { register, handleSubmit, formState: { errors }, setValue, watch } = useForm<CreateListingForm>({
     defaultValues: {
+      highlights: [],
       treatmentTypes: [],
+      substances: [],
       amenities: [],
-      insurance: []
+      insurance: [],
+      accreditation: [],
+      languages: []
     }
   });
   const [loading, setLoading] = React.useState(false);
@@ -44,9 +52,13 @@ export default function CreateListing() {
   const navigate = useNavigate();
 
   // Watch form values for DropdownSelect components
+  const highlights = watch('highlights');
   const treatmentTypes = watch('treatmentTypes');
+  const substances = watch('substances');
   const amenities = watch('amenities');
   const insurance = watch('insurance');
+  const accreditation = watch('accreditation');
+  const languages = watch('languages');
 
   // Generate a temporary ID for photo uploads
   const tempId = React.useMemo(() => 'temp-' + Date.now(), []);
@@ -246,11 +258,27 @@ export default function CreateListing() {
               {/* Collection Inputs */}
               <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                 <DropdownSelect
+                  label="Highlights"
+                  type="highlights"
+                  value={highlights}
+                  onChange={(values) => setValue('highlights', values)}
+                  error={errors.highlights?.message}
+                />
+
+                <DropdownSelect
                   label="Treatment Types"
                   type="treatmentTypes"
                   value={treatmentTypes}
                   onChange={(values) => setValue('treatmentTypes', values)}
                   error={errors.treatmentTypes?.message}
+                />
+
+                <DropdownSelect
+                  label="Substances We Treat"
+                  type="substances"
+                  value={substances}
+                  onChange={(values) => setValue('substances', values)}
+                  error={errors.substances?.message}
                 />
 
                 <DropdownSelect
@@ -267,6 +295,22 @@ export default function CreateListing() {
                   value={insurance}
                   onChange={(values) => setValue('insurance', values)}
                   error={errors.insurance?.message}
+                />
+
+                <DropdownSelect
+                  label="Accreditation"
+                  type="accreditation"
+                  value={accreditation}
+                  onChange={(values) => setValue('accreditation', values)}
+                  error={errors.accreditation?.message}
+                />
+
+                <DropdownSelect
+                  label="Languages"
+                  type="languages"
+                  value={languages}
+                  onChange={(values) => setValue('languages', values)}
+                  error={errors.languages?.message}
                 />
               </div>
 
