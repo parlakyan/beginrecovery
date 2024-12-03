@@ -4,6 +4,7 @@ import { X, Plus } from 'lucide-react';
 import { Facility } from '../types';
 import { Tag } from './ui';
 import PhotoUpload from './PhotoUpload';
+import AddressAutocomplete from './AddressAutocomplete';
 
 interface EditListingModalProps {
   facility: Facility;
@@ -58,17 +59,6 @@ const EditListingModal = ({ facility, isOpen, onClose, onSave }: EditListingModa
       setNewTag('');
     }
   }, [facility, isOpen, reset]);
-
-  // Debug logging
-  useEffect(() => {
-    console.log('EditListingModal state:', {
-      facilityId: facility.id,
-      facilityEmail: facility.email,
-      formEmail: formData.email,
-      isOpen,
-      timestamp: new Date().toISOString()
-    });
-  }, [facility, formData, isOpen]);
 
   const onSubmit = async (data: EditListingForm) => {
     try {
@@ -186,19 +176,11 @@ const EditListingModal = ({ facility, isOpen, onClose, onSave }: EditListingModa
               )}
             </div>
 
-            <div>
-              <label className="block text-sm font-medium text-gray-700 mb-1">
-                Location
-              </label>
-              <input
-                {...register('location', { required: 'Location is required' })}
-                type="text"
-                className="w-full px-3 py-2 border rounded-lg focus:ring-2 focus:ring-blue-500 outline-none"
-              />
-              {errors.location && (
-                <p className="mt-1 text-sm text-red-600">{errors.location.message}</p>
-              )}
-            </div>
+            <AddressAutocomplete
+              register={register}
+              setValue={setValue}
+              error={errors.location?.message}
+            />
 
             <div>
               <label className="block text-sm font-medium text-gray-700 mb-1">
