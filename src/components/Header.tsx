@@ -74,21 +74,16 @@ export default function Header() {
             }`}
           >
             <div className="relative w-full">
-              <Search className="absolute left-4 top-1/2 transform -translate-y-1/2 text-gray-900 w-5 h-5" />
+              <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-900 w-5 h-5" />
               <input
                 ref={searchInputRef}
                 type="search"
                 placeholder="Search treatment centers..."
                 value={searchQuery}
                 onChange={(e) => setSearchQuery(e.target.value)}
-                className="w-full pl-12 pr-32 py-4 rounded-xl bg-white shadow-lg text-gray-800 placeholder-gray-400 focus:ring-2 focus:ring-blue-400 outline-none transition-shadow duration-200"
+                onKeyPress={(e) => e.key === 'Enter' && handleSearch(e)}
+                className="w-full pl-10 pr-4 py-2 rounded-lg border border-gray-200 text-gray-800 placeholder-gray-400 focus:ring-2 focus:ring-blue-400 focus:border-transparent outline-none"
               />
-              <button 
-                type="submit"
-                className="absolute right-2 top-1/2 -translate-y-1/2 bg-blue-600 text-white px-6 py-2 rounded-lg hover:bg-blue-700 transition-all duration-200"
-              >
-                Search
-              </button>
             </div>
           </form>
 
@@ -145,13 +140,13 @@ export default function Header() {
               <div className="p-4">
                 <form onSubmit={handleSearch}>
                   <div className="relative">
-                    <Search className="absolute left-4 top-1/2 transform -translate-y-1/2 text-gray-900 w-5 h-5" />
+                    <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-900 w-5 h-5" />
                     <input
                       type="search"
                       placeholder="Search treatment centers..."
                       value={searchQuery}
                       onChange={(e) => setSearchQuery(e.target.value)}
-                      className="w-full pl-12 pr-4 py-4 rounded-xl bg-white shadow-lg text-gray-800 placeholder-gray-400 focus:ring-2 focus:ring-blue-400 outline-none"
+                      className="w-full pl-10 pr-4 py-2 rounded-lg border border-gray-200 text-gray-800 placeholder-gray-400 focus:ring-2 focus:ring-blue-400 focus:border-transparent outline-none"
                     />
                   </div>
                 </form>

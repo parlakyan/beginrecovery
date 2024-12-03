@@ -1,6 +1,7 @@
 import { useState, useEffect } from 'react';
 import { useSearchParams } from 'react-router-dom';
 import { facilitiesService } from '../services/facilities';
+import { filterOptions, optionCounts } from '../data/filterOptions';
 import { Facility, SearchFiltersState } from '../types';
 import RehabCard from '../components/RehabCard';
 import Header from '../components/Header';
@@ -8,7 +9,7 @@ import Footer from '../components/Footer';
 import FilterBar from '../components/FilterBar';
 
 export default function SearchResults() {
-  const [searchParams, setSearchParams] = useSearchParams();
+  const [searchParams] = useSearchParams();
   const [facilities, setFacilities] = useState<Facility[]>([]);
   const [loading, setLoading] = useState(true);
   const [filters, setFilters] = useState<SearchFiltersState>({
@@ -19,27 +20,12 @@ export default function SearchResults() {
     priceRange: null
   });
 
-  // Get unique values for filter options from all facilities
-  const [filterOptions, setFilterOptions] = useState<{
-    locations: Set<string>;
-    treatmentTypes: Set<string>;
-    amenities: Set<string>;
-  }>({
-    locations: new Set<string>(),
-    treatmentTypes: new Set<string>(),
-    amenities: new Set<string>()
-  });
-
-  // Track counts for each option
-  const [optionCounts, setOptionCounts] = useState<{
-    locations: { [key: string]: number };
-    treatmentTypes: { [key: string]: number };
-    amenities: { [key: string]: number };
-  }>({
-    locations: {},
-    treatmentTypes: {},
-    amenities: {}
-  });
+  // Convert test data to Sets
+  const filterOptionsData = {
+    locations: new Set(filterOptions.locations),
+    treatmentTypes: new Set(filterOptions.treatmentTypes),
+    amenities: new Set(filterOptions.amenities)
+  };
 
   useEffect(() => {
     const fetchFacilities = async () => {
@@ -50,39 +36,7 @@ export default function SearchResults() {
           ...filters,
           query
         });
-        const data = result.facilities;
-        setFacilities(data);
-
-        // Extract unique filter options and count occurrences
-        const locations = new Set<string>();
-        const treatmentTypes = new Set<string>();
-        const amenities = new Set<string>();
-        const counts = {
-          locations: {} as { [key: string]: number },
-          treatmentTypes: {} as { [key: string]: number },
-          amenities: {} as { [key: string]: number }
-        };
-
-        data.forEach((facility: Facility) => {
-          // Location counts
-          locations.add(facility.location);
-          counts.locations[facility.location] = (counts.locations[facility.location] || 0) + 1;
-
-          // Treatment type counts
-          facility.tags.forEach(tag => {
-            treatmentTypes.add(tag);
-            counts.treatmentTypes[tag] = (counts.treatmentTypes[tag] || 0) + 1;
-          });
-
-          // Amenity counts
-          facility.amenities.forEach(amenity => {
-            amenities.add(amenity);
-            counts.amenities[amenity] = (counts.amenities[amenity] || 0) + 1;
-          });
-        });
-
-        setFilterOptions({ locations, treatmentTypes, amenities });
-        setOptionCounts(counts);
+        setFacilities(result.facilities);
       } catch (error) {
         console.error('Error fetching facilities:', error);
       } finally {
@@ -112,12 +66,12 @@ export default function SearchResults() {
       <Header />
       
       <main className="flex-grow">
-        <div className="sticky top-[80px] bg-white border-b z-40">
-          <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-4">
+        <div className="sticky top-[80px] bg-white border-b z-40 -mt-[1px]">
+          <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
             {/* Filter Bar */}
             <FilterBar
               filters={filters}
-              filterOptions={filterOptions}
+              filterOptions={filterOptionsData}
               optionCounts={optionCounts}
               onFilterChange={handleFilterChange}
             />
