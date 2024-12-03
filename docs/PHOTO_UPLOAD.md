@@ -3,14 +3,30 @@
 ## Overview
 The photo upload system uses Firebase Cloud Storage to handle facility images. It supports up to 12 photos per facility, with different display rules for verified and unverified listings.
 
+## Verification-Based Features
+
+### Verified (Paid) Listings
+- Show all uploaded photos (up to 12)
+- Full slideshow functionality
+- Navigation controls (arrows and dots)
+- Touch swipe support
+- Photo grid in edit modal
+- Multiple photo upload support
+
+### Unverified (Free) Listings
+- Show only the first photo
+- No slideshow functionality
+- Can still upload multiple photos (shown after upgrading)
+- Basic image display
+- Photos beyond the first are stored but not displayed
+
 ## Features
 - Maximum 12 photos per facility
-- Verified listings: Show all uploaded photos
-- Unverified listings: Show only the first photo
 - Drag and drop support
 - Progress tracking
 - File validation
 - Responsive image grid display
+- Automatic display mode based on verification status
 
 ## Storage Structure
 Images are stored in Firebase Cloud Storage with the following structure:
@@ -30,6 +46,33 @@ gs://beginrecovery-bb288.appspot.com/facilities/abc123/1684789123456-x7y9z2-phot
 - Maximum file size: 5MB
 - Allowed file types: JPEG, PNG, WebP
 - Maximum photos per facility: 12
+
+## Component Integration
+
+### PhotoUpload Component
+Located in `src/components/PhotoUpload.tsx`
+- Handles file uploads
+- Provides drag and drop interface
+- Shows upload progress
+- Displays image previews
+- Handles file validation
+- Adapts UI based on verification status
+
+### ImageCarousel Component
+Located in `src/components/ImageCarousel.tsx`
+- Handles different display modes based on verification:
+  - Verified: Full slideshow with navigation
+  - Unverified: Single image display
+- Provides touch swipe support
+- Shows navigation controls when appropriate
+- Handles image transitions
+
+### RehabCard Component
+Located in `src/components/RehabCard.tsx`
+- Integrates with ImageCarousel
+- Shows verification badge
+- Handles image display based on verification status
+- Manages user interactions
 
 ## Firebase Configuration
 
@@ -87,22 +130,13 @@ Located in `firebase.json`
 }
 ```
 
-## Components
-
-### PhotoUpload Component
-Located in `src/components/PhotoUpload.tsx`
-- Handles file uploads
-- Provides drag and drop interface
-- Shows upload progress
-- Displays image previews
-- Handles file validation
-
-### Storage Service
+## Storage Service
 Located in `src/services/storage.ts`
 - Manages file uploads to Firebase Storage
 - Handles file validation
 - Generates unique filenames
 - Tracks upload progress
+- Manages photo order
 
 ## Setup Process
 
@@ -129,7 +163,7 @@ firebase init
 firebase deploy --only storage
 ```
 
-## Usage in Components
+## Component Usage Examples
 
 ### Create Listing Form
 ```typescript
@@ -151,14 +185,16 @@ firebase deploy --only storage
 />
 ```
 
-## Image Display
-
-### ImageCarousel Component
-Located in `src/components/ImageCarousel.tsx`
-- Shows all photos for verified listings
-- Shows only the first photo for unverified listings
-- Provides navigation controls for multiple images
-- Supports touch swipe gestures
+### Facility Card Display
+```typescript
+<ImageCarousel 
+  images={facility.images} 
+  showNavigation={facility.images.length > 1}
+  onImageClick={handleNavigation}
+  paginationPosition="bottom"
+  isVerified={facility.isVerified}
+/>
+```
 
 ## Error Handling
 - File size validation
@@ -168,6 +204,7 @@ Located in `src/components/ImageCarousel.tsx`
 - Network error handling
 - Authentication checks
 - CORS error handling
+- Verification status checks
 
 ## Security
 - Public read access
@@ -176,6 +213,7 @@ Located in `src/components/ImageCarousel.tsx`
 - File type restrictions
 - Size limitations
 - CORS restrictions to allowed domains
+- Verification status enforcement
 
 ## Troubleshooting
 
@@ -198,6 +236,7 @@ If you encounter CORS errors:
 2. Check storage rules
 3. Confirm file exists in storage
 4. Check browser console for CORS errors
+5. Verify verification status is correct
 
 ## Best Practices
 1. Always validate files before upload
@@ -208,6 +247,8 @@ If you encounter CORS errors:
 6. Clean up unused images
 7. Optimize images for web display
 8. Maintain proper CORS configuration
+9. Check verification status before displaying multiple images
+10. Handle verification status changes properly
 
 ## Future Improvements
 1. Image compression
@@ -218,3 +259,5 @@ If you encounter CORS errors:
 6. Backup storage
 7. Enhanced error reporting
 8. Automated cleanup of unused images
+9. Better handling of verification status changes
+10. Improved image transition animations

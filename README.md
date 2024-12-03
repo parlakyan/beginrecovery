@@ -1,7 +1,49 @@
 # Recovery Directory Project
 
 ## Project Overview
-A comprehensive platform connecting individuals seeking rehabilitation services with treatment facilities.
+A comprehensive platform connecting individuals seeking rehabilitation services with treatment facilities. The platform offers both free (Unverified) and paid (Verified) listings, with different feature sets for each tier.
+
+## Listing Features
+
+### Verified (Paid) Listings
+- Full photo gallery with slideshow (up to 12 photos)
+- Green "Verified" badge
+- "Currently accepting patients" status indicator
+- Facility logo display
+- Homepage showcase based on location
+- Certifications section
+- Staff section
+- Call and Message buttons
+- Website link
+- Featured in search results
+
+### Unverified (Free) Listings
+- Single photo display
+- Basic facility information
+- Standard search listing
+- Basic contact information
+
+## User Roles & Permissions
+
+### Admin
+- Access to admin dashboard
+- Can edit any facility
+- Can approve/reject/archive listings
+- Can toggle verification status
+- Can feature/unfeature listings
+
+### Facility Owner
+- Can create and edit own listings
+- Can upgrade to verified status
+- Can view listing status (pending/approved/rejected)
+- Can manage facility photos
+- Access to owner dashboard
+
+### Regular User
+- Can browse facilities
+- Can view facility details
+- Can save favorite facilities
+- Can contact facilities
 
 ## Design System
 This project follows a strict design system defined in `docs/DESIGN_SYSTEM.md`. Please review the design system before contributing to ensure consistency in:
@@ -68,7 +110,7 @@ See `docs/PHOTO_UPLOAD.md` for detailed storage configuration.
 1. Create a Stripe account
 2. Set up a product and price for facility subscriptions
 3. Get your public and secret keys
-4. Configure webhook endpoints
+4. Configure webhook endpoints for subscription management
 
 ### 6. Development
 ```bash
@@ -83,6 +125,9 @@ npm run build
 ## Project Structure
 - `src/`: Frontend React application
   - `components/`: React components
+    - `ImageCarousel/`: Image slideshow component (verified listings)
+    - `RehabCard/`: Facility card component
+    - `EditListingModal/`: Facility editing modal
   - `pages/`: Page components
   - `services/`: Service modules (Firebase, Storage, etc.)
   - `types/`: TypeScript type definitions
@@ -95,16 +140,32 @@ npm run build
   - `PHOTO_UPLOAD.md`: Photo upload system documentation
 
 ## Key Features
-- Facility directory
-- User authentication
-- Subscription management
-- Search and filtering
-- Photo upload system
-  - Up to 12 photos per facility
-  - Different display rules for verified/unverified listings
-  - Drag and drop support
-  - Progress tracking
-  - See `docs/PHOTO_UPLOAD.md` for details
+
+### Facility Directory
+- Advanced search and filtering
+- Location-based results
+- Treatment type categorization
+- Amenity filtering
+
+### Listing Management
+- Different display rules for verified/unverified listings
+- Moderation system (pending/approved/rejected/archived)
+- Owner dashboard for listing management
+- Admin dashboard for content moderation
+
+### Photo System
+- Up to 12 photos per facility
+- Slideshow for verified listings
+- Single photo for unverified listings
+- Drag and drop support
+- Progress tracking
+- See `docs/PHOTO_UPLOAD.md` for details
+
+### Payment Integration
+- Stripe subscription management
+- Automatic verification status updates
+- Payment webhook handling
+- Subscription status tracking
 
 ## Design System Compliance
 All contributions MUST adhere to the design system guidelines in `docs/DESIGN_SYSTEM.md`. This includes:
