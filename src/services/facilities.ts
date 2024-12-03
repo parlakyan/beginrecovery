@@ -101,6 +101,40 @@ export const facilitiesService = {
   },
 
   /**
+   * Get all listings for admin (including pending and rejected)
+   */
+  async getAllListingsForAdmin() {
+    try {
+      const facilitiesRef = collection(db, 'facilities');
+      const q = query(facilitiesRef, orderBy('createdAt', 'desc'));
+      const snapshot = await getDocs(q);
+      return snapshot.docs.map(transformFacilityData);
+    } catch (error) {
+      console.error('Error getting all listings:', error);
+      return [];
+    }
+  },
+
+  /**
+   * Get archived listings
+   */
+  async getArchivedListings() {
+    try {
+      const facilitiesRef = collection(db, 'facilities');
+      const q = query(
+        facilitiesRef,
+        where('moderationStatus', '==', 'archived'),
+        orderBy('createdAt', 'desc')
+      );
+      const snapshot = await getDocs(q);
+      return snapshot.docs.map(transformFacilityData);
+    } catch (error) {
+      console.error('Error getting archived listings:', error);
+      return [];
+    }
+  },
+
+  /**
    * Get featured facilities
    */
   async getFeaturedFacilities() {
@@ -260,6 +294,74 @@ export const facilitiesService = {
       return true;
     } catch (error) {
       console.error('Error rejecting facility:', error);
+      throw error;
+    }
+  },
+
+  /**
+   * Archive facility
+   */
+  async archiveFacility(id: string) {
+    try {
+      const facilityRef = doc(db, 'facilities', id);
+      await updateDoc(facilityRef, {
+        moderationStatus: 'archived',
+        updatedAt: serverTimestamp()
+      });
+      return true;
+    } catch (error) {
+      console.error('Error archiving facility:', error);
+      throw error;
+    }
+  },
+
+  /**
+   * Restore facility from archive
+   */
+  async restoreFacility(id: string) {
+    try {
+      const facilityRef = doc(db, 'facilities', id);
+      await updateDoc(facilityRef, {
+        moderationStatus: 'pending',
+        updatedAt: serverTimestamp()
+      });
+      return true;
+    } catch (error) {
+      console.error('Error restoring facility:', error);
+      throw error;
+    }
+  },
+
+  /**
+   * Feature facility
+   */
+  async featureFacility(id: string) {
+    try {
+      const facilityRef = doc(db, 'facilities', id);
+      await updateDoc(facilityRef, {
+        isFeatured: true,
+        updatedAt: serverTimestamp()
+      });
+      return true;
+    } catch (error) {
+      console.error('Error featuring facility:', error);
+      throw error;
+    }
+  },
+
+  /**
+   * Unfeature facility
+   */
+  async unfeatureFacility(id: string) {
+    try {
+      const facilityRef = doc(db, 'facilities', id);
+      await updateDoc(facilityRef, {
+        isFeatured: false,
+        updatedAt: serverTimestamp()
+      });
+      return true;
+    } catch (error) {
+      console.error('Error unfeaturing facility:', error);
       throw error;
     }
   },

@@ -15,37 +15,17 @@ import {
   ShieldCheck,
   ShieldAlert,
   Star,
-  RotateCcw
+  RotateCcw,
+  ExternalLink
 } from 'lucide-react';
 import { useAuthStore } from '../store/authStore';
-import { facilitiesService } from '../services/firebase';
+import { facilitiesService } from '../services/facilities';
 import { Facility } from '../types';
 import Header from '../components/Header';
 import Footer from '../components/Footer';
 import EditListingModal from '../components/EditListingModal';
 import ConfirmationDialog from '../components/ConfirmationDialog';
 
-/**
- * Admin Dashboard Component
- * 
- * Features:
- * - Facility management
- * - Moderation controls (approve/reject)
- * - Verification management
- * - Archive/restore functionality
- * - Facility search and filtering
- * 
- * Access Control:
- * - Requires admin role
- * - Redirects to home if not admin
- * 
- * States:
- * - Active listings
- * - Archived listings
- * - Pending moderation
- * - Verification status
- * - Featured status
- */
 export default function AdminDashboard() {
   const navigate = useNavigate();
   const { user } = useAuthStore();
@@ -57,16 +37,6 @@ export default function AdminDashboard() {
   const [editingFacility, setEditingFacility] = useState<Facility | null>(null);
   const [isEditModalOpen, setIsEditModalOpen] = useState(false);
   const [showArchived, setShowArchived] = useState(false);
-
-  // Debug logging for admin access
-  useEffect(() => {
-    console.log('AdminDashboard - Access Check:', {
-      userEmail: user?.email,
-      userRole: user?.role,
-      isAdmin: user?.role === 'admin',
-      timestamp: new Date().toISOString()
-    });
-  }, [user]);
 
   // Confirmation dialogs
   const [archiveDialog, setArchiveDialog] = useState<{ isOpen: boolean; facilityId: string | null }>({
@@ -346,7 +316,18 @@ export default function AdminDashboard() {
                     {displayedFacilities.map((facility) => (
                       <tr key={facility.id} className="border-b hover:bg-gray-50">
                         <td className="py-4 px-4">
-                          <div className="font-medium">{facility.name}</div>
+                          <div className="font-medium flex items-center gap-2">
+                            {facility.name}
+                            <a 
+                              href={`/${facility.slug}`} 
+                              target="_blank" 
+                              rel="noopener noreferrer"
+                              className="text-blue-600 hover:text-blue-700"
+                              title="Open in new tab"
+                            >
+                              <ExternalLink className="w-4 h-4" />
+                            </a>
+                          </div>
                           <div className="text-sm text-gray-500">{facility.phone}</div>
                         </td>
                         <td className="py-4 px-4 text-gray-600">{facility.location}</td>
