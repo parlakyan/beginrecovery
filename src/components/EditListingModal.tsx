@@ -3,6 +3,7 @@ import { useForm } from 'react-hook-form';
 import { X } from 'lucide-react';
 import { Facility } from '../types';
 import PhotoUpload from './PhotoUpload';
+import LogoUpload from './LogoUpload';
 import AddressAutocomplete from './AddressAutocomplete';
 import DropdownSelect from './ui/DropdownSelect';
 
@@ -39,7 +40,8 @@ const EditListingModal = ({ facility, isOpen, onClose, onSave }: EditListingModa
   const { register, handleSubmit, formState: { errors }, setValue, watch, reset } = useForm<EditListingForm>();
   const [loading, setLoading] = useState(false);
   const [formData, setFormData] = useState<Partial<Facility>>({
-    images: []
+    images: [],
+    logo: undefined
   });
 
   // Watch form values for DropdownSelect components
@@ -73,7 +75,8 @@ const EditListingModal = ({ facility, isOpen, onClose, onSave }: EditListingModa
 
       // Reset form data
       setFormData({
-        images: facility.images || []
+        images: facility.images || [],
+        logo: facility.logo
       });
     }
   }, [facility, isOpen, reset]);
@@ -85,12 +88,20 @@ const EditListingModal = ({ facility, isOpen, onClose, onSave }: EditListingModa
     }));
   };
 
+  const handleLogoChange = (logo: string | undefined) => {
+    setFormData(prev => ({
+      ...prev,
+      logo
+    }));
+  };
+
   const onSubmit = async (data: EditListingForm) => {
     try {
       setLoading(true);
       await onSave({
         ...data,
-        images: formData.images
+        images: formData.images,
+        logo: formData.logo
       });
       onClose();
     } catch (error) {
@@ -190,6 +201,17 @@ const EditListingModal = ({ facility, isOpen, onClose, onSave }: EditListingModa
             {errors.email && (
               <p className="mt-1 text-sm text-red-600">{errors.email.message}</p>
             )}
+          </div>
+
+          <div>
+            <label className="block text-sm font-medium text-gray-700 mb-1">
+              Facility Logo
+            </label>
+            <LogoUpload
+              facilityId={facility.id}
+              existingLogo={formData.logo}
+              onLogoChange={handleLogoChange}
+            />
           </div>
 
           <div>

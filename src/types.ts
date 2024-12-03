@@ -39,6 +39,7 @@ export interface Facility {
   coordinates?: Coordinates;
   amenities: string[];
   images: string[];
+  logo?: string; // Facility logo URL
   status: 'pending' | 'active' | 'suspended';
   ownerId: string;
   rating: number;

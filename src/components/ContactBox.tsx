@@ -20,7 +20,15 @@ export default function ContactBox({ facility }: ContactBoxProps) {
         <div className="p-6 border-b border-gray-100">
           <div className="flex flex-col items-center">
             <div className="w-32 h-32 bg-gray-100 rounded-lg flex items-center justify-center mb-4">
-              <Building2 className="w-16 h-16 text-gray-400" />
+              {facility.logo ? (
+                <img 
+                  src={facility.logo} 
+                  alt={`${facility.name} logo`}
+                  className="w-full h-full object-cover rounded-lg"
+                />
+              ) : (
+                <Building2 className="w-16 h-16 text-gray-400" />
+              )}
             </div>
             <div className="flex items-center gap-2 text-green-600">
               <ShieldCheck className="w-5 h-5" />

@@ -75,7 +75,7 @@ export default function DropdownSelect({
       <button
         type="button"
         onClick={() => setIsOpen(!isOpen)}
-        className={`w-full px-4 py-2 rounded-full border flex items-center justify-between hover:bg-gray-50 ${
+        className={`inline-flex items-center gap-2 px-4 py-2 rounded-full border hover:bg-gray-50 ${
           error ? 'border-red-500' : 'border-gray-300'
         } ${isOpen ? 'border-blue-600' : ''} ${
           value.length > 0 ? 'bg-blue-50 border-blue-200' : 'bg-white'

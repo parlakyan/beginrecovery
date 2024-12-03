@@ -8,6 +8,7 @@ import { Facility } from '../types';
 import Header from '../components/Header';
 import Footer from '../components/Footer';
 import PhotoUpload from '../components/PhotoUpload';
+import LogoUpload from '../components/LogoUpload';
 import AddressAutocomplete from '../components/AddressAutocomplete';
 import DropdownSelect from '../components/ui/DropdownSelect';
 
@@ -48,6 +49,7 @@ export default function CreateListing() {
   const [loading, setLoading] = React.useState(false);
   const [error, setError] = React.useState<string | null>(null);
   const [photos, setPhotos] = React.useState<string[]>([]);
+  const [logo, setLogo] = React.useState<string | undefined>();
   const { user, refreshToken } = useAuthStore();
   const navigate = useNavigate();
 
@@ -91,6 +93,7 @@ export default function CreateListing() {
       const formattedData: Partial<Facility> = {
         ...data,
         images: photos,
+        logo,
         moderationStatus: 'pending' as const
       };
 
@@ -241,6 +244,17 @@ export default function CreateListing() {
                 {errors.email && (
                   <p className="mt-1 text-sm text-red-600">{errors.email.message}</p>
                 )}
+              </div>
+
+              <div>
+                <label className="block text-sm font-medium text-gray-700 mb-1">
+                  Facility Logo
+                </label>
+                <LogoUpload
+                  facilityId={tempId}
+                  existingLogo={logo}
+                  onLogoChange={setLogo}
+                />
               </div>
 
               <div>
