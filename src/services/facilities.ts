@@ -62,37 +62,6 @@ interface CreateUserInput {
 }
 
 /**
- * Generates URL-friendly slug from facility name and location
- */
-const generateSlug = (name: string, location: string): string => {
-  const cleanName = name
-    .toLowerCase()
-    .replace(/[^a-z0-9\s-]/g, '')
-    .replace(/\s+/g, '-');
-
-  if (!location) {
-    return cleanName;
-  }
-
-  const parts = location.split(',');
-  if (parts.length < 2) {
-    return `${cleanName}-${location.toLowerCase().replace(/[^a-z0-9\s-]/g, '').replace(/\s+/g, '-')}`;
-  }
-
-  const [city, stateWithSpaces] = parts.map(part => part.trim());
-  const state = stateWithSpaces
-    .toLowerCase()
-    .replace(/[^a-z0-9\s-]/g, '')
-    .replace(/\s+/g, '-');
-  const cleanCity = city
-    .toLowerCase()
-    .replace(/[^a-z0-9\s-]/g, '')
-    .replace(/\s+/g, '-');
-
-  return `${cleanName}-${cleanCity}-${state}`;
-};
-
-/**
  * Transforms Firestore document to Facility type
  */
 const transformFacilityData = (doc: QueryDocumentSnapshot<DocumentData>): Facility => {
@@ -137,6 +106,37 @@ const transformFacilityData = (doc: QueryDocumentSnapshot<DocumentData>): Facili
     moderationStatus: data.moderationStatus || 'pending',
     slug: data.slug || generateSlug(name, location)
   };
+};
+
+/**
+ * Generates URL-friendly slug from facility name and location
+ */
+const generateSlug = (name: string, location: string): string => {
+  const cleanName = name
+    .toLowerCase()
+    .replace(/[^a-z0-9\s-]/g, '')
+    .replace(/\s+/g, '-');
+
+  if (!location) {
+    return cleanName;
+  }
+
+  const parts = location.split(',');
+  if (parts.length < 2) {
+    return `${cleanName}-${location.toLowerCase().replace(/[^a-z0-9\s-]/g, '').replace(/\s+/g, '-')}`;
+  }
+
+  const [city, stateWithSpaces] = parts.map(part => part.trim());
+  const state = stateWithSpaces
+    .toLowerCase()
+    .replace(/[^a-z0-9\s-]/g, '')
+    .replace(/\s+/g, '-');
+  const cleanCity = city
+    .toLowerCase()
+    .replace(/[^a-z0-9\s-]/g, '')
+    .replace(/\s+/g, '-');
+
+  return `${cleanName}-${cleanCity}-${state}`;
 };
 
 /**
@@ -215,6 +215,36 @@ export const usersService = {
  * Facilities management service
  */
 export const facilitiesService = {
+  async migrateExistingSlugs() {
+    try {
+      console.log('Starting facility slug migration');
+      const facilitiesRef = collection(db, FACILITIES_COLLECTION);
+      const snapshot = await getDocs(facilitiesRef);
+      const batch = writeBatch(db);
+      let updateCount = 0;
+
+      snapshot.docs.forEach((doc) => {
+        const data = doc.data();
+        const name = data.name || '';
+        const location = data.location || '';
+        const slug = generateSlug(name, location);
+        
+        batch.update(doc.ref, { slug });
+        updateCount++;
+      });
+
+      if (updateCount > 0) {
+        await batch.commit();
+        console.log(`Updated ${updateCount} facilities with slugs`);
+      } else {
+        console.log('No facilities needed slug updates');
+      }
+    } catch (error) {
+      console.error('Error migrating facility slugs:', error);
+      throw error;
+    }
+  },
+
   async createFacility(data: Partial<Facility>) {
     try {
       const facilitiesRef = collection(db, FACILITIES_COLLECTION);
@@ -227,13 +257,6 @@ export const facilitiesService = {
         moderationStatus: 'pending',
         isVerified: false,
         isFeatured: false,
-        highlights: data.highlights || [],
-        amenities: data.amenities || [],
-        tags: data.tags || [],
-        substances: data.substances || [],
-        insurance: data.insurance || [],
-        accreditation: data.accreditation || [],
-        languages: data.languages || [],
         createdAt: serverTimestamp(),
         updatedAt: serverTimestamp(),
         slug: generateSlug(data.name || '', data.location || '')
@@ -294,6 +317,52 @@ export const facilitiesService = {
       } catch (fallbackError) {
         console.error('Fallback query failed:', fallbackError);
         return { facilities: [], lastVisible: null, hasMore: false };
+      }
+    }
+  },
+
+  async getUserListings(userId: string) {
+    try {
+      console.log('Fetching listings for user:', userId);
+      const facilitiesRef = collection(db, FACILITIES_COLLECTION);
+      
+      // Create index for compound query
+      const q = query(
+        facilitiesRef,
+        where('ownerId', '==', userId),
+        orderBy('createdAt', 'desc')
+      );
+      
+      console.log('Executing user listings query:', {
+        userId,
+        timestamp: new Date().toISOString()
+      });
+
+      const snapshot = await getDocs(q);
+      console.log('User listings found:', snapshot.size);
+      
+      const facilities = snapshot.docs.map(transformFacilityData);
+      console.log('Transformed user listings:', facilities.length);
+      
+      return facilities;
+    } catch (error) {
+      console.error('Error getting user listings:', error);
+      
+      // If compound query fails, try simple query
+      try {
+        console.log('Falling back to simple query for user listings');
+        const snapshot = await getDocs(collection(db, FACILITIES_COLLECTION));
+        
+        const facilities = snapshot.docs
+          .map(transformFacilityData)
+          .filter(f => f.ownerId === userId)
+          .sort((a, b) => new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime());
+        
+        console.log('Fallback query successful:', facilities.length);
+        return facilities;
+      } catch (fallbackError) {
+        console.error('Fallback query failed:', fallbackError);
+        return [];
       }
     }
   },

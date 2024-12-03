@@ -3,7 +3,7 @@ import { useForm } from 'react-hook-form';
 import { useNavigate } from 'react-router-dom';
 import { Building2, Loader2 } from 'lucide-react';
 import { useAuthStore } from '../store/authStore';
-import { facilitiesService, usersService } from '../services/firebase';
+import { facilitiesService, usersService } from '../services/facilities';
 import { Facility } from '../types';
 import Header from '../components/Header';
 import Footer from '../components/Footer';

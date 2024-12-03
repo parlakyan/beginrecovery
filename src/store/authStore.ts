@@ -6,7 +6,7 @@ import {
   createUserWithEmailAndPassword,
   User as FirebaseUser 
 } from 'firebase/auth';
-import { usersService } from '../services/firebase';
+import { usersService } from '../services/facilities';
 
 /**
  * Custom User interface extending Firebase User
