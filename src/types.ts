@@ -16,6 +16,19 @@ export interface User {
 }
 
 /**
+ * Coordinates Interface
+ * Represents geographical coordinates
+ * Used for mapping and location-based features
+ * 
+ * @property lat - Latitude
+ * @property lng - Longitude
+ */
+export interface Coordinates {
+  lat: number;
+  lng: number;
+}
+
+/**
  * Facility Interface
  * Represents a rehabilitation facility listing
  * Core data structure for facility management
@@ -24,6 +37,7 @@ export interface User {
  * @property name - Facility name
  * @property description - Detailed description
  * @property location - Physical location (City, State)
+ * @property coordinates - Geographical coordinates for mapping
  * @property amenities - List of available amenities
  * @property images - List of image URLs
  * @property status - Subscription/payment status
@@ -46,6 +60,7 @@ export interface Facility {
   name: string;
   description: string;
   location: string;
+  coordinates?: Coordinates;
   amenities: string[];
   images: string[];
   status: 'pending' | 'active' | 'suspended';

@@ -22,7 +22,6 @@ export default function ListingDetail() {
   const [facility, setFacility] = useState<Facility | null>(null);
   const [loading, setLoading] = useState(true);
   const [isEditModalOpen, setIsEditModalOpen] = useState(false);
-  const coordinates = { lat: 34.0522, lng: -118.2437 };
 
   // Check if current user is owner or admin
   const canEdit = user && (user.role === 'admin' || (facility && user.id === facility.ownerId));
@@ -247,7 +246,10 @@ export default function ListingDetail() {
               {facility.isVerified && <StaffSection />}
 
               {/* Map Section */}
-              <MapSection coordinates={coordinates} />
+              <MapSection 
+                coordinates={facility.coordinates} 
+                address={facility.location}
+              />
             </div>
 
             {/* Contact Box - Sticky */}

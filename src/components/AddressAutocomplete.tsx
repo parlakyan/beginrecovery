@@ -51,7 +51,7 @@ export default function AddressAutocomplete({ register, setValue, error }: Addre
           if (place.formatted_address) {
             setValue('location', place.formatted_address);
             
-            // Set coordinates if available
+            // Set coordinates
             if (place.geometry?.location) {
               setValue('coordinates', {
                 lat: place.geometry.location.lat(),

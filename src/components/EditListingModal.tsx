@@ -1,7 +1,7 @@
 import { useState, useEffect } from 'react';
 import { useForm } from 'react-hook-form';
 import { X, Plus } from 'lucide-react';
-import { Facility } from '../types';
+import { Facility, Coordinates } from '../types';
 import { Tag } from './ui';
 import PhotoUpload from './PhotoUpload';
 import AddressAutocomplete from './AddressAutocomplete';
@@ -17,6 +17,7 @@ interface EditListingForm {
   name: string;
   description: string;
   location: string;
+  coordinates?: Coordinates;
   phone: string;
   email: string;
 }
@@ -29,7 +30,8 @@ const EditListingModal = ({ facility, isOpen, onClose, onSave }: EditListingModa
   const [formData, setFormData] = useState<Partial<Facility>>({
     amenities: [],
     images: [],
-    tags: []
+    tags: [],
+    coordinates: facility.coordinates
   });
   const [newAmenity, setNewAmenity] = useState('');
   const [newTag, setNewTag] = useState('');
@@ -43,6 +45,7 @@ const EditListingModal = ({ facility, isOpen, onClose, onSave }: EditListingModa
         name: facility.name || '',
         description: facility.description || '',
         location: facility.location || '',
+        coordinates: facility.coordinates,
         phone: facility.phone || '',
         email: facility.email || ''
       });
@@ -51,7 +54,8 @@ const EditListingModal = ({ facility, isOpen, onClose, onSave }: EditListingModa
       setFormData({
         amenities: facility.amenities || [],
         images: facility.images || [],
-        tags: facility.tags || []
+        tags: facility.tags || [],
+        coordinates: facility.coordinates
       });
 
       // Reset other state
@@ -67,7 +71,8 @@ const EditListingModal = ({ facility, isOpen, onClose, onSave }: EditListingModa
         ...data,
         amenities: formData.amenities,
         images: formData.images,
-        tags: formData.tags
+        tags: formData.tags,
+        coordinates: data.coordinates || formData.coordinates // Include coordinates in save data
       });
       onClose();
     } catch (error) {
@@ -123,7 +128,8 @@ const EditListingModal = ({ facility, isOpen, onClose, onSave }: EditListingModa
     setFormData({
       amenities: [],
       images: [],
-      tags: []
+      tags: [],
+      coordinates: undefined
     });
     onClose();
   };

@@ -4,7 +4,7 @@ import { useNavigate } from 'react-router-dom';
 import { Building2, Loader2 } from 'lucide-react';
 import { useAuthStore } from '../store/authStore';
 import { facilitiesService, usersService } from '../services/firebase';
-import { Facility } from '../types';
+import { Facility, Coordinates } from '../types';
 import Header from '../components/Header';
 import Footer from '../components/Footer';
 import PhotoUpload from '../components/PhotoUpload';
@@ -14,6 +14,7 @@ interface CreateListingForm {
   name: string;
   description: string;
   location: string;
+  coordinates?: Coordinates;
   phone: string;
   email: string;
   amenities: string;
@@ -64,7 +65,8 @@ export default function CreateListing() {
         images: photos,
         amenities: data.amenities.split(',').map(a => a.trim()).filter(Boolean),
         tags: data.tags.split(',').map(t => t.trim()).filter(Boolean),
-        moderationStatus: 'pending' as const
+        moderationStatus: 'pending' as const,
+        coordinates: data.coordinates // Include coordinates in facility data
       };
 
       // Create facility
