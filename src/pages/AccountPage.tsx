@@ -13,20 +13,13 @@ import {
   Plus
 } from 'lucide-react';
 import { useAuthStore } from '../store/authStore';
-import { facilitiesService } from '../services/firebase';
+import { facilitiesService } from '../services/facilities';
 import { Facility } from '../types';
 import Header from '../components/Header';
 import Footer from '../components/Footer';
 import RehabCard from '../components/RehabCard';
 import EditListingModal from '../components/EditListingModal';
 
-/**
- * Account Page Component
- * Displays user profile and account management features
- * My Listings grid layout:
- * - Mobile (< 768px): 1 column
- * - Desktop (≥ 768px): 2 columns
- */
 export default function AccountPage() {
   const navigate = useNavigate();
   const location = useLocation();
@@ -61,7 +54,8 @@ export default function AccountPage() {
     if (!editingFacility) return;
     try {
       await facilitiesService.updateFacility(editingFacility.id, data);
-      await loadUserListings();
+      await loadUserListings(); // Refresh listings after update
+      setEditingFacility(null); // Close modal
     } catch (error) {
       console.error('Error updating facility:', error);
       throw error;

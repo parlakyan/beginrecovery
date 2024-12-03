@@ -39,9 +39,9 @@ const EditListingModal = ({ facility, isOpen, onClose, onSave }: EditListingModa
     if (isOpen && facility) {
       // Reset form fields
       reset({
-        name: facility.name,
-        description: facility.description,
-        location: facility.location,
+        name: facility.name || '',
+        description: facility.description || '',
+        location: facility.location || '',
         phone: facility.phone || '',
         email: facility.email || ''
       });
@@ -58,6 +58,17 @@ const EditListingModal = ({ facility, isOpen, onClose, onSave }: EditListingModa
       setNewTag('');
     }
   }, [facility, isOpen, reset]);
+
+  // Debug logging
+  useEffect(() => {
+    console.log('EditListingModal state:', {
+      facilityId: facility.id,
+      facilityEmail: facility.email,
+      formEmail: formData.email,
+      isOpen,
+      timestamp: new Date().toISOString()
+    });
+  }, [facility, formData, isOpen]);
 
   const onSubmit = async (data: EditListingForm) => {
     try {
@@ -118,7 +129,6 @@ const EditListingModal = ({ facility, isOpen, onClose, onSave }: EditListingModa
   };
 
   const handleClose = () => {
-    // Reset form state before closing
     reset();
     setFormData({
       amenities: [],
