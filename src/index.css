@@ -2,48 +2,34 @@
 @tailwind components;
 @tailwind utilities;
 
-@layer base {
-  body {
-    @apply antialiased text-gray-800;
-  }
-}
-
 @layer utilities {
-  .animate-fade-in {
-    animation: fadeIn 0.8s ease-out;
+  .hide-scrollbar {
+    -ms-overflow-style: none;  /* IE and Edge */
+    scrollbar-width: none;  /* Firefox */
   }
   
-  .animate-fade-in-delay {
-    animation: fadeIn 0.8s ease-out 0.2s both;
-  }
-  
-  .animate-fade-in-delay-2 {
-    animation: fadeIn 0.8s ease-out 0.4s both;
-  }
-  
-  .animate-fade-in-delay-3 {
-    animation: fadeIn 0.8s ease-out 0.6s both;
+  .hide-scrollbar::-webkit-scrollbar {
+    display: none;  /* Chrome, Safari and Opera */
   }
 }
 
-@keyframes fadeIn {
-  from {
-    opacity: 0;
-    transform: translateY(20px);
-  }
-  to {
-    opacity: 1;
-    transform: translateY(0);
-  }
+/* Add smooth scrolling to the whole page */
+html {
+  scroll-behavior: smooth;
 }
 
-.embla {
-  overflow: hidden;
+/* Ensure proper z-index stacking */
+#hero-section {
+  position: relative;
+  z-index: 1;
 }
-.embla__container {
-  display: flex;
+
+.sticky {
+  position: sticky;
+  z-index: 40;
 }
-.embla__slide {
-  flex: 0 0 100%;
-  min-width: 0;
+
+/* Ensure proper spacing for scroll targets */
+[id] {
+  scroll-margin-top: 160px; /* Account for header + anchor nav height */
 }

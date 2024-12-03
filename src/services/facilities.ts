@@ -8,6 +8,7 @@ interface SearchFilters {
   insurance: string[];
   rating: number | null;
   priceRange: [number, number] | null;
+  query?: string;
 }
 
 interface PaginationParams {
@@ -101,6 +102,22 @@ const buildFilteredQuery = (facilitiesRef: any, filters?: SearchFilters, paginat
  */
 const applyClientFilters = (facilities: Facility[], filters: SearchFilters): Facility[] => {
   return facilities.filter(facility => {
+    // Text search
+    if (filters.query) {
+      const searchTerms = filters.query.toLowerCase().split(' ');
+      const searchableText = [
+        facility.name,
+        facility.description,
+        facility.location,
+        ...facility.tags,
+        ...facility.amenities
+      ].join(' ').toLowerCase();
+
+      if (!searchTerms.every(term => searchableText.includes(term))) {
+        return false;
+      }
+    }
+
     // Treatment Types filter
     if (filters.treatmentTypes.length > 0 && 
         !filters.treatmentTypes.some(type => facility.tags.includes(type))) {

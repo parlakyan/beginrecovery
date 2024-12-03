@@ -1,16 +1,43 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { Link, useNavigate, useLocation } from 'react-router-dom';
 import { Menu, X, User, Loader2, LayoutGrid, Search } from 'lucide-react';
 import { useAuthStore } from '../store/authStore';
 import Logo from './Logo';
 
 export default function Header() {
-  const { user, loading, signOut } = useAuthStore();
+  const { user, loading } = useAuthStore();
   const navigate = useNavigate();
   const location = useLocation();
   const [isMobileMenuOpen, setIsMobileMenuOpen] = useState(false);
   const [searchQuery, setSearchQuery] = useState('');
+  const [showSearch, setShowSearch] = useState(false);
   const isHomePage = location.pathname === '/';
+
+  useEffect(() => {
+    // Get search query from URL if present
+    const params = new URLSearchParams(location.search);
+    const q = params.get('q');
+    if (q) {
+      setSearchQuery(q);
+    }
+  }, [location.search]);
+
+  useEffect(() => {
+    if (isHomePage) {
+      const handleScroll = () => {
+        const heroSection = document.getElementById('hero-section');
+        if (heroSection) {
+          const heroBottom = heroSection.offsetTop + heroSection.offsetHeight;
+          setShowSearch(window.scrollY > heroBottom);
+        }
+      };
+
+      window.addEventListener('scroll', handleScroll);
+      return () => window.removeEventListener('scroll', handleScroll);
+    } else {
+      setShowSearch(true);
+    }
+  }, [isHomePage]);
 
   const handleAuthAction = () => {
     setIsMobileMenuOpen(false);
@@ -37,8 +64,8 @@ export default function Header() {
             <Logo />
           </Link>
 
-          {/* Search Bar - Hidden on homepage */}
-          {!isHomePage && (
+          {/* Search Bar */}
+          {(showSearch || !isHomePage) && (
             <form 
               onSubmit={handleSearch}
               className="hidden md:flex flex-1 max-w-xl mx-8"
@@ -105,7 +132,7 @@ export default function Header() {
         {isMobileMenuOpen && (
           <div className="md:hidden border-t">
             {/* Search Bar - Mobile */}
-            {!isHomePage && (
+            {(showSearch || !isHomePage) && (
               <div className="p-4">
                 <form onSubmit={handleSearch}>
                   <div className="relative">
