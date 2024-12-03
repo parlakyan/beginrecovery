@@ -49,7 +49,7 @@ export default function CreateListing() {
   const [loading, setLoading] = React.useState(false);
   const [error, setError] = React.useState<string | null>(null);
   const [photos, setPhotos] = React.useState<string[]>([]);
-  const [logo, setLogo] = React.useState<string | undefined>();
+  const [logo, setLogo] = React.useState<string | undefined>(undefined);
   const { user, refreshToken } = useAuthStore();
   const navigate = useNavigate();
 
@@ -91,7 +91,19 @@ export default function CreateListing() {
 
       // Process form data
       const formattedData: Partial<Facility> = {
-        ...data,
+        name: data.name,
+        description: data.description,
+        location: data.location,
+        coordinates: data.coordinates,
+        phone: data.phone,
+        email: data.email,
+        highlights: data.highlights,
+        tags: data.treatmentTypes,
+        substances: data.substances,
+        amenities: data.amenities,
+        insurance: data.insurance,
+        accreditation: data.accreditation,
+        languages: data.languages,
         images: photos,
         logo,
         moderationStatus: 'pending' as const
