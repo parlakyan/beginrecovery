@@ -62,49 +62,6 @@ interface CreateUserInput {
 }
 
 /**
- * Transforms Firestore document to Facility type
- */
-const transformFacilityData = (doc: QueryDocumentSnapshot<DocumentData>): Facility => {
-  const data = doc.data();
-  
-  const name = data.name || '';
-  const location = data.location || '';
-  
-  const createdAt = data.createdAt instanceof Timestamp 
-    ? data.createdAt.toDate().toISOString()
-    : new Date().toISOString();
-    
-  const updatedAt = data.updatedAt instanceof Timestamp
-    ? data.updatedAt.toDate().toISOString()
-    : new Date().toISOString();
-
-  return {
-    id: doc.id,
-    name,
-    description: data.description || '',
-    location,
-    coordinates: data.coordinates,
-    amenities: data.amenities || [],
-    images: data.images || [],
-    status: data.status || 'pending',
-    ownerId: data.ownerId || '',
-    rating: data.rating || 0,
-    reviewCount: data.reviewCount || 0,
-    createdAt,
-    updatedAt,
-    subscriptionId: data.subscriptionId,
-    phone: data.phone || '',
-    email: data.email || '',
-    tags: data.tags || [],
-    insurance: data.insurance || [], // Add default empty array for insurance
-    isVerified: Boolean(data.isVerified),
-    isFeatured: Boolean(data.isFeatured),
-    moderationStatus: data.moderationStatus || 'pending',
-    slug: data.slug || generateSlug(name, location)
-  };
-};
-
-/**
  * Generates URL-friendly slug from facility name and location
  */
 const generateSlug = (name: string, location: string): string => {
@@ -133,6 +90,54 @@ const generateSlug = (name: string, location: string): string => {
     .replace(/\s+/g, '-');
 
   return `${cleanName}-${cleanCity}-${state}`;
+};
+
+/**
+ * Transforms Firestore document to Facility type
+ */
+const transformFacilityData = (doc: QueryDocumentSnapshot<DocumentData>): Facility => {
+  const data = doc.data();
+  
+  const name = data.name || '';
+  const location = data.location || '';
+  
+  const createdAt = data.createdAt instanceof Timestamp 
+    ? data.createdAt.toDate().toISOString()
+    : new Date().toISOString();
+    
+  const updatedAt = data.updatedAt instanceof Timestamp
+    ? data.updatedAt.toDate().toISOString()
+    : new Date().toISOString();
+
+  return {
+    id: doc.id,
+    name,
+    description: data.description || '',
+    location,
+    coordinates: data.coordinates,
+    logo: data.logo,
+    highlights: data.highlights || [],
+    amenities: data.amenities || [],
+    treatmentTypes: data.treatmentTypes || data.tags || [], // Support legacy tags field
+    substances: data.substances || [],
+    insurance: data.insurance || [],
+    accreditation: data.accreditation || [],
+    languages: data.languages || [],
+    images: data.images || [],
+    status: data.status || 'pending',
+    ownerId: data.ownerId || '',
+    rating: data.rating || 0,
+    reviewCount: data.reviewCount || 0,
+    createdAt,
+    updatedAt,
+    subscriptionId: data.subscriptionId,
+    phone: data.phone || '',
+    email: data.email || '',
+    isVerified: Boolean(data.isVerified),
+    isFeatured: Boolean(data.isFeatured),
+    moderationStatus: data.moderationStatus || 'pending',
+    slug: data.slug || generateSlug(name, location)
+  };
 };
 
 /**
@@ -253,7 +258,13 @@ export const facilitiesService = {
         moderationStatus: 'pending',
         isVerified: false,
         isFeatured: false,
-        insurance: data.insurance || [], // Add default empty array for insurance
+        highlights: data.highlights || [],
+        amenities: data.amenities || [],
+        treatmentTypes: data.treatmentTypes || [],
+        substances: data.substances || [],
+        insurance: data.insurance || [],
+        accreditation: data.accreditation || [],
+        languages: data.languages || [],
         createdAt: serverTimestamp(),
         updatedAt: serverTimestamp(),
         slug: generateSlug(data.name || '', data.location || '')

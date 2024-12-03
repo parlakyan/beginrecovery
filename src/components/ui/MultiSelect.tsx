@@ -1,10 +1,11 @@
-import React, { useState, useEffect, useRef } from 'react';
-import { Search, X } from 'lucide-react';
+import React, { useState, useRef, useEffect } from 'react';
+import { X } from 'lucide-react';
+import { CollectionType } from '../../types';
 import { optionsService } from '../../services/options';
 
 interface MultiSelectProps {
   label: string;
-  type: 'treatment' | 'amenity' | 'insurance';
+  type: CollectionType;
   value: string[];
   onChange: (values: string[]) => void;
   error?: string;
@@ -17,28 +18,19 @@ export default function MultiSelect({
   onChange,
   error
 }: MultiSelectProps) {
-  const [isOpen, setIsOpen] = useState(false);
+  const [input, setInput] = useState('');
+  const [showSuggestions, setShowSuggestions] = useState(false);
   const [options, setOptions] = useState<string[]>([]);
+  const [filteredOptions, setFilteredOptions] = useState<string[]>([]);
   const [loading, setLoading] = useState(true);
-  const [searchTerm, setSearchTerm] = useState('');
-  const dropdownRef = useRef<HTMLDivElement>(null);
+  const inputRef = useRef<HTMLInputElement>(null);
+  const suggestionsRef = useRef<HTMLDivElement>(null);
 
   // Fetch options from database
   useEffect(() => {
     const fetchOptions = async () => {
       try {
-        let fetchedOptions: string[] = [];
-        switch (type) {
-          case 'treatment':
-            fetchedOptions = await optionsService.getTreatmentOptions();
-            break;
-          case 'amenity':
-            fetchedOptions = await optionsService.getAmenityOptions();
-            break;
-          case 'insurance':
-            fetchedOptions = await optionsService.getInsuranceOptions();
-            break;
-        }
+        const fetchedOptions = await optionsService.getOptions(type);
         setOptions(fetchedOptions);
       } catch (error) {
         console.error('Error fetching options:', error);
@@ -50,11 +42,25 @@ export default function MultiSelect({
     fetchOptions();
   }, [type]);
 
-  // Handle click outside to close dropdown
+  // Filter options when input changes
+  useEffect(() => {
+    setFilteredOptions(
+      optionsService.filterOptions(
+        options.filter(option => !value.includes(option)),
+        input
+      )
+    );
+  }, [input, options, value]);
+
+  // Handle click outside to close suggestions
   useEffect(() => {
     const handleClickOutside = (event: MouseEvent) => {
-      if (dropdownRef.current && !dropdownRef.current.contains(event.target as Node)) {
-        setIsOpen(false);
+      if (
+        suggestionsRef.current &&
+        !suggestionsRef.current.contains(event.target as Node) &&
+        !inputRef.current?.contains(event.target as Node)
+      ) {
+        setShowSuggestions(false);
       }
     };
 
@@ -62,21 +68,35 @@ export default function MultiSelect({
     return () => document.removeEventListener('mousedown', handleClickOutside);
   }, []);
 
-  // Filter options based on search term
-  const filteredOptions = options.filter(option =>
-    option.toLowerCase().includes(searchTerm.toLowerCase())
-  );
-
-  const toggleOption = (option: string) => {
-    const newValue = value.includes(option)
-      ? value.filter(v => v !== option)
-      : [...value, option];
-    onChange(newValue);
+  const handleInputChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+    setInput(e.target.value);
+    setShowSuggestions(true);
   };
 
-  const clearSelection = () => {
-    onChange([]);
-    setSearchTerm('');
+  const handleKeyDown = (e: React.KeyboardEvent<HTMLInputElement>) => {
+    if (e.key === 'Enter' && input.trim()) {
+      e.preventDefault();
+      if (filteredOptions.length > 0) {
+        // Add first suggestion
+        onChange([...value, filteredOptions[0]]);
+      } else if (!value.includes(input.trim())) {
+        // Add custom input if it doesn't exist
+        onChange([...value, input.trim()]);
+      }
+      setInput('');
+      setShowSuggestions(false);
+    }
+  };
+
+  const handleSuggestionClick = (suggestion: string) => {
+    onChange([...value, suggestion]);
+    setInput('');
+    setShowSuggestions(false);
+    inputRef.current?.focus();
+  };
+
+  const handleRemove = (itemToRemove: string) => {
+    onChange(value.filter(item => item !== itemToRemove));
   };
 
   return (
@@ -85,96 +105,62 @@ export default function MultiSelect({
         {label}
       </label>
 
-      <div className="relative" ref={dropdownRef}>
-        {/* Selected Values Display */}
-        <div
-          onClick={() => setIsOpen(!isOpen)}
-          className={`w-full px-3 py-2 border rounded-lg cursor-pointer ${
-            error ? 'border-red-500' : 'border-gray-300'
-          } ${isOpen ? 'ring-2 ring-blue-500' : ''}`}
-        >
-          {value.length > 0 ? (
-            <div className="flex flex-wrap gap-2">
-              {value.map((item) => (
-                <span
-                  key={item}
-                  className="inline-flex items-center px-2 py-1 rounded-full text-sm bg-blue-50 text-blue-700"
-                >
-                  {item}
-                  <button
-                    type="button"
-                    onClick={(e) => {
-                      e.stopPropagation();
-                      toggleOption(item);
-                    }}
-                    className="ml-1 hover:text-blue-800"
-                  >
-                    <X className="w-4 h-4" />
-                  </button>
-                </span>
-              ))}
-            </div>
-          ) : (
-            <span className="text-gray-500">Select {label.toLowerCase()}...</span>
-          )}
-        </div>
+      {/* Selected Items */}
+      <div className="flex flex-wrap gap-2 mb-2">
+        {value.map((item) => (
+          <span
+            key={item}
+            className="inline-flex items-center px-3 py-1 rounded-full text-sm bg-blue-50 text-blue-700"
+          >
+            {item}
+            <button
+              type="button"
+              onClick={() => handleRemove(item)}
+              className="ml-2 hover:text-blue-800"
+            >
+              <X className="w-4 h-4" />
+            </button>
+          </span>
+        ))}
+      </div>
 
-        {/* Dropdown */}
-        {isOpen && (
-          <div className="absolute z-10 w-full mt-1 bg-white border rounded-lg shadow-lg">
-            {/* Search Input */}
-            <div className="p-2 border-b">
-              <div className="relative">
-                <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-gray-400" />
-                <input
-                  type="text"
-                  value={searchTerm}
-                  onChange={(e) => setSearchTerm(e.target.value)}
-                  placeholder={`Search ${label.toLowerCase()}...`}
-                  className="w-full pl-9 pr-3 py-2 border rounded-md focus:ring-2 focus:ring-blue-500 focus:border-blue-500 outline-none"
-                />
-              </div>
-            </div>
+      {/* Input */}
+      <div className="relative">
+        <input
+          ref={inputRef}
+          type="text"
+          value={input}
+          onChange={handleInputChange}
+          onFocus={() => setShowSuggestions(true)}
+          onKeyDown={handleKeyDown}
+          placeholder={loading ? 'Loading options...' : `Type to add ${label.toLowerCase()}...`}
+          disabled={loading}
+          className="w-full px-3 py-2 border rounded-lg focus:ring-2 focus:ring-blue-500 outline-none"
+        />
 
-            {/* Options List */}
-            <div className="max-h-60 overflow-y-auto">
-              {loading ? (
-                <div className="p-4 text-center">
-                  <div className="animate-spin rounded-full h-6 w-6 border-2 border-blue-600 border-t-transparent mx-auto"></div>
-                </div>
-              ) : filteredOptions.length === 0 ? (
-                <div className="p-4 text-center text-gray-500">
-                  No options found
-                </div>
-              ) : (
-                <div className="p-2 space-y-1">
-                  {filteredOptions.map((option) => (
-                    <label key={option} className="flex items-center p-2 hover:bg-gray-50 rounded-md cursor-pointer">
-                      <input
-                        type="checkbox"
-                        checked={value.includes(option)}
-                        onChange={() => toggleOption(option)}
-                        className="rounded border-gray-300 text-blue-600 focus:ring-blue-500"
-                      />
-                      <span className="ml-2">{option}</span>
-                    </label>
-                  ))}
-                </div>
-              )}
-            </div>
+        {/* Loading Indicator */}
+        {loading && (
+          <div className="absolute right-3 top-1/2 -translate-y-1/2">
+            <div className="animate-spin rounded-full h-5 w-5 border-2 border-blue-600 border-t-transparent"></div>
+          </div>
+        )}
 
-            {/* Actions */}
-            {value.length > 0 && (
-              <div className="p-2 border-t">
-                <button
-                  type="button"
-                  onClick={clearSelection}
-                  className="text-sm text-blue-600 hover:text-blue-700"
-                >
-                  Clear Selection
-                </button>
-              </div>
-            )}
+        {/* Suggestions Dropdown */}
+        {showSuggestions && filteredOptions.length > 0 && (
+          <div
+            ref={suggestionsRef}
+            className="absolute z-10 w-full mt-1 bg-white border rounded-lg shadow-lg max-h-60 overflow-auto"
+          >
+            {filteredOptions.map((option) => (
+              <button
+                key={option}
+                type="button"
+                onClick={() => handleSuggestionClick(option)}
+                className="w-full px-4 py-2 text-left hover:bg-gray-50 focus:bg-gray-50 focus:outline-none"
+              >
+                {option}
+              </button>
+            ))}
           </div>
         )}
       </div>

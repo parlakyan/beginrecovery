@@ -38,7 +38,14 @@ export interface Coordinates {
  * @property description - Detailed description
  * @property location - Physical location (City, State)
  * @property coordinates - Geographical coordinates for mapping
- * @property amenities - List of available amenities
+ * @property logo - Facility logo URL
+ * @property highlights - Key facility highlights
+ * @property amenities - Available amenities
+ * @property treatmentTypes - Types of treatment offered
+ * @property substances - Substances treated
+ * @property insurance - Accepted insurance providers
+ * @property accreditation - Facility accreditations
+ * @property languages - Languages supported
  * @property images - List of image URLs
  * @property status - Subscription/payment status
  * @property ownerId - Firebase UID of facility owner
@@ -49,8 +56,6 @@ export interface Coordinates {
  * @property subscriptionId - Stripe subscription ID
  * @property phone - Contact phone number
  * @property email - Contact email address
- * @property tags - Treatment types and categories
- * @property insurance - Accepted insurance providers
  * @property isVerified - Official verification status
  * @property isFeatured - Featured listing status
  * @property moderationStatus - Content moderation state
@@ -62,7 +67,14 @@ export interface Facility {
   description: string;
   location: string;
   coordinates?: Coordinates;
+  logo?: string;
+  highlights: string[];
   amenities: string[];
+  treatmentTypes: string[];
+  substances: string[];
+  insurance: string[];
+  accreditation: string[];
+  languages: string[];
   images: string[];
   status: 'pending' | 'active' | 'suspended';
   ownerId: string;
@@ -73,8 +85,6 @@ export interface Facility {
   subscriptionId?: string;
   phone?: string;
   email?: string;
-  tags: string[];
-  insurance: string[];
   isVerified: boolean;
   isFeatured: boolean;
   moderationStatus: 'pending' | 'approved' | 'rejected' | 'archived';
@@ -126,3 +136,16 @@ export interface SearchFiltersState {
   rating: number | null;
   priceRange: [number, number] | null;
 }
+
+/**
+ * Collection Types
+ * Available collection types in the system
+ */
+export type CollectionType = 
+  | 'highlights'
+  | 'amenities'
+  | 'treatmentTypes'
+  | 'substances'
+  | 'insurance'
+  | 'accreditation'
+  | 'languages';

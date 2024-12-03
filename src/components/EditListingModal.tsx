@@ -4,7 +4,7 @@ import { X } from 'lucide-react';
 import { Facility } from '../types';
 import PhotoUpload from './PhotoUpload';
 import AddressAutocomplete from './AddressAutocomplete';
-import MultiSelect from './ui/MultiSelect';
+import FilterButton from './ui/FilterButton';
 
 interface EditListingModalProps {
   facility: Facility;
@@ -21,11 +21,16 @@ interface EditListingForm {
     lat: number;
     lng: number;
   };
+  logo?: string;
   phone: string;
   email: string;
-  treatmentTypes: string[];
+  highlights: string[];
   amenities: string[];
+  treatmentTypes: string[];
+  substances: string[];
   insurance: string[];
+  accreditation: string[];
+  languages: string[];
 }
 
 const emailRegex = /^[A-Z0-9._%+-]+@[A-Z0-9.-]+\.[A-Z]{2,}$/i;
@@ -38,10 +43,14 @@ const EditListingModal = ({ facility, isOpen, onClose, onSave }: EditListingModa
     images: []
   });
 
-  // Watch form values for MultiSelect components
-  const treatmentTypes = watch('treatmentTypes', []);
+  // Watch form values for FilterButton components
+  const highlights = watch('highlights', []);
   const amenities = watch('amenities', []);
+  const treatmentTypes = watch('treatmentTypes', []);
+  const substances = watch('substances', []);
   const insurance = watch('insurance', []);
+  const accreditation = watch('accreditation', []);
+  const languages = watch('languages', []);
 
   // Reset form when modal opens or facility changes
   useEffect(() => {
@@ -52,11 +61,16 @@ const EditListingModal = ({ facility, isOpen, onClose, onSave }: EditListingModa
         description: facility.description || '',
         location: facility.location || '',
         coordinates: facility.coordinates,
+        logo: facility.logo,
         phone: facility.phone || '',
         email: facility.email || '',
-        treatmentTypes: facility.tags || [],
+        highlights: facility.highlights || [],
         amenities: facility.amenities || [],
-        insurance: facility.insurance || []
+        treatmentTypes: facility.treatmentTypes || [],
+        substances: facility.substances || [],
+        insurance: facility.insurance || [],
+        accreditation: facility.accreditation || [],
+        languages: facility.languages || []
       });
 
       // Reset form data
@@ -78,9 +92,7 @@ const EditListingModal = ({ facility, isOpen, onClose, onSave }: EditListingModa
       setLoading(true);
       await onSave({
         ...data,
-        images: formData.images,
-        tags: data.treatmentTypes,
-        insurance: data.insurance
+        images: formData.images
       });
       onClose();
     } catch (error) {
@@ -183,7 +195,20 @@ const EditListingModal = ({ facility, isOpen, onClose, onSave }: EditListingModa
           </div>
 
           <div>
-            <label className="block text-sm font-medium text-gray-700 mb-2">
+            <label className="block text-sm font-medium text-gray-700 mb-1">
+              Logo
+            </label>
+            <PhotoUpload
+              facilityId={facility.id}
+              existingPhotos={facility.logo ? [facility.logo] : []}
+              onPhotosChange={(photos) => setValue('logo', photos[0])}
+              isVerified={facility.isVerified}
+              maxPhotos={1}
+            />
+          </div>
+
+          <div>
+            <label className="block text-sm font-medium text-gray-700 mb-1">
               Photos
             </label>
             <PhotoUpload
@@ -194,29 +219,64 @@ const EditListingModal = ({ facility, isOpen, onClose, onSave }: EditListingModa
             />
           </div>
 
-          <MultiSelect
-            label="Treatment Types"
-            type="treatment"
-            value={treatmentTypes}
-            onChange={(values) => setValue('treatmentTypes', values)}
-            error={errors.treatmentTypes?.message}
-          />
+          {/* Collection Inputs */}
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+            <FilterButton
+              label="Highlights"
+              type="highlights"
+              value={highlights}
+              onChange={(values) => setValue('highlights', values)}
+              error={errors.highlights?.message}
+            />
 
-          <MultiSelect
-            label="Amenities"
-            type="amenity"
-            value={amenities}
-            onChange={(values) => setValue('amenities', values)}
-            error={errors.amenities?.message}
-          />
+            <FilterButton
+              label="Amenities"
+              type="amenities"
+              value={amenities}
+              onChange={(values) => setValue('amenities', values)}
+              error={errors.amenities?.message}
+            />
 
-          <MultiSelect
-            label="Insurance Accepted"
-            type="insurance"
-            value={insurance}
-            onChange={(values) => setValue('insurance', values)}
-            error={errors.insurance?.message}
-          />
+            <FilterButton
+              label="Treatment Types"
+              type="treatmentTypes"
+              value={treatmentTypes}
+              onChange={(values) => setValue('treatmentTypes', values)}
+              error={errors.treatmentTypes?.message}
+            />
+
+            <FilterButton
+              label="Substances We Treat"
+              type="substances"
+              value={substances}
+              onChange={(values) => setValue('substances', values)}
+              error={errors.substances?.message}
+            />
+
+            <FilterButton
+              label="Insurance Accepted"
+              type="insurance"
+              value={insurance}
+              onChange={(values) => setValue('insurance', values)}
+              error={errors.insurance?.message}
+            />
+
+            <FilterButton
+              label="Accreditation"
+              type="accreditation"
+              value={accreditation}
+              onChange={(values) => setValue('accreditation', values)}
+              error={errors.accreditation?.message}
+            />
+
+            <FilterButton
+              label="Languages"
+              type="languages"
+              value={languages}
+              onChange={(values) => setValue('languages', values)}
+              error={errors.languages?.message}
+            />
+          </div>
 
           <div className="flex justify-end gap-4 pt-4 border-t">
             <button

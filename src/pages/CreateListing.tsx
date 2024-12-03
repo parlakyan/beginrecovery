@@ -3,14 +3,13 @@ import { useForm } from 'react-hook-form';
 import { useNavigate } from 'react-router-dom';
 import { Building2, Loader2 } from 'lucide-react';
 import { useAuthStore } from '../store/authStore';
-import { facilitiesService } from '../services/firebase';
-import { usersService } from '../services/firebase';
+import { facilitiesService, usersService } from '../services/firebase';
 import { Facility } from '../types';
 import Header from '../components/Header';
 import Footer from '../components/Footer';
 import PhotoUpload from '../components/PhotoUpload';
 import AddressAutocomplete from '../components/AddressAutocomplete';
-import MultiSelect from '../components/ui/MultiSelect';
+import FilterButton from '../components/ui/FilterButton';
 
 interface CreateListingForm {
   name: string;
@@ -20,11 +19,16 @@ interface CreateListingForm {
     lat: number;
     lng: number;
   };
+  logo?: string;
   phone: string;
   email: string;
-  treatmentTypes: string[];
+  highlights: string[];
   amenities: string[];
+  treatmentTypes: string[];
+  substances: string[];
   insurance: string[];
+  accreditation: string[];
+  languages: string[];
 }
 
 const phoneRegex = /^(\+\d{1,2}\s?)?\(?\d{3}\)?[\s.-]?\d{3}[\s.-]?\d{4}$/;
@@ -33,9 +37,13 @@ const emailRegex = /^[A-Z0-9._%+-]+@[A-Z0-9.-]+\.[A-Z]{2,}$/i;
 export default function CreateListing() {
   const { register, handleSubmit, formState: { errors }, setValue, watch } = useForm<CreateListingForm>({
     defaultValues: {
-      treatmentTypes: [],
+      highlights: [],
       amenities: [],
-      insurance: []
+      treatmentTypes: [],
+      substances: [],
+      insurance: [],
+      accreditation: [],
+      languages: []
     }
   });
   const [loading, setLoading] = React.useState(false);
@@ -44,10 +52,14 @@ export default function CreateListing() {
   const { user, refreshToken } = useAuthStore();
   const navigate = useNavigate();
 
-  // Watch form values for MultiSelect components
-  const treatmentTypes = watch('treatmentTypes');
+  // Watch form values for FilterButton components
+  const highlights = watch('highlights');
   const amenities = watch('amenities');
+  const treatmentTypes = watch('treatmentTypes');
+  const substances = watch('substances');
   const insurance = watch('insurance');
+  const accreditation = watch('accreditation');
+  const languages = watch('languages');
 
   // Generate a temporary ID for photo uploads
   const tempId = React.useMemo(() => 'temp-' + Date.now(), []);
@@ -234,6 +246,19 @@ export default function CreateListing() {
 
               <div>
                 <label className="block text-sm font-medium text-gray-700 mb-1">
+                  Logo
+                </label>
+                <PhotoUpload
+                  facilityId={tempId}
+                  existingPhotos={[]}
+                  onPhotosChange={(photos) => setValue('logo', photos[0])}
+                  isVerified={false}
+                  maxPhotos={1}
+                />
+              </div>
+
+              <div>
+                <label className="block text-sm font-medium text-gray-700 mb-1">
                   Photos
                 </label>
                 <PhotoUpload
@@ -244,29 +269,64 @@ export default function CreateListing() {
                 />
               </div>
 
-              <MultiSelect
-                label="Treatment Types"
-                type="treatment"
-                value={treatmentTypes}
-                onChange={(values) => setValue('treatmentTypes', values)}
-                error={errors.treatmentTypes?.message}
-              />
+              {/* Collection Inputs */}
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                <FilterButton
+                  label="Highlights"
+                  type="highlights"
+                  value={highlights}
+                  onChange={(values) => setValue('highlights', values)}
+                  error={errors.highlights?.message}
+                />
 
-              <MultiSelect
-                label="Amenities"
-                type="amenity"
-                value={amenities}
-                onChange={(values) => setValue('amenities', values)}
-                error={errors.amenities?.message}
-              />
+                <FilterButton
+                  label="Amenities"
+                  type="amenities"
+                  value={amenities}
+                  onChange={(values) => setValue('amenities', values)}
+                  error={errors.amenities?.message}
+                />
 
-              <MultiSelect
-                label="Insurance Accepted"
-                type="insurance"
-                value={insurance}
-                onChange={(values) => setValue('insurance', values)}
-                error={errors.insurance?.message}
-              />
+                <FilterButton
+                  label="Treatment Types"
+                  type="treatmentTypes"
+                  value={treatmentTypes}
+                  onChange={(values) => setValue('treatmentTypes', values)}
+                  error={errors.treatmentTypes?.message}
+                />
+
+                <FilterButton
+                  label="Substances We Treat"
+                  type="substances"
+                  value={substances}
+                  onChange={(values) => setValue('substances', values)}
+                  error={errors.substances?.message}
+                />
+
+                <FilterButton
+                  label="Insurance Accepted"
+                  type="insurance"
+                  value={insurance}
+                  onChange={(values) => setValue('insurance', values)}
+                  error={errors.insurance?.message}
+                />
+
+                <FilterButton
+                  label="Accreditation"
+                  type="accreditation"
+                  value={accreditation}
+                  onChange={(values) => setValue('accreditation', values)}
+                  error={errors.accreditation?.message}
+                />
+
+                <FilterButton
+                  label="Languages"
+                  type="languages"
+                  value={languages}
+                  onChange={(values) => setValue('languages', values)}
+                  error={errors.languages?.message}
+                />
+              </div>
 
               <div className="flex justify-end gap-4">
                 <button
