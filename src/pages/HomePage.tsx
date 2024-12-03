@@ -20,17 +20,17 @@ export default function HomePage() {
         {/* Hero Section */}
         <HeroSection />
 
-        {/* Core Values */}
+        {/* Treatment Finder */}
         <section className="py-20 bg-white">
           <div className="container mx-auto px-4">
-            <CoreValues />
+            <TreatmentFinder />
           </div>
         </section>
 
-        {/* Treatment Finder */}
+        {/* Core Values */}
         <section className="py-20 bg-gray-50">
           <div className="container mx-auto px-4">
-            <TreatmentFinder />
+            <CoreValues />
           </div>
         </section>
 
