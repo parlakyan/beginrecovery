@@ -1,4 +1,4 @@
-import { collection, getDocs, getDoc, doc, query, where, orderBy, serverTimestamp, limit, DocumentData, QueryDocumentSnapshot, writeBatch, addDoc, updateDoc, deleteDoc, setDoc } from 'firebase/firestore';
+import { collection, getDocs, getDoc, doc, query, where, orderBy, serverTimestamp, limit, startAfter, DocumentData, QueryDocumentSnapshot, writeBatch, addDoc, updateDoc, deleteDoc, setDoc, WithFieldValue } from 'firebase/firestore';
 import { db } from '../lib/firebase';
 import { Facility } from '../types';
 
@@ -10,10 +10,37 @@ interface SearchFilters {
   priceRange: [number, number] | null;
 }
 
+interface PaginationParams {
+  pageSize?: number;
+  lastVisible?: QueryDocumentSnapshot<DocumentData>;
+}
+
+interface FacilityDocument extends DocumentData {
+  name: string;
+  description: string;
+  location: string;
+  amenities: string[];
+  images: string[];
+  status: 'pending' | 'active' | 'suspended';
+  ownerId: string;
+  rating: number;
+  reviewCount: number;
+  createdAt: { toDate(): Date };
+  updatedAt: { toDate(): Date };
+  subscriptionId?: string;
+  phone: string;
+  email: string;
+  tags: string[];
+  isVerified: boolean;
+  isFeatured: boolean;
+  moderationStatus: 'pending' | 'approved' | 'rejected' | 'archived';
+  slug: string;
+}
+
 /**
  * Transform Firestore document to Facility type
  */
-const transformFacilityData = (doc: QueryDocumentSnapshot<DocumentData>): Facility => {
+const transformFacilityData = (doc: QueryDocumentSnapshot<FacilityDocument>): Facility => {
   const data = doc.data();
   return {
     id: doc.id,
@@ -40,9 +67,39 @@ const transformFacilityData = (doc: QueryDocumentSnapshot<DocumentData>): Facili
 };
 
 /**
- * Filter facilities based on search criteria
+ * Build query with server-side filters
  */
-const filterFacilities = (facilities: Facility[], filters: SearchFilters): Facility[] => {
+const buildFilteredQuery = (facilitiesRef: any, filters?: SearchFilters, pagination?: PaginationParams) => {
+  let q = query(facilitiesRef, where('moderationStatus', '==', 'approved'));
+
+  // Apply server-side filters
+  if (filters) {
+    if (filters.rating !== null) {
+      q = query(q, where('rating', '>=', filters.rating));
+    }
+  }
+
+  // Add ordering
+  q = query(q, orderBy('rating', 'desc'), orderBy('createdAt', 'desc'));
+
+  // Add pagination
+  if (pagination) {
+    const { pageSize = 12, lastVisible } = pagination;
+    q = query(q, limit(pageSize));
+    if (lastVisible) {
+      q = query(q, startAfter(lastVisible));
+    }
+  } else {
+    q = query(q, limit(12)); // Default page size
+  }
+
+  return q;
+};
+
+/**
+ * Apply client-side filters that can't be done in Firestore
+ */
+const applyClientFilters = (facilities: Facility[], filters: SearchFilters): Facility[] => {
   return facilities.filter(facility => {
     // Treatment Types filter
     if (filters.treatmentTypes.length > 0 && 
@@ -56,81 +113,42 @@ const filterFacilities = (facilities: Facility[], filters: SearchFilters): Facil
       return false;
     }
 
-    // Rating filter
-    if (filters.rating !== null && facility.rating < filters.rating) {
-      return false;
-    }
-
     return true;
   });
 };
 
 export const facilitiesService = {
   /**
-   * Get all facilities with optional filters
+   * Get facilities with pagination and filters
    */
-  async getFacilities(filters?: SearchFilters) {
+  async getFacilities(filters?: SearchFilters, pagination?: PaginationParams) {
     try {
-      console.log('Fetching facilities with filters:', filters);
+      console.log('Fetching facilities:', { filters, pagination });
       const facilitiesRef = collection(db, 'facilities');
       
-      // Create index for compound query
-      const q = query(
-        facilitiesRef,
-        where('moderationStatus', '==', 'approved'),
-        orderBy('createdAt', 'desc')
-      );
+      // Build query with server-side filters and pagination
+      const q = buildFilteredQuery(facilitiesRef, filters, pagination);
       
+      // Execute query
       const snapshot = await getDocs(q);
-      let facilities = snapshot.docs.map(transformFacilityData);
+      let facilities = snapshot.docs.map(doc => transformFacilityData(doc as QueryDocumentSnapshot<FacilityDocument>));
 
-      // Apply filters if provided
+      // Apply remaining filters client-side
       if (filters) {
-        facilities = filterFacilities(facilities, filters);
+        facilities = applyClientFilters(facilities, filters);
       }
+
+      // Check if there are more results
+      const hasMore = !pagination?.pageSize || snapshot.docs.length === pagination.pageSize;
 
       return { 
         facilities, 
         lastVisible: snapshot.docs[snapshot.docs.length - 1] || null,
-        hasMore: false
+        hasMore
       };
     } catch (error) {
       console.error('Error getting facilities:', error);
       return { facilities: [], lastVisible: null, hasMore: false };
-    }
-  },
-
-  /**
-   * Get all listings for admin (including pending and rejected)
-   */
-  async getAllListingsForAdmin() {
-    try {
-      const facilitiesRef = collection(db, 'facilities');
-      const q = query(facilitiesRef, orderBy('createdAt', 'desc'));
-      const snapshot = await getDocs(q);
-      return snapshot.docs.map(transformFacilityData);
-    } catch (error) {
-      console.error('Error getting all listings:', error);
-      return [];
-    }
-  },
-
-  /**
-   * Get archived listings
-   */
-  async getArchivedListings() {
-    try {
-      const facilitiesRef = collection(db, 'facilities');
-      const q = query(
-        facilitiesRef,
-        where('moderationStatus', '==', 'archived'),
-        orderBy('createdAt', 'desc')
-      );
-      const snapshot = await getDocs(q);
-      return snapshot.docs.map(transformFacilityData);
-    } catch (error) {
-      console.error('Error getting archived listings:', error);
-      return [];
     }
   },
 
@@ -149,9 +167,43 @@ export const facilitiesService = {
       );
       
       const snapshot = await getDocs(q);
-      return snapshot.docs.map(transformFacilityData);
+      return snapshot.docs.map(doc => transformFacilityData(doc as QueryDocumentSnapshot<FacilityDocument>));
     } catch (error) {
       console.error('Error getting featured facilities:', error);
+      return [];
+    }
+  },
+
+  /**
+   * Get all listings for admin
+   */
+  async getAllListingsForAdmin() {
+    try {
+      const facilitiesRef = collection(db, 'facilities');
+      const q = query(facilitiesRef, orderBy('createdAt', 'desc'));
+      const snapshot = await getDocs(q);
+      return snapshot.docs.map(doc => transformFacilityData(doc as QueryDocumentSnapshot<FacilityDocument>));
+    } catch (error) {
+      console.error('Error getting all listings:', error);
+      return [];
+    }
+  },
+
+  /**
+   * Get archived listings
+   */
+  async getArchivedListings() {
+    try {
+      const facilitiesRef = collection(db, 'facilities');
+      const q = query(
+        facilitiesRef,
+        where('moderationStatus', '==', 'archived'),
+        orderBy('createdAt', 'desc')
+      );
+      const snapshot = await getDocs(q);
+      return snapshot.docs.map(doc => transformFacilityData(doc as QueryDocumentSnapshot<FacilityDocument>));
+    } catch (error) {
+      console.error('Error getting archived listings:', error);
       return [];
     }
   },
@@ -168,7 +220,7 @@ export const facilitiesService = {
         return null;
       }
       
-      return transformFacilityData(docSnap);
+      return transformFacilityData(docSnap as QueryDocumentSnapshot<FacilityDocument>);
     } catch (error) {
       console.error('Error getting facility:', error);
       return null;
@@ -188,7 +240,7 @@ export const facilitiesService = {
         return null;
       }
       
-      return transformFacilityData(snapshot.docs[0]);
+      return transformFacilityData(snapshot.docs[0] as QueryDocumentSnapshot<FacilityDocument>);
     } catch (error) {
       console.error('Error getting facility by slug:', error);
       return null;
@@ -208,7 +260,7 @@ export const facilitiesService = {
       );
       
       const snapshot = await getDocs(q);
-      return snapshot.docs.map(transformFacilityData);
+      return snapshot.docs.map(doc => transformFacilityData(doc as QueryDocumentSnapshot<FacilityDocument>));
     } catch (error) {
       console.error('Error getting user listings:', error);
       return [];
@@ -271,7 +323,7 @@ export const facilitiesService = {
     try {
       const facilityRef = doc(db, 'facilities', id);
       await updateDoc(facilityRef, {
-        moderationStatus: 'approved',
+        moderationStatus: 'approved' as const,
         updatedAt: serverTimestamp()
       });
       return true;
@@ -288,7 +340,7 @@ export const facilitiesService = {
     try {
       const facilityRef = doc(db, 'facilities', id);
       await updateDoc(facilityRef, {
-        moderationStatus: 'rejected',
+        moderationStatus: 'rejected' as const,
         updatedAt: serverTimestamp()
       });
       return true;
@@ -305,7 +357,7 @@ export const facilitiesService = {
     try {
       const facilityRef = doc(db, 'facilities', id);
       await updateDoc(facilityRef, {
-        moderationStatus: 'archived',
+        moderationStatus: 'archived' as const,
         updatedAt: serverTimestamp()
       });
       return true;
@@ -322,7 +374,7 @@ export const facilitiesService = {
     try {
       const facilityRef = doc(db, 'facilities', id);
       await updateDoc(facilityRef, {
-        moderationStatus: 'pending',
+        moderationStatus: 'pending' as const,
         updatedAt: serverTimestamp()
       });
       return true;
