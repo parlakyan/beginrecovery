@@ -63,26 +63,6 @@ export default function ListingDetail() {
     fetchFacility();
   }, [fetchFacility, slug]); // Add slug as dependency to refetch when URL changes
 
-  const handleApprove = async () => {
-    if (!facility) return;
-    try {
-      await facilitiesService.approveFacility(facility.id);
-      await fetchFacility(); // Refetch facility data
-    } catch (error) {
-      console.error('Error approving facility:', error);
-    }
-  };
-
-  const handleReject = async () => {
-    if (!facility) return;
-    try {
-      await facilitiesService.rejectFacility(facility.id);
-      await fetchFacility(); // Refetch facility data
-    } catch (error) {
-      console.error('Error rejecting facility:', error);
-    }
-  };
-
   const handleVerificationToggle = async () => {
     if (!facility) return;
     try {
@@ -128,7 +108,7 @@ export default function ListingDetail() {
     <div className="min-h-screen bg-gray-50 flex flex-col">
       <Header />
       
-      <main className="flex-grow">
+      <main className="flex-grow pb-20">
         {/* Hero Section with Image Carousel */}
         <div className="relative h-[50vh] min-h-[400px] bg-gray-900">
           <ImageCarousel 
@@ -140,7 +120,7 @@ export default function ListingDetail() {
           
           {/* Admin and Owner Controls */}
           {canEdit && (
-            <div className="absolute top-4 right-4 flex items-center gap-2 z-20">
+            <div className="absolute top-4 right-4 flex items-center gap-2 z-10">
               <Button
                 variant="secondary"
                 onClick={() => setIsEditModalOpen(true)}
@@ -182,9 +162,9 @@ export default function ListingDetail() {
         <div className="relative max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 -mt-20">
           <div className="grid grid-cols-1 lg:grid-cols-3 gap-8">
             {/* Main Content */}
-            <div className="lg:col-span-2">
+            <div className="lg:col-span-2 space-y-8">
               {/* Basic Info Box */}
-              <div className="bg-white rounded-lg shadow-lg p-6 mb-8">
+              <div className="bg-white rounded-lg shadow-lg p-6">
                 <div className="flex flex-col md:flex-row md:items-start md:justify-between gap-4">
                   <div className="flex-1">
                     <h1 className="text-3xl font-bold text-gray-900 mb-4">{facility.name}</h1>
@@ -254,7 +234,7 @@ export default function ListingDetail() {
 
             {/* Contact Box - Sticky */}
             <div className="lg:col-span-1">
-              <div className="sticky top-24">
+              <div className="sticky top-24 z-0">
                 <ContactBox facility={facility} />
               </div>
             </div>
