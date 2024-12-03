@@ -122,7 +122,7 @@ export default function FilterBar({ filters, filterOptions, optionCounts, onFilt
   };
 
   return (
-    <div className="w-full overflow-x-auto">
+    <div className="w-full">
       <div className="flex gap-2 py-3">
         {renderDropdown('location', 'Location', filterOptions.locations, optionCounts.locations)}
         {renderDropdown('treatmentTypes', 'Treatment Types', filterOptions.treatmentTypes, optionCounts.treatmentTypes)}

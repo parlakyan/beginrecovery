@@ -66,7 +66,7 @@ export default function SearchResults() {
       <Header />
       
       <main className="flex-grow">
-        <div className="sticky top-[80px] bg-white border-b z-40 -mt-[1px]">
+        <div className="sticky top-[65px] bg-white border-b z-40">
           <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
             {/* Filter Bar */}
             <FilterBar
