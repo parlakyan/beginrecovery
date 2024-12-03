@@ -15,14 +15,15 @@ interface ImageCarouselProps {
  * Shows only the first image for unverified listings
  */
 export default function ImageCarousel({ 
-  images, 
+  images = [], 
   showNavigation = true, 
   onImageClick,
   paginationPosition = 'bottom',
   isVerified = false
 }: ImageCarouselProps) {
   // For unverified listings, only use the first image
-  const displayImages = isVerified ? images : images.slice(0, 1);
+  const displayImages = isVerified ? images : [images[0]];
+  const hasMultipleImages = displayImages.length > 1;
   
   const [currentIndex, setCurrentIndex] = useState(0);
   const [isTransitioning, setIsTransitioning] = useState(false);
@@ -31,25 +32,37 @@ export default function ImageCarousel({
 
   const minSwipeDistance = 50;
 
+  // Debug logging
+  useEffect(() => {
+    console.log('ImageCarousel state:', {
+      isVerified,
+      totalImages: images.length,
+      displayImages: displayImages.length,
+      hasMultipleImages,
+      showNavigation,
+      timestamp: new Date().toISOString()
+    });
+  }, [isVerified, images.length, displayImages.length, hasMultipleImages, showNavigation]);
+
   const nextSlide = useCallback((e?: React.MouseEvent) => {
     if (e) {
       e.stopPropagation();
     }
-    if (isTransitioning) return;
+    if (isTransitioning || !hasMultipleImages) return;
     
     setIsTransitioning(true);
     setCurrentIndex((prevIndex) => (prevIndex + 1) % displayImages.length);
-  }, [isTransitioning, displayImages.length]);
+  }, [isTransitioning, hasMultipleImages, displayImages.length]);
 
   const prevSlide = useCallback((e?: React.MouseEvent) => {
     if (e) {
       e.stopPropagation();
     }
-    if (isTransitioning) return;
+    if (isTransitioning || !hasMultipleImages) return;
     
     setIsTransitioning(true);
     setCurrentIndex((prevIndex) => (prevIndex - 1 + displayImages.length) % displayImages.length);
-  }, [isTransitioning, displayImages.length]);
+  }, [isTransitioning, hasMultipleImages, displayImages.length]);
 
   const onTouchStart = (e: React.TouchEvent) => {
     setTouchEnd(null);
@@ -61,7 +74,7 @@ export default function ImageCarousel({
   };
 
   const onTouchEnd = () => {
-    if (!touchStart || !touchEnd) return;
+    if (!touchStart || !touchEnd || !hasMultipleImages) return;
     
     const distance = touchStart - touchEnd;
     const isLeftSwipe = distance > minSwipeDistance;
@@ -112,7 +125,7 @@ export default function ImageCarousel({
       <div className="absolute inset-0">
         {displayImages.map((image, index) => (
           <div
-            key={index}
+            key={`${image}-${index}`}
             className={`absolute inset-0 transition-opacity duration-500 ease-in-out ${
               index === currentIndex ? 'opacity-100' : 'opacity-0'
             }`}
@@ -129,7 +142,7 @@ export default function ImageCarousel({
       </div>
 
       {/* Navigation - Only show for verified listings with multiple images */}
-      {showNavigation && isVerified && displayImages.length > 1 && (
+      {showNavigation && hasMultipleImages && (
         <>
           {/* Previous/Next Buttons */}
           <button
