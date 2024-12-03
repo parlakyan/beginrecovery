@@ -12,6 +12,7 @@ import LocationBrowser from '../components/LocationBrowser';
 import CoreValues from '../components/CoreValues';
 import EditListingModal from '../components/EditListingModal';
 import FeaturedCarousel from '../components/FeaturedCarousel';
+import { useLocation } from '../hooks/useLocation';
 
 const defaultFilters = {
   treatmentTypes: [],
@@ -28,6 +29,7 @@ export default function HomePage() {
   const [isFiltersOpen, setIsFiltersOpen] = useState(false);
   const [filters, setFilters] = useState(defaultFilters);
   const [editingFacility, setEditingFacility] = useState<Facility | null>(null);
+  const { location: userLocation, loading: locationLoading } = useLocation();
 
   const fetchFacilities = async (currentFilters = filters) => {
     try {
@@ -36,13 +38,14 @@ export default function HomePage() {
       // Fetch facilities and featured facilities in parallel
       const [allFacilities, featured] = await Promise.all([
         facilitiesService.getFacilities(currentFilters),
-        facilitiesService.getFeaturedFacilities()
+        facilitiesService.getFeaturedFacilitiesByLocation(userLocation)
       ]);
       
       console.log('Fetched facilities:', {
         total: allFacilities.facilities.length,
         featured: featured.length,
-        filters: currentFilters
+        filters: currentFilters,
+        userLocation
       });
       
       setFacilities(allFacilities.facilities);
@@ -59,7 +62,7 @@ export default function HomePage() {
   useEffect(() => {
     window.scrollTo(0, 0);
     fetchFacilities();
-  }, []);
+  }, [userLocation]); // Refetch when user location changes
 
   const handleFilterChange = (newFilters: typeof defaultFilters) => {
     setFilters(newFilters);
@@ -102,13 +105,26 @@ export default function HomePage() {
         />
 
         {/* Featured Treatment Centers */}
-        {featuredFacilities.length > 0 && (
+        {(loading || locationLoading) ? (
+          <section className="py-20 bg-white">
+            <div className="container mx-auto px-4">
+              <div className="flex justify-center">
+                <div className="animate-spin rounded-full h-12 w-12 border-4 border-blue-600 border-t-transparent"></div>
+              </div>
+            </div>
+          </section>
+        ) : featuredFacilities.length > 0 && (
           <section className="py-20 bg-white">
             <div className="container mx-auto px-4">
               <div className="flex justify-between items-center mb-12">
                 <div className="text-center md:text-left">
                   <h2 className="text-3xl font-bold mb-2">Featured Treatment Centers</h2>
-                  <p className="text-gray-600">Discover our highly-rated rehabilitation facilities</p>
+                  <p className="text-gray-600">
+                    {userLocation ? 
+                      `Discover highly-rated rehabilitation facilities near ${userLocation}` :
+                      'Discover our highly-rated rehabilitation facilities'
+                    }
+                  </p>
                 </div>
                 <button 
                   onClick={() => setIsFiltersOpen(true)}

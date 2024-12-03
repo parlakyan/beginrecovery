@@ -172,23 +172,47 @@ export const facilitiesService = {
   },
 
   /**
-   * Get featured facilities
+   * Get featured facilities by location
+   * Returns up to 24 featured facilities, prioritizing those in the user's location
    */
-  async getFeaturedFacilities() {
+  async getFeaturedFacilitiesByLocation(userLocation: string | null) {
     try {
       const facilitiesRef = collection(db, 'facilities');
-      const q = query(
+      
+      // Base query for featured facilities
+      let q = query(
         facilitiesRef,
         where('moderationStatus', '==', 'approved'),
         where('isFeatured', '==', true),
-        orderBy('createdAt', 'desc'),
-        limit(3)
+        orderBy('rating', 'desc'),
+        limit(24)
       );
       
       const snapshot = await getDocs(q);
-      return snapshot.docs.map(doc => transformFacilityData(doc as QueryDocumentSnapshot<FacilityDocument>));
+      let facilities = snapshot.docs.map(doc => 
+        transformFacilityData(doc as QueryDocumentSnapshot<FacilityDocument>)
+      );
+
+      // If user location is available, sort facilities to prioritize local ones
+      if (userLocation) {
+        const [userCity, userState] = userLocation.split(', ');
+        
+        // Sort facilities: local first, then by rating
+        facilities.sort((a, b) => {
+          const aIsLocal = a.location.toLowerCase().includes(userCity.toLowerCase()) ||
+                          a.location.toLowerCase().includes(userState.toLowerCase());
+          const bIsLocal = b.location.toLowerCase().includes(userCity.toLowerCase()) ||
+                          b.location.toLowerCase().includes(userState.toLowerCase());
+          
+          if (aIsLocal && !bIsLocal) return -1;
+          if (!aIsLocal && bIsLocal) return 1;
+          return b.rating - a.rating;
+        });
+      }
+
+      return facilities;
     } catch (error) {
-      console.error('Error getting featured facilities:', error);
+      console.error('Error getting featured facilities by location:', error);
       return [];
     }
   },
