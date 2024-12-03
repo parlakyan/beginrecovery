@@ -1,6 +1,6 @@
 import { useEffect, useState, useCallback } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
-import { Edit2, ShieldCheck, ShieldAlert, CheckCircle, XCircle, Clock, MapPin, Star } from 'lucide-react';
+import { Edit2, ShieldCheck, ShieldAlert, Clock, MapPin, Star } from 'lucide-react';
 import { facilitiesService } from '../services/facilities';
 import { useAuthStore } from '../store/authStore';
 import { Facility } from '../types';
@@ -180,7 +180,7 @@ export default function ListingDetail() {
           )}
         </div>
 
-        <div className="relative max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
+        <div className="relative max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 -mt-32">
           <div className="grid grid-cols-1 lg:grid-cols-3 gap-8">
             {/* Main Content */}
             <div className="lg:col-span-2">
