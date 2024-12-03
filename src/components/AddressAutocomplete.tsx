@@ -1,5 +1,6 @@
 import React, { useEffect, useRef } from 'react';
 import { UseFormRegister, UseFormSetValue } from 'react-hook-form';
+import { GOOGLE_MAPS_CONFIG } from '../config/maps';
 
 interface AddressAutocompleteProps {
   register: UseFormRegister<any>;
@@ -24,7 +25,7 @@ export default function AddressAutocomplete({ register, setValue, defaultValue, 
       if (!window.google || !inputRef.current) return;
 
       autocompleteRef.current = new window.google.maps.places.Autocomplete(inputRef.current, {
-        componentRestrictions: { country: 'us' },
+        componentRestrictions: { country: GOOGLE_MAPS_CONFIG.region.toLowerCase() },
         fields: ['formatted_address'],
         types: ['address']
       });
@@ -41,7 +42,7 @@ export default function AddressAutocomplete({ register, setValue, defaultValue, 
     // Load Google Places API if not already loaded
     if (!window.google) {
       const script = document.createElement('script');
-      script.src = `https://maps.googleapis.com/maps/api/js?key=${import.meta.env.VITE_GOOGLE_MAPS_API_KEY}&libraries=places`;
+      script.src = `https://maps.googleapis.com/maps/api/js?key=${GOOGLE_MAPS_CONFIG.apiKey}&libraries=${GOOGLE_MAPS_CONFIG.libraries.join(',')}&language=${GOOGLE_MAPS_CONFIG.language}&region=${GOOGLE_MAPS_CONFIG.region}`;
       script.async = true;
       script.defer = true;
       script.onload = initAutocomplete;

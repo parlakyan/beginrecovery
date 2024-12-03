@@ -15,6 +15,7 @@ import CertificationsSection from '../components/CertificationsSection';
 import { Button, Tag } from '../components/ui';
 import EditListingModal from '../components/EditListingModal';
 import { useTitle } from '../hooks/useTitle';
+import { GOOGLE_MAPS_CONFIG } from '../config/maps';
 
 export default function ListingDetail() {
   const { slug, id } = useParams<{ slug?: string; id?: string }>();
@@ -23,15 +24,32 @@ export default function ListingDetail() {
   const [facility, setFacility] = useState<Facility | null>(null);
   const [loading, setLoading] = useState(true);
   const [isEditModalOpen, setIsEditModalOpen] = useState(false);
-  const coordinates = { lat: 34.0522, lng: -118.2437 };
+  const [coordinates, setCoordinates] = useState({ lat: 34.0522, lng: -118.2437 }); // Default to LA
+
+  // Check if current user is owner or admin
+  const canEdit = user && (user.role === 'admin' || (facility && user.id === facility.ownerId));
 
   // Set page title based on facility name
   useTitle(facility ? `${facility.name} | Treatment Center` : 'Loading...',
     facility?.description || 'View detailed information about this rehabilitation center.'
   );
 
-  // Check if current user is owner or admin
-  const canEdit = user && (user.role === 'admin' || (facility && user.id === facility.ownerId));
+  // Get coordinates from address
+  const getCoordinates = async (address: string) => {
+    try {
+      const response = await fetch(
+        `https://maps.googleapis.com/maps/api/geocode/json?address=${encodeURIComponent(address)}&key=${GOOGLE_MAPS_CONFIG.apiKey}&region=${GOOGLE_MAPS_CONFIG.region}`
+      );
+      const data = await response.json();
+      
+      if (data.results && data.results[0]) {
+        const { lat, lng } = data.results[0].geometry.location;
+        setCoordinates({ lat, lng });
+      }
+    } catch (error) {
+      console.error('Error getting coordinates:', error);
+    }
+  };
 
   const fetchFacility = useCallback(async () => {
     try {
@@ -56,6 +74,11 @@ export default function ListingDetail() {
       }
 
       setFacility(data);
+      
+      // Get coordinates for the facility's location
+      if (data.location) {
+        await getCoordinates(data.location);
+      }
     } catch (error) {
       console.error('Error fetching facility:', error);
       // On error, redirect to 404
@@ -157,7 +180,7 @@ export default function ListingDetail() {
                 Edit Facility
               </Button>
 
-              {user.role === 'admin' && (
+              {user?.role === 'admin' && (
                 <>
                   <Button
                     variant="secondary"
