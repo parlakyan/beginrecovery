@@ -32,6 +32,17 @@ export default function SearchResults() {
     amenities: new Set<string>()
   });
 
+  // Track counts for each option
+  const [optionCounts, setOptionCounts] = useState<{
+    locations: { [key: string]: number };
+    treatmentTypes: { [key: string]: number };
+    amenities: { [key: string]: number };
+  }>({
+    locations: {},
+    treatmentTypes: {},
+    amenities: {}
+  });
+
   useEffect(() => {
     const fetchFacilities = async () => {
       setLoading(true);
@@ -40,18 +51,36 @@ export default function SearchResults() {
         const data = result.facilities;
         setFacilities(data);
 
-        // Extract unique filter options
+        // Extract unique filter options and count occurrences
         const locations = new Set<string>();
         const treatmentTypes = new Set<string>();
         const amenities = new Set<string>();
+        const counts = {
+          locations: {} as { [key: string]: number },
+          treatmentTypes: {} as { [key: string]: number },
+          amenities: {} as { [key: string]: number }
+        };
 
         data.forEach((facility: Facility) => {
+          // Location counts
           locations.add(facility.location);
-          facility.tags.forEach((tag: string) => treatmentTypes.add(tag));
-          facility.amenities.forEach((amenity: string) => amenities.add(amenity));
+          counts.locations[facility.location] = (counts.locations[facility.location] || 0) + 1;
+
+          // Treatment type counts
+          facility.tags.forEach(tag => {
+            treatmentTypes.add(tag);
+            counts.treatmentTypes[tag] = (counts.treatmentTypes[tag] || 0) + 1;
+          });
+
+          // Amenity counts
+          facility.amenities.forEach(amenity => {
+            amenities.add(amenity);
+            counts.amenities[amenity] = (counts.amenities[amenity] || 0) + 1;
+          });
         });
 
         setFilterOptions({ locations, treatmentTypes, amenities });
+        setOptionCounts(counts);
       } catch (error) {
         console.error('Error fetching facilities:', error);
       } finally {
@@ -111,6 +140,7 @@ export default function SearchResults() {
             <FilterBar
               filters={filters}
               filterOptions={filterOptions}
+              optionCounts={optionCounts}
               onFilterChange={handleFilterChange}
             />
           </div>
@@ -130,7 +160,7 @@ export default function SearchResults() {
               <div className="animate-spin rounded-full h-12 w-12 border-4 border-blue-600 border-t-transparent"></div>
             </div>
           ) : (
-            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-6">
+            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
               {facilities.map(facility => (
                 <RehabCard key={facility.id} facility={facility} />
               ))}
