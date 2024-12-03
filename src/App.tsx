@@ -14,6 +14,7 @@ import PaymentCancel from './pages/payment/Cancel';
 import ResetPassword from './pages/ResetPassword';
 import AccountPage from './pages/AccountPage';
 import NotFound from './pages/NotFound';
+import SearchResults from './pages/SearchResults';
 import ProtectedRoute from './components/ProtectedRoute';
 import NetworkStatus from './components/NetworkStatus';
 import { useAuthStore } from './store/authStore';
@@ -31,7 +32,7 @@ import { Loader2 } from 'lucide-react';
  * - Role-based access control
  * 
  * Routes:
- * - Public: Home, Login, Register, Reset Password
+ * - Public: Home, Login, Register, Reset Password, Search
  * - Protected: Account, Create Listing, Payment
  * - Role-Based: Admin Dashboard (requires admin role)
  */
@@ -75,6 +76,7 @@ export default function App() {
       <Routes>
         {/* Public Routes */}
         <Route path="/" element={<HomePage />} />
+        <Route path="/search" element={<SearchResults />} />
         <Route path="/listing/:id" element={<ListingDetail />} />
         <Route path="/login" element={<Login />} />
         <Route path="/register" element={<Register />} />

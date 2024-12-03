@@ -1,4 +1,5 @@
 import React, { useState } from 'react';
+import { useNavigate } from 'react-router-dom';
 import { Search, Shield, MapPin, Clock } from 'lucide-react';
 
 interface HeroSectionProps {
@@ -7,19 +8,20 @@ interface HeroSectionProps {
 
 export default function HeroSection({ onOpenFilters }: HeroSectionProps) {
   const [searchQuery, setSearchQuery] = useState('');
+  const navigate = useNavigate();
 
   const handleSearch = (e: React.FormEvent) => {
     e.preventDefault();
-    if (onOpenFilters) {
-      onOpenFilters();
+    if (searchQuery.trim()) {
+      navigate(`/search?q=${encodeURIComponent(searchQuery.trim())}`);
     }
   };
 
   const handleKeyPress = (e: React.KeyboardEvent) => {
     if (e.key === 'Enter') {
       e.preventDefault();
-      if (onOpenFilters) {
-        onOpenFilters();
+      if (searchQuery.trim()) {
+        navigate(`/search?q=${encodeURIComponent(searchQuery.trim())}`);
       }
     }
   };
