@@ -23,6 +23,22 @@ A comprehensive platform connecting individuals seeking rehabilitation services 
 - Standard search listing
 - Basic contact information
 
+## Homepage Sections
+
+### Featured Treatment Centers
+- Shows up to 24 featured facilities
+- Prioritizes facilities based on user's location
+- Horizontal carousel with 3 facilities per slide
+- Smooth sliding transitions
+- Location-aware messaging
+- Navigation controls and pagination
+
+### Recent Treatment Centers
+- Shows all approved facilities
+- Excludes pending/rejected/archived facilities
+- Paginated grid layout
+- Filter and search capabilities
+
 ## User Roles & Permissions
 
 ### Admin
@@ -59,6 +75,7 @@ This project follows a strict design system defined in `docs/DESIGN_SYSTEM.md`. 
 - Firebase account
 - Stripe account
 - Firebase CLI (for storage configuration)
+- Google Maps API key (for location services)
 
 ## Setup Instructions
 
@@ -77,7 +94,7 @@ npm install
 Create a `.env` file in the project root with the following variables:
 
 ```env
-# Firebase Configuration (from Firebase Console)
+# Firebase Configuration
 VITE_FIREBASE_API_KEY=
 VITE_FIREBASE_AUTH_DOMAIN=
 VITE_FIREBASE_PROJECT_ID=
@@ -86,9 +103,12 @@ VITE_FIREBASE_MESSAGING_SENDER_ID=
 VITE_FIREBASE_APP_ID=
 VITE_FIREBASE_MEASUREMENT_ID=
 
-# Stripe Configuration (from Stripe Dashboard)
+# Stripe Configuration
 VITE_STRIPE_PUBLIC_KEY=
 VITE_STRIPE_PRICE_ID=
+
+# Google Maps Configuration
+VITE_GOOGLE_MAPS_API_KEY=
 ```
 
 ### 4. Firebase Setup
@@ -112,12 +132,18 @@ See `docs/PHOTO_UPLOAD.md` for detailed storage configuration.
 3. Get your public and secret keys
 4. Configure webhook endpoints for subscription management
 
-### 6. Development
+### 6. Google Maps Setup
+1. Create a Google Cloud project
+2. Enable Maps JavaScript API and Geocoding API
+3. Create API credentials
+4. Add the API key to your environment variables
+
+### 7. Development
 ```bash
 npm run dev
 ```
 
-### 7. Build for Production
+### 8. Build for Production
 ```bash
 npm run build
 ```
@@ -125,19 +151,19 @@ npm run build
 ## Project Structure
 - `src/`: Frontend React application
   - `components/`: React components
-    - `ImageCarousel/`: Image slideshow component (verified listings)
+    - `FeaturedCarousel/`: Location-based carousel component
+    - `ImageCarousel/`: Image slideshow component
     - `RehabCard/`: Facility card component
     - `EditListingModal/`: Facility editing modal
   - `pages/`: Page components
   - `services/`: Service modules (Firebase, Storage, etc.)
+  - `hooks/`: Custom React hooks
   - `types/`: TypeScript type definitions
   - `utils/`: Utility functions
 - `server/`: Backend server logic
 - `netlify/`: Serverless functions
 - `prisma/`: Database schema
 - `docs/`: Project documentation
-  - `DESIGN_SYSTEM.md`: Design system guidelines
-  - `PHOTO_UPLOAD.md`: Photo upload system documentation
 
 ## Key Features
 
@@ -146,10 +172,6 @@ npm run build
 - Location-based results
 - Treatment type categorization
 - Amenity filtering
-
-### Homepage Sections
-- Featured Treatment Centers: Shows facilities marked as featured
-- Recent Treatment Centers: Shows all approved facilities (excluding pending/rejected/archived)
 
 ### Listing Management
 - Different display rules for verified/unverified listings
@@ -163,7 +185,12 @@ npm run build
 - Single photo for unverified listings
 - Drag and drop support
 - Progress tracking
-- See `docs/PHOTO_UPLOAD.md` for details
+
+### Location Services
+- User location detection
+- Location-based facility sorting
+- Geocoding integration
+- Location-aware messaging
 
 ### Payment Integration
 - Stripe subscription management

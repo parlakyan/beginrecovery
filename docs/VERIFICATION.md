@@ -30,10 +30,14 @@ Basic features available to free listings:
 ## Homepage Display
 
 ### Featured Treatment Centers
-- Shows facilities marked as featured
+- Shows up to 24 featured facilities
+- Prioritizes facilities based on user's location
+- Horizontal carousel with 3 facilities per slide
+- Smooth sliding transitions
+- Location-aware messaging
+- Navigation controls and pagination
 - Requires approved moderation status
-- Ordered by creation date (newest first)
-- Carousel with 3 facilities per page
+- Ordered by location proximity and rating
 
 ### Recent Treatment Centers
 - Shows all approved facilities
@@ -48,7 +52,20 @@ Basic features available to free listings:
 - Updated via Stripe webhook on successful payment
 - Preserved during moderation status changes
 
+### Location Services
+- Automatic user location detection
+- Geocoding for facility addresses
+- Location-based facility sorting
+- Graceful fallback when location unavailable
+
 ### Component Behavior
+
+#### FeaturedCarousel
+- Shows 3 facilities at a time
+- Smooth sliding transitions
+- Navigation controls
+- Pagination indicators
+- Location-aware display
 
 #### RehabCard
 - Shows verification badge
@@ -70,6 +87,7 @@ Basic features available to free listings:
 - Subscription status tracking
 - Payment webhook handling
 - Status change handling
+- Location state management
 
 ## Verification Process
 
@@ -99,6 +117,8 @@ Basic features available to free listings:
 3. Test status changes via webhook
 4. Test status preservation during moderation
 5. Test feature visibility changes
+6. Test location-based sorting
+7. Test carousel functionality
 
 ### Component Testing
 1. RehabCard display modes
@@ -106,6 +126,8 @@ Basic features available to free listings:
 3. ContactBox options
 4. Feature visibility
 5. Badge display
+6. Location detection
+7. Carousel navigation
 
 ## Security
 
@@ -129,6 +151,7 @@ Basic features available to free listings:
 3. Clear status indicators
 4. Proper error handling
 5. Status change validation
+6. Location fallback handling
 
 ### UI/UX
 1. Clear verification indicators
@@ -136,6 +159,7 @@ Basic features available to free listings:
 3. Smooth status transitions
 4. Clear upgrade prompts
 5. Status-appropriate messaging
+6. Location-aware content
 
 ### Testing
 1. Test both states
@@ -143,6 +167,7 @@ Basic features available to free listings:
 3. Check status transitions
 4. Validate security
 5. Test edge cases
+6. Test location scenarios
 
 ## Troubleshooting
 
@@ -151,6 +176,7 @@ Basic features available to free listings:
 2. Status inconsistencies
 3. Feature visibility issues
 4. Payment webhook failures
+5. Location detection issues
 
 ### Solutions
 1. Check webhook logs
@@ -158,6 +184,7 @@ Basic features available to free listings:
 3. Clear cache/reload
 4. Check security rules
 5. Validate payment status
+6. Check location permissions
 
 ## Future Improvements
 1. Granular feature control
@@ -165,3 +192,4 @@ Basic features available to free listings:
 3. Trial periods
 4. Bulk verification
 5. Enhanced analytics
+6. Advanced location filtering
