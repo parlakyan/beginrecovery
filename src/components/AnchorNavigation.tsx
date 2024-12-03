@@ -3,22 +3,34 @@ import React, { useState, useEffect } from 'react';
 interface Section {
   id: string;
   label: string;
+  isVisible: boolean;
 }
 
 interface AnchorNavigationProps {
   sections: Section[];
+  className?: string;
 }
 
-export default function AnchorNavigation({ sections }: AnchorNavigationProps) {
+export default function AnchorNavigation({ sections, className = '' }: AnchorNavigationProps) {
   const [activeSection, setActiveSection] = useState<string>(sections[0]?.id || '');
+  const [isSticky, setIsSticky] = useState(false);
+  const visibleSections = sections.filter(section => section.isVisible);
 
   useEffect(() => {
     const handleScroll = () => {
+      // Check if nav should be sticky
+      const nav = document.getElementById('anchor-nav');
+      if (nav) {
+        const navTop = nav.getBoundingClientRect().top;
+        setIsSticky(navTop <= 0);
+      }
+
+      // Check active section
       const pageTop = window.scrollY;
       const pageBottom = pageTop + window.innerHeight;
       const offset = 100; // Offset for better UX
 
-      for (const section of sections) {
+      for (const section of visibleSections) {
         const element = document.getElementById(section.id);
         if (element) {
           const elementTop = element.offsetTop - offset;
@@ -34,7 +46,7 @@ export default function AnchorNavigation({ sections }: AnchorNavigationProps) {
 
     window.addEventListener('scroll', handleScroll);
     return () => window.removeEventListener('scroll', handleScroll);
-  }, [sections]);
+  }, [visibleSections]);
 
   const scrollToSection = (id: string) => {
     const element = document.getElementById(id);
@@ -51,10 +63,15 @@ export default function AnchorNavigation({ sections }: AnchorNavigationProps) {
   };
 
   return (
-    <nav className="sticky top-[80px] bg-white border-b z-40">
-      <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
+    <nav 
+      id="anchor-nav"
+      className={`bg-white border-b z-40 transition-all ${
+        isSticky ? 'fixed top-[80px] left-0 right-0' : ''
+      } ${className}`}
+    >
+      <div className={`${isSticky ? 'max-w-7xl mx-auto px-4 sm:px-6 lg:px-8' : ''}`}>
         <div className="flex space-x-8 overflow-x-auto hide-scrollbar">
-          {sections.map(section => (
+          {visibleSections.map(section => (
             <button
               key={section.id}
               onClick={() => scrollToSection(section.id)}

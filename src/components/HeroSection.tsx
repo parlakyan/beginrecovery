@@ -1,6 +1,6 @@
 import React, { useState } from 'react';
-import { useNavigate } from 'react-router-dom';
 import { Search, Shield, MapPin, Clock } from 'lucide-react';
+import { useNavigate } from 'react-router-dom';
 
 interface HeroSectionProps {
   onOpenFilters?: () => void;
@@ -27,7 +27,7 @@ export default function HeroSection({ onOpenFilters }: HeroSectionProps) {
   };
 
   return (
-    <div className="relative min-h-[80vh] flex items-center">
+    <div id="hero-section" className="relative min-h-[80vh] flex items-center">
       {/* Background with overlay */}
       <div className="absolute inset-0 overflow-hidden">
         <div className="absolute inset-0 bg-[url('https://images.unsplash.com/photo-1536152470836-b943b246224c?auto=format&fit=crop&q=80')] bg-cover bg-center" />

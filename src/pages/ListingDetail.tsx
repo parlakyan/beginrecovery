@@ -16,13 +16,13 @@ import AnchorNavigation from '../components/AnchorNavigation';
 import { Button, Tag } from '../components/ui';
 import EditListingModal from '../components/EditListingModal';
 
-const sections = [
-  { id: 'about', label: 'About' },
-  { id: 'amenities', label: 'Amenities & Services' },
-  { id: 'certifications', label: 'Certifications' },
-  { id: 'reviews', label: 'Reviews' },
-  { id: 'staff', label: 'Staff' },
-  { id: 'location', label: 'Location' }
+const getSections = (isVerified: boolean) => [
+  { id: 'about', label: 'About', isVisible: true },
+  { id: 'amenities', label: 'Amenities & Services', isVisible: true },
+  { id: 'certifications', label: 'Certifications', isVisible: isVerified },
+  { id: 'reviews', label: 'Reviews', isVisible: true },
+  { id: 'staff', label: 'Staff', isVisible: isVerified },
+  { id: 'location', label: 'Location', isVisible: true }
 ];
 
 export default function ListingDetail() {
@@ -187,6 +187,8 @@ export default function ListingDetail() {
     return null;
   }
 
+  const sections = getSections(facility.isVerified);
+
   return (
     <div className="min-h-screen bg-gray-50 flex flex-col">
       <Header />
@@ -244,63 +246,68 @@ export default function ListingDetail() {
           )}
         </div>
 
-        {/* Basic Info Box */}
-        <div className="relative max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 -mt-16 z-10">
-          <div className="bg-white rounded-lg shadow-lg p-6">
-            <div className="flex flex-col md:flex-row md:items-start md:justify-between gap-4">
-              <div className="flex-1">
-                <h1 className="text-3xl font-bold text-gray-900 mb-4">{facility.name}</h1>
-                
-                {/* Location and Hours */}
-                <div className="flex flex-row gap-6">
-                  <div className="flex items-center text-gray-600">
-                    <MapPin className="w-5 h-5 mr-2 flex-shrink-0" />
-                    <span>{facility.location}</span>
-                  </div>
-                  <div className="flex items-center text-gray-600">
-                    <Clock className="w-5 h-5 mr-2 flex-shrink-0" />
-                    <span>Open 24/7</span>
-                  </div>
-                </div>
-              </div>
-
-              {/* Reviews Summary */}
-              <div className="flex flex-col items-center bg-surface px-6 py-4 rounded-lg">
-                <div className="flex items-center gap-2 mb-1">
-                  <Star className="w-6 h-6 text-yellow-400 fill-current" />
-                  <span className="text-2xl font-bold">{facility.rating.toFixed(1)}</span>
-                </div>
-                <div className="text-center">
-                  <div className="font-medium text-gray-900">Excellent</div>
-                  <div className="text-sm text-gray-600">{facility.reviewCount} reviews</div>
-                </div>
-              </div>
-            </div>
-          </div>
-        </div>
-
-        {/* Anchor Navigation */}
-        <AnchorNavigation sections={sections} />
-
-        <div className="relative max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
+        <div className="relative max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 -mt-16 pb-24">
           <div className="grid grid-cols-1 lg:grid-cols-3 gap-8">
             {/* Main Content */}
             <div className="lg:col-span-2 space-y-8">
-              {/* About Section */}
-              <div id="about" className="bg-white rounded-lg shadow-lg p-6">
-                <h2 className="text-xl font-semibold mb-4">About This Facility</h2>
-                <p className="text-gray-600">{facility.description}</p>
-              </div>
+              {/* Basic Info */}
+              <div className="bg-white rounded-lg shadow-lg p-6">
+                <div className="flex flex-col md:flex-row md:items-start md:justify-between gap-4">
+                  <div className="flex-1">
+                    <h1 className="text-3xl font-bold text-gray-900 mb-4">{facility.name}</h1>
+                    
+                    {/* Location and Hours */}
+                    <div className="flex flex-row gap-6">
+                      <div className="flex items-center text-gray-600">
+                        <MapPin className="w-5 h-5 mr-2 flex-shrink-0" />
+                        <span>{facility.location}</span>
+                      </div>
+                      <div className="flex items-center text-gray-600">
+                        <Clock className="w-5 h-5 mr-2 flex-shrink-0" />
+                        <span>Open 24/7</span>
+                      </div>
+                    </div>
+                  </div>
 
-              {/* Amenities Section */}
-              <div id="amenities" className="bg-white rounded-lg shadow-lg p-6">
-                <h2 className="text-xl font-semibold mb-4">Amenities & Services</h2>
-                <div className="flex flex-wrap gap-2">
-                  {facility.amenities.map((amenity: string, index: number) => (
-                    <Tag key={index} variant="primary">{amenity}</Tag>
+                  {/* Reviews Summary */}
+                  <div className="flex flex-col items-center bg-surface px-6 py-4 rounded-lg">
+                    <div className="flex items-center gap-2 mb-1">
+                      <Star className="w-6 h-6 text-yellow-400 fill-current" />
+                      <span className="text-2xl font-bold">{facility.rating.toFixed(1)}</span>
+                    </div>
+                    <div className="text-center">
+                      <div className="font-medium text-gray-900">Excellent</div>
+                      <div className="text-sm text-gray-600">{facility.reviewCount} reviews</div>
+                    </div>
+                  </div>
+                </div>
+
+                {/* Tags */}
+                <div className="mt-6 flex flex-wrap gap-2">
+                  {facility.tags.map((tag: string, index: number) => (
+                    <Tag key={index} variant="secondary">{tag}</Tag>
                   ))}
                 </div>
+
+                {/* Description */}
+                <div id="about" className="mt-6">
+                  <h2 className="text-xl font-semibold mb-4">About This Facility</h2>
+                  <p className="text-gray-600">{facility.description}</p>
+                </div>
+
+                {/* Amenities */}
+                <div id="amenities" className="mt-8">
+                  <h2 className="text-xl font-semibold mb-4">Amenities & Services</h2>
+                  <div className="flex flex-wrap gap-2">
+                    {facility.amenities.map((amenity: string, index: number) => (
+                      <Tag key={index} variant="primary">{amenity}</Tag>
+                    ))}
+                  </div>
+                </div>
               </div>
+
+              {/* Anchor Navigation */}
+              <AnchorNavigation sections={sections} className="lg:col-span-2" />
 
               {/* Certifications Section - Only for verified facilities */}
               {facility.isVerified && (
