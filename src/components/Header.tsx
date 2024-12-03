@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useRef } from 'react';
 import { Link, useNavigate, useLocation } from 'react-router-dom';
 import { Menu, X, User, Loader2, LayoutGrid, Search } from 'lucide-react';
 import { useAuthStore } from '../store/authStore';
@@ -12,6 +12,7 @@ export default function Header() {
   const [searchQuery, setSearchQuery] = useState('');
   const [showSearch, setShowSearch] = useState(false);
   const isHomePage = location.pathname === '/';
+  const searchInputRef = useRef<HTMLInputElement>(null);
 
   useEffect(() => {
     // Get search query from URL if present
@@ -25,10 +26,11 @@ export default function Header() {
   useEffect(() => {
     if (isHomePage) {
       const handleScroll = () => {
-        const heroSection = document.getElementById('hero-section');
-        if (heroSection) {
-          const heroBottom = heroSection.offsetTop + heroSection.offsetHeight;
-          setShowSearch(window.scrollY > heroBottom);
+        const heroSearchInput = document.querySelector('.hero-search-input');
+        if (heroSearchInput) {
+          const rect = heroSearchInput.getBoundingClientRect();
+          const isSearchVisible = rect.top > 0 && rect.bottom <= window.innerHeight;
+          setShowSearch(!isSearchVisible);
         }
       };
 
@@ -65,23 +67,30 @@ export default function Header() {
           </Link>
 
           {/* Search Bar */}
-          {(showSearch || !isHomePage) && (
-            <form 
-              onSubmit={handleSearch}
-              className="hidden md:flex flex-1 max-w-xl mx-8"
-            >
-              <div className="relative w-full">
-                <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-400 w-5 h-5" />
-                <input
-                  type="search"
-                  placeholder="Search treatment centers..."
-                  value={searchQuery}
-                  onChange={(e) => setSearchQuery(e.target.value)}
-                  className="w-full pl-10 pr-4 py-2 rounded-lg border border-gray-200 focus:ring-2 focus:ring-blue-500 focus:border-transparent"
-                />
-              </div>
-            </form>
-          )}
+          <form 
+            onSubmit={handleSearch}
+            className={`hidden md:flex flex-1 max-w-xl mx-8 transition-opacity duration-300 ${
+              showSearch ? 'opacity-100' : 'opacity-0 pointer-events-none'
+            }`}
+          >
+            <div className="relative w-full">
+              <Search className="absolute left-4 top-1/2 transform -translate-y-1/2 text-gray-900 w-5 h-5" />
+              <input
+                ref={searchInputRef}
+                type="search"
+                placeholder="Search treatment centers..."
+                value={searchQuery}
+                onChange={(e) => setSearchQuery(e.target.value)}
+                className="w-full pl-12 pr-32 py-4 rounded-xl bg-white shadow-lg text-gray-800 placeholder-gray-400 focus:ring-2 focus:ring-blue-400 outline-none transition-shadow duration-200"
+              />
+              <button 
+                type="submit"
+                className="absolute right-2 top-1/2 -translate-y-1/2 bg-blue-600 text-white px-6 py-2 rounded-lg hover:bg-blue-700 transition-all duration-200"
+              >
+                Search
+              </button>
+            </div>
+          </form>
 
           {/* Desktop Navigation */}
           <nav className="hidden md:flex items-center gap-8">
@@ -132,17 +141,17 @@ export default function Header() {
         {isMobileMenuOpen && (
           <div className="md:hidden border-t">
             {/* Search Bar - Mobile */}
-            {(showSearch || !isHomePage) && (
+            {showSearch && (
               <div className="p-4">
                 <form onSubmit={handleSearch}>
                   <div className="relative">
-                    <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-400 w-5 h-5" />
+                    <Search className="absolute left-4 top-1/2 transform -translate-y-1/2 text-gray-900 w-5 h-5" />
                     <input
                       type="search"
                       placeholder="Search treatment centers..."
                       value={searchQuery}
                       onChange={(e) => setSearchQuery(e.target.value)}
-                      className="w-full pl-10 pr-4 py-2 rounded-lg border border-gray-200 focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+                      className="w-full pl-12 pr-4 py-4 rounded-xl bg-white shadow-lg text-gray-800 placeholder-gray-400 focus:ring-2 focus:ring-blue-400 outline-none"
                     />
                   </div>
                 </form>

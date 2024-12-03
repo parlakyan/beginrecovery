@@ -50,14 +50,14 @@ export default function HeroSection({ onOpenFilters }: HeroSectionProps) {
           </p>
 
           <form onSubmit={handleSearch} className="relative max-w-2xl animate-fade-in-delay-2">
-            <Search className="absolute left-4 top-1/2 -translate-y-1/2 text-gray-400 w-5 h-5" />
+            <Search className="absolute left-4 top-1/2 -translate-y-1/2 text-gray-900 w-5 h-5" />
             <input
               type="text"
               value={searchQuery}
               onChange={(e) => setSearchQuery(e.target.value)}
               onKeyPress={handleKeyPress}
               placeholder="Search by location or treatment type..."
-              className="w-full pl-12 pr-32 py-4 rounded-xl bg-white shadow-lg text-gray-800 placeholder-gray-400 focus:ring-2 focus:ring-blue-400 outline-none"
+              className="hero-search-input w-full pl-12 pr-32 py-4 rounded-xl bg-white shadow-lg text-gray-800 placeholder-gray-400 focus:ring-2 focus:ring-blue-400 outline-none transition-shadow duration-200"
             />
             <button 
               type="submit"
