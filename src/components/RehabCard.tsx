@@ -60,7 +60,7 @@ export default function RehabCard({ facility, onEdit, showOwnerControls = false 
 
       // Update facility status
       await facilitiesService.updateFacility(facility.id, {
-        subscriptionId: '',
+        subscriptionId: undefined, // Changed from empty string to undefined
         isVerified: false
       });
 

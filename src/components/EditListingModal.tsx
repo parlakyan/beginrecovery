@@ -99,7 +99,19 @@ const EditListingModal = ({ facility, isOpen, onClose, onSave }: EditListingModa
     try {
       setLoading(true);
       await onSave({
-        ...data,
+        name: data.name,
+        description: data.description,
+        location: data.location,
+        coordinates: data.coordinates,
+        phone: data.phone,
+        email: data.email,
+        highlights: data.highlights,
+        tags: data.treatmentTypes, // Map treatmentTypes to tags
+        substances: data.substances,
+        amenities: data.amenities,
+        insurance: data.insurance,
+        accreditation: data.accreditation,
+        languages: data.languages,
         images: formData.images,
         logo: formData.logo
       });

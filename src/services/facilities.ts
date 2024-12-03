@@ -461,20 +461,35 @@ export const facilitiesService = {
   async updateFacility(id: string, data: Partial<Facility>) {
     try {
       const facilityRef = doc(db, FACILITIES_COLLECTION, id);
-      const updateData = {
-        ...data,
-        updatedAt: serverTimestamp()
-      };
+      
+      // Create a clean update object without undefined values
+      const cleanData = Object.entries(data).reduce((acc, [key, value]) => {
+        if (value !== undefined) {
+          acc[key] = value;
+        }
+        return acc;
+      }, {} as Record<string, any>);
 
+      // Add server timestamp
+      cleanData.updatedAt = serverTimestamp();
+
+      // Update slug if name or location changed
       if (data.name || data.location) {
         const facilityDoc = await getDoc(facilityRef);
         const currentData = facilityDoc.data();
         const name = data.name || currentData?.name;
         const location = data.location || currentData?.location;
-        updateData.slug = generateSlug(name, location);
+        cleanData.slug = generateSlug(name, location);
       }
 
-      await updateDoc(facilityRef, updateData);
+      // Convert null values to undefined to prevent Firebase errors
+      Object.keys(cleanData).forEach(key => {
+        if (cleanData[key] === null) {
+          cleanData[key] = undefined;
+        }
+      });
+
+      await updateDoc(facilityRef, cleanData);
       return true;
     } catch (error) {
       console.error('Error updating facility:', error);
