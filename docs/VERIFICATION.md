@@ -27,6 +27,20 @@ Basic features available to free listings:
 3. Standard search listing
 4. Basic contact information
 
+## Homepage Display
+
+### Featured Treatment Centers
+- Shows facilities marked as featured
+- Requires approved moderation status
+- Ordered by creation date (newest first)
+- Carousel with 3 facilities per page
+
+### Recent Treatment Centers
+- Shows all approved facilities
+- Excludes facilities with pending/rejected/archived status
+- Ordered by rating and creation date
+- Paginated with 12 facilities per page
+
 ## Implementation Details
 
 ### Verification Status

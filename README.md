@@ -147,6 +147,10 @@ npm run build
 - Treatment type categorization
 - Amenity filtering
 
+### Homepage Sections
+- Featured Treatment Centers: Shows facilities marked as featured
+- Recent Treatment Centers: Shows all approved facilities (excluding pending/rejected/archived)
+
 ### Listing Management
 - Different display rules for verified/unverified listings
 - Moderation system (pending/approved/rejected/archived)

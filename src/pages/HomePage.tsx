@@ -11,6 +11,7 @@ import InsuranceSection from '../components/InsuranceSection';
 import LocationBrowser from '../components/LocationBrowser';
 import CoreValues from '../components/CoreValues';
 import EditListingModal from '../components/EditListingModal';
+import FeaturedCarousel from '../components/FeaturedCarousel';
 
 const defaultFilters = {
   treatmentTypes: [],
@@ -116,15 +117,10 @@ export default function HomePage() {
                   Filter Results
                 </button>
               </div>
-              <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6 max-w-6xl mx-auto">
-                {featuredFacilities.map((facility) => (
-                  <RehabCard 
-                    key={facility.id} 
-                    facility={facility} 
-                    onEdit={setEditingFacility}
-                  />
-                ))}
-              </div>
+              <FeaturedCarousel 
+                facilities={featuredFacilities}
+                onEdit={setEditingFacility}
+              />
             </div>
           </section>
         )}
@@ -138,7 +134,7 @@ export default function HomePage() {
             <div className="flex justify-between items-center mb-12">
               <div className="text-center md:text-left">
                 <h2 className="text-3xl font-bold mb-2">Recent Treatment Centers</h2>
-                <p className="text-gray-600">Browse our latest verified rehabilitation facilities</p>
+                <p className="text-gray-600">Browse our latest rehabilitation facilities</p>
               </div>
               <button 
                 onClick={() => setIsFiltersOpen(true)}
