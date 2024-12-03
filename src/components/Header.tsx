@@ -1,6 +1,6 @@
 import React, { useState } from 'react';
 import { Link, useNavigate, useLocation } from 'react-router-dom';
-import { Menu, X, LogOut, User, Loader2, LayoutGrid, Search } from 'lucide-react';
+import { Menu, X, LogOut, User, Loader2, LayoutGrid } from 'lucide-react';
 import { useAuthStore } from '../store/authStore';
 import Logo from './Logo';
 
@@ -13,7 +13,6 @@ import Logo from './Logo';
  * - User authentication status
  * - Admin dashboard access
  * - Mobile menu
- * - Search functionality
  * 
  * Admin Access:
  * - Shows admin dashboard link when user.role === 'admin'
@@ -24,7 +23,6 @@ export default function Header() {
   const navigate = useNavigate();
   const location = useLocation();
   const [isMobileMenuOpen, setIsMobileMenuOpen] = useState(false);
-  const [searchQuery, setSearchQuery] = useState('');
 
   // Log user role for debugging
   React.useEffect(() => {
@@ -64,16 +62,6 @@ export default function Header() {
     }
   };
 
-  /**
-   * Handles search submission
-   */
-  const handleSearch = (e: React.FormEvent) => {
-    e.preventDefault();
-    if (searchQuery.trim()) {
-      navigate(`/search?q=${encodeURIComponent(searchQuery.trim())}`);
-    }
-  };
-
   return (
     <header className="bg-white border-b sticky top-0 z-50">
       <div className="container mx-auto px-4">
@@ -83,28 +71,11 @@ export default function Header() {
             <Logo />
           </Link>
 
-          {/* Search Bar - Desktop */}
-          <form 
-            onSubmit={handleSearch}
-            className="hidden md:flex flex-1 max-w-xl mx-8"
-          >
-            <div className="relative w-full">
-              <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-400 w-5 h-5" />
-              <input
-                type="search"
-                placeholder="Search treatment centers..."
-                value={searchQuery}
-                onChange={(e) => setSearchQuery(e.target.value)}
-                className="w-full pl-10 pr-4 py-2 rounded-lg border border-gray-200 focus:ring-2 focus:ring-blue-500 focus:border-transparent"
-              />
-            </div>
-          </form>
-
           {/* Desktop Navigation */}
           <nav className="hidden md:flex items-center gap-6">
-            <Link to="/search" className="text-gray-600 hover:text-blue-600">Browse Centers</Link>
             <Link to="/resources" className="text-gray-600 hover:text-blue-600">Resources</Link>
             <Link to="/insurance" className="text-gray-600 hover:text-blue-600">Insurance</Link>
+            <Link to="/about" className="text-gray-600 hover:text-blue-600">About Us</Link>
             {/* Admin Dashboard Link - Only visible for admin users */}
             {user?.role === 'admin' && (
               <Link 
@@ -166,30 +137,7 @@ export default function Header() {
         {/* Mobile Menu */}
         {isMobileMenuOpen && (
           <div className="md:hidden border-t">
-            {/* Search Bar - Mobile */}
-            <div className="p-4">
-              <form onSubmit={handleSearch}>
-                <div className="relative">
-                  <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-400 w-5 h-5" />
-                  <input
-                    type="search"
-                    placeholder="Search treatment centers..."
-                    value={searchQuery}
-                    onChange={(e) => setSearchQuery(e.target.value)}
-                    className="w-full pl-10 pr-4 py-2 rounded-lg border border-gray-200 focus:ring-2 focus:ring-blue-500 focus:border-transparent"
-                  />
-                </div>
-              </form>
-            </div>
-
             <nav className="py-4 space-y-2">
-              <Link 
-                to="/search" 
-                className="block px-4 py-2 text-gray-600 hover:bg-gray-50"
-                onClick={() => setIsMobileMenuOpen(false)}
-              >
-                Browse Centers
-              </Link>
               <Link 
                 to="/resources" 
                 className="block px-4 py-2 text-gray-600 hover:bg-gray-50"
@@ -203,6 +151,13 @@ export default function Header() {
                 onClick={() => setIsMobileMenuOpen(false)}
               >
                 Insurance
+              </Link>
+              <Link 
+                to="/about" 
+                className="block px-4 py-2 text-gray-600 hover:bg-gray-50"
+                onClick={() => setIsMobileMenuOpen(false)}
+              >
+                About Us
               </Link>
               {/* Admin Dashboard Link - Only visible for admin users */}
               {user?.role === 'admin' && (
