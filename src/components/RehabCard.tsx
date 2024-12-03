@@ -24,6 +24,7 @@ export default function RehabCard({ facility, onEdit }: RehabCardProps) {
   const { user } = useAuthStore();
   const isOwner = user?.id === facility.ownerId;
   const isAdmin = user?.role === 'admin';
+  const canEdit = (isOwner || isAdmin) && onEdit !== undefined;
 
   const handleNavigation = () => {
     window.scrollTo(0, 0);
@@ -100,12 +101,20 @@ export default function RehabCard({ facility, onEdit }: RehabCardProps) {
   return (
     <div className="group bg-white rounded-2xl shadow-md hover:shadow-xl transition-all duration-300 overflow-hidden cursor-pointer border border-gray-100 flex flex-col h-full">
       <div className="relative h-[240px] flex-shrink-0">
-        <ImageCarousel 
-          images={facility.images} 
-          showNavigation={facility.images.length > 1}
-          onImageClick={handleNavigation}
-          paginationPosition="bottom"
-        />
+        {facility.isVerified ? (
+          <ImageCarousel 
+            images={facility.images} 
+            showNavigation={facility.images.length > 1}
+            onImageClick={handleNavigation}
+            paginationPosition="bottom"
+          />
+        ) : (
+          <div 
+            className="w-full h-full bg-cover bg-center"
+            style={{ backgroundImage: `url(${facility.images[0] || ''})` }}
+            onClick={handleNavigation}
+          />
+        )}
         <VerificationBadge />
         <ModerationBadge />
         <div className="absolute top-4 right-4 bg-white/90 backdrop-blur-sm px-3 py-1 rounded-full flex items-center gap-1 shadow-lg z-20">
@@ -164,7 +173,7 @@ export default function RehabCard({ facility, onEdit }: RehabCardProps) {
         {/* Actions at the bottom */}
         <div className="mt-auto">
           {/* Owner Actions - Stacked vertically */}
-          {isOwner && (
+          {canEdit && (
             <div className="flex flex-col gap-2 mb-4">
               <button 
                 onClick={handleEdit}
@@ -173,7 +182,7 @@ export default function RehabCard({ facility, onEdit }: RehabCardProps) {
                 <Edit className="w-4 h-4" />
                 Edit Facility
               </button>
-              {!facility.isVerified && (
+              {isOwner && !facility.isVerified && (
                 <button 
                   onClick={handleUpgrade}
                   className="w-full bg-blue-600 text-white py-2 rounded-lg hover:bg-blue-700 transition-all duration-200 flex items-center justify-center gap-2"
