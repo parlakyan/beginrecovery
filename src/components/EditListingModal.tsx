@@ -4,7 +4,7 @@ import { X } from 'lucide-react';
 import { Facility } from '../types';
 import PhotoUpload from './PhotoUpload';
 import AddressAutocomplete from './AddressAutocomplete';
-import MultiSelect from './ui/MultiSelect';
+import DropdownSelect from './ui/DropdownSelect';
 
 interface EditListingModalProps {
   facility: Facility;
@@ -38,7 +38,7 @@ const EditListingModal = ({ facility, isOpen, onClose, onSave }: EditListingModa
     images: []
   });
 
-  // Watch form values for MultiSelect components
+  // Watch form values for DropdownSelect components
   const treatmentTypes = watch('treatmentTypes', []);
   const amenities = watch('amenities', []);
   const insurance = watch('insurance', []);
@@ -78,9 +78,7 @@ const EditListingModal = ({ facility, isOpen, onClose, onSave }: EditListingModa
       setLoading(true);
       await onSave({
         ...data,
-        images: formData.images,
-        tags: data.treatmentTypes,
-        insurance: data.insurance
+        images: formData.images
       });
       onClose();
     } catch (error) {
@@ -183,7 +181,7 @@ const EditListingModal = ({ facility, isOpen, onClose, onSave }: EditListingModa
           </div>
 
           <div>
-            <label className="block text-sm font-medium text-gray-700 mb-2">
+            <label className="block text-sm font-medium text-gray-700 mb-1">
               Photos
             </label>
             <PhotoUpload
@@ -194,29 +192,32 @@ const EditListingModal = ({ facility, isOpen, onClose, onSave }: EditListingModa
             />
           </div>
 
-          <MultiSelect
-            label="Treatment Types"
-            type="treatment"
-            value={treatmentTypes}
-            onChange={(values) => setValue('treatmentTypes', values)}
-            error={errors.treatmentTypes?.message}
-          />
+          {/* Collection Inputs */}
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+            <DropdownSelect
+              label="Treatment Types"
+              type="treatmentTypes"
+              value={treatmentTypes}
+              onChange={(values) => setValue('treatmentTypes', values)}
+              error={errors.treatmentTypes?.message}
+            />
 
-          <MultiSelect
-            label="Amenities"
-            type="amenity"
-            value={amenities}
-            onChange={(values) => setValue('amenities', values)}
-            error={errors.amenities?.message}
-          />
+            <DropdownSelect
+              label="Amenities"
+              type="amenities"
+              value={amenities}
+              onChange={(values) => setValue('amenities', values)}
+              error={errors.amenities?.message}
+            />
 
-          <MultiSelect
-            label="Insurance Accepted"
-            type="insurance"
-            value={insurance}
-            onChange={(values) => setValue('insurance', values)}
-            error={errors.insurance?.message}
-          />
+            <DropdownSelect
+              label="Insurance Accepted"
+              type="insurance"
+              value={insurance}
+              onChange={(values) => setValue('insurance', values)}
+              error={errors.insurance?.message}
+            />
+          </div>
 
           <div className="flex justify-end gap-4 pt-4 border-t">
             <button

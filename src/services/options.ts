@@ -1,59 +1,30 @@
 import { collection, getDocs, query, orderBy } from 'firebase/firestore';
 import { db } from '../lib/firebase';
+import { CollectionType } from '../types';
 
-// Collection names
-const TREATMENT_OPTIONS_COLLECTION = 'treatmentOptions';
-const AMENITY_OPTIONS_COLLECTION = 'amenityOptions';
-const INSURANCE_OPTIONS_COLLECTION = 'insuranceOptions';
+// Collection names mapping
+const COLLECTION_NAMES: Record<CollectionType, string> = {
+  treatmentTypes: 'treatmentOptions',
+  amenities: 'amenityOptions',
+  insurance: 'insuranceOptions'
+};
 
 /**
- * Service for managing facility options (treatments, amenities, insurance)
+ * Service for managing facility options
  */
 export const optionsService = {
   /**
-   * Get all treatment type options
+   * Get options for a specific collection
    */
-  async getTreatmentOptions() {
+  async getOptions(type: CollectionType) {
     try {
-      console.log('Fetching treatment options');
-      const optionsRef = collection(db, TREATMENT_OPTIONS_COLLECTION);
+      console.log(`Fetching ${type} options`);
+      const optionsRef = collection(db, COLLECTION_NAMES[type]);
       const q = query(optionsRef, orderBy('name'));
       const snapshot = await getDocs(q);
       return snapshot.docs.map(doc => doc.data().name as string);
     } catch (error) {
-      console.error('Error getting treatment options:', error);
-      return [];
-    }
-  },
-
-  /**
-   * Get all amenity options
-   */
-  async getAmenityOptions() {
-    try {
-      console.log('Fetching amenity options');
-      const optionsRef = collection(db, AMENITY_OPTIONS_COLLECTION);
-      const q = query(optionsRef, orderBy('name'));
-      const snapshot = await getDocs(q);
-      return snapshot.docs.map(doc => doc.data().name as string);
-    } catch (error) {
-      console.error('Error getting amenity options:', error);
-      return [];
-    }
-  },
-
-  /**
-   * Get all insurance options
-   */
-  async getInsuranceOptions() {
-    try {
-      console.log('Fetching insurance options');
-      const optionsRef = collection(db, INSURANCE_OPTIONS_COLLECTION);
-      const q = query(optionsRef, orderBy('name'));
-      const snapshot = await getDocs(q);
-      return snapshot.docs.map(doc => doc.data().name as string);
-    } catch (error) {
-      console.error('Error getting insurance options:', error);
+      console.error(`Error getting ${type} options:`, error);
       return [];
     }
   },

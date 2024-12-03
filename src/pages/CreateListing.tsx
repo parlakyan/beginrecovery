@@ -3,14 +3,13 @@ import { useForm } from 'react-hook-form';
 import { useNavigate } from 'react-router-dom';
 import { Building2, Loader2 } from 'lucide-react';
 import { useAuthStore } from '../store/authStore';
-import { facilitiesService } from '../services/firebase';
-import { usersService } from '../services/firebase';
+import { facilitiesService, usersService } from '../services/firebase';
 import { Facility } from '../types';
 import Header from '../components/Header';
 import Footer from '../components/Footer';
 import PhotoUpload from '../components/PhotoUpload';
 import AddressAutocomplete from '../components/AddressAutocomplete';
-import MultiSelect from '../components/ui/MultiSelect';
+import DropdownSelect from '../components/ui/DropdownSelect';
 
 interface CreateListingForm {
   name: string;
@@ -44,7 +43,7 @@ export default function CreateListing() {
   const { user, refreshToken } = useAuthStore();
   const navigate = useNavigate();
 
-  // Watch form values for MultiSelect components
+  // Watch form values for DropdownSelect components
   const treatmentTypes = watch('treatmentTypes');
   const amenities = watch('amenities');
   const insurance = watch('insurance');
@@ -244,29 +243,32 @@ export default function CreateListing() {
                 />
               </div>
 
-              <MultiSelect
-                label="Treatment Types"
-                type="treatment"
-                value={treatmentTypes}
-                onChange={(values) => setValue('treatmentTypes', values)}
-                error={errors.treatmentTypes?.message}
-              />
+              {/* Collection Inputs */}
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                <DropdownSelect
+                  label="Treatment Types"
+                  type="treatmentTypes"
+                  value={treatmentTypes}
+                  onChange={(values) => setValue('treatmentTypes', values)}
+                  error={errors.treatmentTypes?.message}
+                />
 
-              <MultiSelect
-                label="Amenities"
-                type="amenity"
-                value={amenities}
-                onChange={(values) => setValue('amenities', values)}
-                error={errors.amenities?.message}
-              />
+                <DropdownSelect
+                  label="Amenities"
+                  type="amenities"
+                  value={amenities}
+                  onChange={(values) => setValue('amenities', values)}
+                  error={errors.amenities?.message}
+                />
 
-              <MultiSelect
-                label="Insurance Accepted"
-                type="insurance"
-                value={insurance}
-                onChange={(values) => setValue('insurance', values)}
-                error={errors.insurance?.message}
-              />
+                <DropdownSelect
+                  label="Insurance Accepted"
+                  type="insurance"
+                  value={insurance}
+                  onChange={(values) => setValue('insurance', values)}
+                  error={errors.insurance?.message}
+                />
+              </div>
 
               <div className="flex justify-end gap-4">
                 <button
