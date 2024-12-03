@@ -1,5 +1,5 @@
 import { useState, useEffect } from 'react';
-import { facilitiesService } from '../services/firebase';
+import { facilitiesService } from '../services/facilities';
 import { Facility } from '../types';
 
 interface SearchFilters {

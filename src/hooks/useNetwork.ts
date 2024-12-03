@@ -1,5 +1,5 @@
 import { useState, useEffect } from 'react';
-import { networkService } from '../services/firebase';
+import { networkService } from '../services/facilities';
 
 export function useNetwork() {
   const [isOnline, setIsOnline] = useState(navigator.onLine);

@@ -19,7 +19,7 @@ import ProtectedRoute from './components/ProtectedRoute';
 import NetworkStatus from './components/NetworkStatus';
 import { useAuthStore } from './store/authStore';
 import { auth } from './lib/firebase';
-import { facilitiesService } from './services/firebase';
+import { facilitiesService } from './services/facilities';
 import { Loader2 } from 'lucide-react';
 
 /**

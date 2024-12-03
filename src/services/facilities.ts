@@ -61,6 +61,46 @@ interface CreateUserInput {
   createdAt: string;
 }
 
+// Add searchFacilities interface
+interface SearchParams {
+  query: string;
+  treatmentTypes: string[];
+  amenities: string[];
+  insurance: string[];
+  rating: number | null;
+}
+
+/**
+ * Generates URL-friendly slug from facility name and location
+ */
+const generateSlug = (name: string, location: string): string => {
+  const cleanName = name
+    .toLowerCase()
+    .replace(/[^a-z0-9\s-]/g, '')
+    .replace(/\s+/g, '-');
+
+  if (!location) {
+    return cleanName;
+  }
+
+  const parts = location.split(',');
+  if (parts.length < 2) {
+    return `${cleanName}-${location.toLowerCase().replace(/[^a-z0-9\s-]/g, '').replace(/\s+/g, '-')}`;
+  }
+
+  const [city, stateWithSpaces] = parts.map(part => part.trim());
+  const state = stateWithSpaces
+    .toLowerCase()
+    .replace(/[^a-z0-9\s-]/g, '')
+    .replace(/\s+/g, '-');
+  const cleanCity = city
+    .toLowerCase()
+    .replace(/[^a-z0-9\s-]/g, '')
+    .replace(/\s+/g, '-');
+
+  return `${cleanName}-${cleanCity}-${state}`;
+};
+
 /**
  * Transforms Firestore document to Facility type
  */
@@ -106,37 +146,6 @@ const transformFacilityData = (doc: QueryDocumentSnapshot<DocumentData>): Facili
     moderationStatus: data.moderationStatus || 'pending',
     slug: data.slug || generateSlug(name, location)
   };
-};
-
-/**
- * Generates URL-friendly slug from facility name and location
- */
-const generateSlug = (name: string, location: string): string => {
-  const cleanName = name
-    .toLowerCase()
-    .replace(/[^a-z0-9\s-]/g, '')
-    .replace(/\s+/g, '-');
-
-  if (!location) {
-    return cleanName;
-  }
-
-  const parts = location.split(',');
-  if (parts.length < 2) {
-    return `${cleanName}-${location.toLowerCase().replace(/[^a-z0-9\s-]/g, '').replace(/\s+/g, '-')}`;
-  }
-
-  const [city, stateWithSpaces] = parts.map(part => part.trim());
-  const state = stateWithSpaces
-    .toLowerCase()
-    .replace(/[^a-z0-9\s-]/g, '')
-    .replace(/\s+/g, '-');
-  const cleanCity = city
-    .toLowerCase()
-    .replace(/[^a-z0-9\s-]/g, '')
-    .replace(/\s+/g, '-');
-
-  return `${cleanName}-${cleanCity}-${state}`;
 };
 
 /**
@@ -423,7 +432,7 @@ export const facilitiesService = {
         return null;
       }
       
-      return transformFacilityData(docSnap);
+      return transformFacilityData(docSnap as QueryDocumentSnapshot<DocumentData>);
     } catch (error) {
       console.error('Error getting facility:', error);
       return null;
@@ -498,6 +507,80 @@ export const facilitiesService = {
     } catch (error) {
       console.error('Error unverifying facility:', error);
       throw error;
+    }
+  },
+
+  async searchFacilities({
+    query: searchQuery,
+    treatmentTypes,
+    amenities,
+    insurance,
+    rating
+  }: SearchParams): Promise<Facility[]> {
+    try {
+      console.log('Searching facilities:', {
+        query: searchQuery,
+        treatmentTypes,
+        amenities,
+        insurance,
+        rating
+      });
+
+      const facilitiesRef = collection(db, FACILITIES_COLLECTION);
+      
+      // Start with base query for approved facilities
+      const q = query(
+        facilitiesRef,
+        where('moderationStatus', '==', 'approved')
+      );
+
+      // Get all facilities and filter in memory
+      // This is a temporary solution until we implement proper search indexing
+      const snapshot = await getDocs(q);
+      let facilities = snapshot.docs.map(doc => transformFacilityData(doc as QueryDocumentSnapshot<DocumentData>));
+
+      // Apply filters
+      facilities = facilities.filter(facility => {
+        // Text search
+        const searchText = searchQuery.toLowerCase();
+        const matchesQuery = !searchQuery || 
+          facility.name.toLowerCase().includes(searchText) ||
+          facility.description.toLowerCase().includes(searchText) ||
+          facility.location.toLowerCase().includes(searchText);
+
+        // Treatment types
+        const matchesTreatment = treatmentTypes.length === 0 ||
+          treatmentTypes.some(type => facility.tags.includes(type));
+
+        // Amenities
+        const matchesAmenities = amenities.length === 0 ||
+          amenities.some(amenity => facility.amenities.includes(amenity));
+
+        // Insurance
+        const matchesInsurance = insurance.length === 0 ||
+          insurance.some(ins => facility.insurance.includes(ins));
+
+        // Rating
+        const matchesRating = !rating || facility.rating >= rating;
+
+        return matchesQuery && 
+               matchesTreatment && 
+               matchesAmenities && 
+               matchesInsurance && 
+               matchesRating;
+      });
+
+      // Sort by rating and then name
+      facilities.sort((a, b) => {
+        if (b.rating !== a.rating) return b.rating - a.rating;
+        return a.name.localeCompare(b.name);
+      });
+
+      console.log('Search results:', facilities.length);
+      return facilities;
+    } catch (error) {
+      console.error('Error searching facilities:', error);
+      return [];
     }
   }
 };
