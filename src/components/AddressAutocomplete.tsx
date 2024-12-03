@@ -48,19 +48,27 @@ export default function AddressAutocomplete({ register, setValue, error }: Addre
         autocompleteRef.current.addListener('place_changed', () => {
           const place = autocompleteRef.current.getPlace();
           
+          if (!place) {
+            console.warn('Place data not available');
+            return;
+          }
+
+          // Set location (address)
           if (place.formatted_address) {
             setValue('location', place.formatted_address);
-            
-            // Set coordinates
-            if (place.geometry?.location) {
-              setValue('coordinates', {
-                lat: place.geometry.location.lat(),
-                lng: place.geometry.location.lng()
-              });
-            }
+          }
+          
+          // Set coordinates if available
+          if (place.geometry?.location) {
+            setValue('coordinates', {
+              lat: place.geometry.location.lat(),
+              lng: place.geometry.location.lng()
+            });
+          }
 
-            // Extract and set address components
-            if (place.address_components) {
+          // Extract and set address components if available
+          if (place.address_components?.length) {
+            try {
               const addressComponents: { [key: string]: string } = {};
               place.address_components.forEach((component: any) => {
                 const type = component.types[0];
@@ -85,6 +93,8 @@ export default function AddressAutocomplete({ register, setValue, error }: Addre
               if (addressComponents.postal_code) {
                 setValue('zipCode', addressComponents.postal_code);
               }
+            } catch (err) {
+              console.warn('Error processing address components:', err);
             }
           }
         });

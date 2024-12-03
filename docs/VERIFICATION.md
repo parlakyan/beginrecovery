@@ -57,6 +57,8 @@ Basic features available to free listings:
 - Geocoding for facility addresses
 - Location-based facility sorting
 - Graceful fallback when location unavailable
+- Error handling for incomplete address data
+- Coordinates storage for precise mapping
 
 ### Component Behavior
 
@@ -82,12 +84,27 @@ Basic features available to free listings:
 - Limited options for unverified
 - Displays upgrade prompt for unverified
 
+#### AddressAutocomplete
+- Google Places integration
+- Address validation
+- Coordinates extraction
+- Error handling for incomplete data
+- Fallback for missing components
+
+#### MapSection
+- Uses coordinates for precise location
+- Falls back to address if needed
+- Loading states
+- Error handling
+- Responsive design
+
 ### State Management
 - Verification status in facility document
 - Subscription status tracking
 - Payment webhook handling
 - Status change handling
 - Location state management
+- Address and coordinates storage
 
 ## Verification Process
 
@@ -119,6 +136,9 @@ Basic features available to free listings:
 5. Test feature visibility changes
 6. Test location-based sorting
 7. Test carousel functionality
+8. Test address validation
+9. Test map display
+10. Test coordinates accuracy
 
 ### Component Testing
 1. RehabCard display modes
@@ -128,6 +148,9 @@ Basic features available to free listings:
 5. Badge display
 6. Location detection
 7. Carousel navigation
+8. Address autocomplete
+9. Map rendering
+10. Error handling
 
 ## Security
 
@@ -152,6 +175,8 @@ Basic features available to free listings:
 4. Proper error handling
 5. Status change validation
 6. Location fallback handling
+7. Address validation
+8. Coordinates verification
 
 ### UI/UX
 1. Clear verification indicators
@@ -160,6 +185,8 @@ Basic features available to free listings:
 4. Clear upgrade prompts
 5. Status-appropriate messaging
 6. Location-aware content
+7. Loading states
+8. Error messages
 
 ### Testing
 1. Test both states
@@ -168,6 +195,8 @@ Basic features available to free listings:
 4. Validate security
 5. Test edge cases
 6. Test location scenarios
+7. Test address input
+8. Test map display
 
 ## Troubleshooting
 
@@ -177,6 +206,9 @@ Basic features available to free listings:
 3. Feature visibility issues
 4. Payment webhook failures
 5. Location detection issues
+6. Address validation errors
+7. Map display problems
+8. Coordinate accuracy
 
 ### Solutions
 1. Check webhook logs
@@ -185,6 +217,8 @@ Basic features available to free listings:
 4. Check security rules
 5. Validate payment status
 6. Check location permissions
+7. Verify address data
+8. Confirm coordinates
 
 ## Future Improvements
 1. Granular feature control
@@ -193,3 +227,5 @@ Basic features available to free listings:
 4. Bulk verification
 5. Enhanced analytics
 6. Advanced location filtering
+7. Improved address validation
+8. Better map interactions

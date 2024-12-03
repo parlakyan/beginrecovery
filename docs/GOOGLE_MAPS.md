@@ -52,33 +52,13 @@ VITE_GOOGLE_MAPS_API_KEY=your_api_key_here
    - Key: `VITE_GOOGLE_MAPS_API_KEY`
    - Value: Your Google Maps API key
 4. Click "Save"
-5. Redeploy your site:
-   ```bash
-   git push # if using Git deployment
-   # or
-   netlify deploy --prod # if using Netlify CLI
-   ```
+5. Redeploy your site
 
-Note: After adding/changing environment variables in Netlify:
-- Clear deploy cache
-- Trigger a new deployment
-- Wait 5-10 minutes for changes to propagate
-
-## Component Usage
-
-### MapSection
-Displays a map for a facility location:
-```tsx
-<MapSection 
-  coordinates={{
-    lat: facility.coordinates.lat,
-    lng: facility.coordinates.lng
-  }}
-/>
-```
+## Component Implementation
 
 ### AddressAutocomplete
 Provides address suggestions with form integration:
+
 ```tsx
 <AddressAutocomplete
   register={register}
@@ -87,58 +67,115 @@ Provides address suggestions with form integration:
 />
 ```
 
-## Troubleshooting
+#### Features
+- Address autocompletion
+- Coordinates extraction
+- Address component parsing
+- Error handling
+- Loading states
+
+#### Error Handling
+The component includes robust error handling for:
+- Missing place data
+- Incomplete address components
+- API loading failures
+- Initialization errors
+
+#### Address Component Processing
+```typescript
+// Example of address component extraction
+if (place.address_components?.length) {
+  try {
+    const addressComponents = {};
+    place.address_components.forEach((component) => {
+      const type = component.types[0];
+      if (type) {
+        addressComponents[type] = component.long_name;
+      }
+    });
+    // Process components...
+  } catch (err) {
+    console.warn('Error processing address components:', err);
+  }
+}
+```
+
+### MapSection
+Displays a map for a facility location:
+
+```tsx
+<MapSection 
+  coordinates={facility.coordinates}
+  address={facility.location}
+/>
+```
+
+#### Features
+- Coordinates-based mapping
+- Address fallback
+- Loading states
+- Error handling
+- Responsive design
+
+## Data Flow
+
+### Address Selection
+1. User enters address in AddressAutocomplete
+2. Google Places API returns place data
+3. Component extracts:
+   - Formatted address
+   - Coordinates
+   - Address components
+4. Data is saved to form state
+
+### Map Display
+1. MapSection receives location data
+2. Attempts to use coordinates first
+3. Falls back to address if coordinates unavailable
+4. Displays loading state during initialization
+5. Shows error message if map fails to load
+
+## Error Handling
 
 ### Common Issues
 
-#### "This API project is not authorized to use this API"
-1. Check API enablement:
-   - Verify all required APIs are enabled
-   - Wait 5-10 minutes for changes to propagate
-2. Verify API key restrictions:
-   - Check domain is listed in authorized websites
-   - Confirm all required APIs are selected
-3. Environment variables:
-   - Verify key is set in Netlify environment
-   - Check for typos in variable name
-   - Ensure site was redeployed after changes
+#### "Cannot read properties of undefined"
+- Cause: Incomplete place data from Places API
+- Solution: Added null checks and try-catch blocks
+- Fallback: Continue with available data
+- Impact: Non-critical, functionality preserved
 
-#### "Request denied" or 403 errors
-1. Check billing status:
-   - Enable billing if required
-   - Verify no payment issues
-2. Domain verification:
-   - Ensure domain matches restrictions
-   - Include www/non-www variants if needed
-3. API key format:
-   - Verify key is correctly copied
-   - Check for whitespace in key
+#### API Loading Failures
+- Cause: Network issues or API restrictions
+- Solution: Loading states and error messages
+- Fallback: Display user-friendly error
+- Recovery: Automatic retry on next interaction
 
-#### Address Autocomplete not working
-1. Check console for errors
-2. Verify Places API is enabled
-3. Confirm JavaScript API is enabled
-4. Test with unrestricted key temporarily
+#### Missing Address Components
+- Cause: Partial data from Places API
+- Solution: Validation before processing
+- Fallback: Use available components
+- Impact: Some fields may be incomplete
 
-## Best Practices
+### Best Practices
 
-### Security
-1. Always use API key restrictions
-2. Enable only required APIs
-3. Monitor usage and set quotas
-4. Use environment variables
+#### Data Validation
+1. Check for null/undefined values
+2. Validate data structure
+3. Use optional chaining
+4. Implement fallbacks
 
-### Performance
-1. Load APIs asynchronously
-2. Implement proper error handling
-3. Show loading states
-4. Cache geocoding results when possible
+#### Error Recovery
+1. Graceful degradation
+2. Clear error messages
+3. Automatic retries
+4. User feedback
 
-### User Experience
-1. Provide clear error messages
-2. Show loading indicators
-3. Handle network issues gracefully
-4. Implement fallback content
+#### Debugging
+1. Console warnings
+2. Error logging
+3. State tracking
+4. User feedback
 
 ## Monitoring
 
@@ -148,11 +185,11 @@ Provides address suggestions with form integration:
 3. Track error rates
 4. Monitor costs
 
-### Error Handling
-1. Log API errors
-2. Monitor client-side errors
-3. Track user feedback
-4. Set up error alerts
+### Error Logging
+1. Console warnings for debugging
+2. Error tracking in monitoring tools
+3. User error reporting
+4. Performance monitoring
 
 ## Updates and Maintenance
 
