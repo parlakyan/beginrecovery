@@ -45,7 +45,11 @@ export default function SearchResults() {
     const fetchFacilities = async () => {
       setLoading(true);
       try {
-        const result = await facilitiesService.getFacilities(filters);
+        const query = searchParams.get('q') || '';
+        const result = await facilitiesService.getFacilities({
+          ...filters,
+          query
+        });
         const data = result.facilities;
         setFacilities(data);
 
@@ -108,7 +112,7 @@ export default function SearchResults() {
       <Header />
       
       <main className="flex-grow">
-        <div className="bg-white border-b">
+        <div className="sticky top-[80px] bg-white border-b z-40">
           <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-4">
             {/* Filter Bar */}
             <FilterBar

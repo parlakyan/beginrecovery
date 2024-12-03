@@ -17,17 +17,27 @@ export default function AnchorNavigation({ sections, className = '' }: AnchorNav
   const visibleSections = sections.filter(section => section.isVisible);
 
   useEffect(() => {
-    const handleScroll = () => {
-      // Check if nav should be sticky
-      const nav = document.getElementById('anchor-nav');
-      if (nav) {
-        const navTop = nav.getBoundingClientRect().top;
-        setIsSticky(navTop <= 0);
+    const observer = new IntersectionObserver(
+      ([entry]) => {
+        setIsSticky(!entry.isIntersecting);
+      },
+      {
+        threshold: 1,
+        rootMargin: '-80px 0px 0px 0px' // Height of header
       }
+    );
 
-      // Check active section
-      const pageTop = window.scrollY;
-      const pageBottom = pageTop + window.innerHeight;
+    const nav = document.getElementById('anchor-nav');
+    if (nav) {
+      observer.observe(nav);
+    }
+
+    return () => observer.disconnect();
+  }, []);
+
+  useEffect(() => {
+    const handleScroll = () => {
+      const pageTop = window.scrollY + 160; // Header + nav height
       const offset = 100; // Offset for better UX
 
       for (const section of visibleSections) {
@@ -44,14 +54,14 @@ export default function AnchorNavigation({ sections, className = '' }: AnchorNav
       }
     };
 
-    window.addEventListener('scroll', handleScroll);
+    window.addEventListener('scroll', handleScroll, { passive: true });
     return () => window.removeEventListener('scroll', handleScroll);
   }, [visibleSections]);
 
   const scrollToSection = (id: string) => {
     const element = document.getElementById(id);
     if (element) {
-      const offset = 80; // Height of sticky header
+      const offset = 160; // Header + nav height
       const elementPosition = element.getBoundingClientRect().top;
       const offsetPosition = elementPosition + window.pageYOffset - offset;
 
@@ -65,8 +75,8 @@ export default function AnchorNavigation({ sections, className = '' }: AnchorNav
   return (
     <nav 
       id="anchor-nav"
-      className={`bg-white border-b z-40 transition-all ${
-        isSticky ? 'fixed top-[80px] left-0 right-0' : ''
+      className={`bg-white border-b z-40 transition-transform ${
+        isSticky ? 'fixed top-[80px] left-0 right-0 border-t-0' : ''
       } ${className}`}
     >
       <div className={`${isSticky ? 'max-w-7xl mx-auto px-4 sm:px-6 lg:px-8' : ''}`}>

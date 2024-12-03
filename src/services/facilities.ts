@@ -113,7 +113,9 @@ const applyClientFilters = (facilities: Facility[], filters: SearchFilters): Fac
         ...facility.amenities
       ].join(' ').toLowerCase();
 
-      if (!searchTerms.every(term => searchableText.includes(term))) {
+      // Check if all search terms are found in the searchable text
+      const allTermsFound = searchTerms.every(term => searchableText.includes(term));
+      if (!allTermsFound) {
         return false;
       }
     }

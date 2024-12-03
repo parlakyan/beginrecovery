@@ -1,11 +1,6 @@
 import React, { useState } from 'react';
-import { ChevronDown, Search, X } from 'lucide-react';
+import { ChevronDown, Search } from 'lucide-react';
 import { SearchFiltersState } from '../types';
-
-interface FilterOption {
-  value: string;
-  count: number;
-}
 
 interface FilterBarProps {
   filters: SearchFiltersState;
@@ -21,8 +16,6 @@ interface FilterBarProps {
   };
   onFilterChange: (type: keyof SearchFiltersState, value: string) => void;
 }
-
-type FilterType = 'location' | 'treatmentTypes' | 'amenities';
 
 export default function FilterBar({ filters, filterOptions, optionCounts, onFilterChange }: FilterBarProps) {
   const [activeDropdown, setActiveDropdown] = useState<string | null>(null);
@@ -41,31 +34,36 @@ export default function FilterBar({ filters, filterOptions, optionCounts, onFilt
     setSearchQueries(prev => ({ ...prev, [dropdown]: query }));
   };
 
-  const sortByCount = (options: string[], counts: { [key: string]: number }): FilterOption[] => {
-    return Array.from(options)
-      .map(option => ({ value: option, count: counts[option] || 0 }))
-      .sort((a, b) => b.count - a.count);
+  const handleClickOutside = (e: MouseEvent) => {
+    const target = e.target as HTMLElement;
+    if (!target.closest('.filter-dropdown')) {
+      setActiveDropdown(null);
+    }
   };
 
-  const filterOptionsBySearch = (options: FilterOption[], search: string) => {
-    const searchLower = search.toLowerCase();
-    return options.filter(option => 
-      option.value.toLowerCase().includes(searchLower)
-    );
-  };
+  React.useEffect(() => {
+    document.addEventListener('mousedown', handleClickOutside);
+    return () => document.removeEventListener('mousedown', handleClickOutside);
+  }, []);
 
   const renderDropdown = (
-    type: FilterType,
+    type: 'location' | 'treatmentTypes' | 'amenities',
     title: string,
     options: Set<string>,
     counts: { [key: string]: number }
   ) => {
-    const sortedOptions = sortByCount(Array.from(options), counts);
-    const filteredOptions = filterOptionsBySearch(sortedOptions, searchQueries[type]);
+    const sortedOptions = Array.from(options)
+      .map(option => ({ value: option, count: counts[option] || 0 }))
+      .sort((a, b) => b.count - a.count);
+
+    const filteredOptions = sortedOptions.filter(option =>
+      option.value.toLowerCase().includes(searchQueries[type].toLowerCase())
+    );
+
     const filterType: keyof SearchFiltersState = type === 'location' ? 'treatmentTypes' : type;
 
     return (
-      <div className="relative">
+      <div className="relative filter-dropdown">
         <button
           onClick={() => handleDropdownClick(type)}
           className={`px-4 py-2 rounded-full border flex items-center gap-2 hover:bg-gray-50 ${
@@ -131,7 +129,7 @@ export default function FilterBar({ filters, filterOptions, optionCounts, onFilt
         {renderDropdown('amenities', 'Amenities', filterOptions.amenities, optionCounts.amenities)}
 
         {/* Rating Filter */}
-        <div className="relative">
+        <div className="relative filter-dropdown">
           <button
             onClick={() => handleDropdownClick('rating')}
             className={`px-4 py-2 rounded-full border flex items-center gap-2 hover:bg-gray-50 ${
