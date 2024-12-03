@@ -1,7 +1,6 @@
 import { useState, useEffect } from 'react';
 import { useSearchParams } from 'react-router-dom';
 import { facilitiesService } from '../services/facilities';
-import { filterOptions, optionCounts } from '../data/filterOptions';
 import { Facility, SearchFiltersState } from '../types';
 import RehabCard from '../components/RehabCard';
 import Header from '../components/Header';
@@ -20,11 +19,41 @@ export default function SearchResults() {
     priceRange: null
   });
 
-  // Convert test data to Sets
-  const filterOptionsData = {
-    locations: new Set(filterOptions.locations),
-    treatmentTypes: new Set(filterOptions.treatmentTypes),
-    amenities: new Set(filterOptions.amenities)
+  // Extract unique values and counts from facilities
+  const getFilterOptions = (facilities: Facility[]) => {
+    const locations = new Set<string>();
+    const treatmentTypes = new Set<string>();
+    const amenities = new Set<string>();
+    const counts = {
+      locations: {} as { [key: string]: number },
+      treatmentTypes: {} as { [key: string]: number },
+      amenities: {} as { [key: string]: number }
+    };
+
+    facilities.forEach((facility) => {
+      // Location counts
+      if (facility.location) {
+        locations.add(facility.location);
+        counts.locations[facility.location] = (counts.locations[facility.location] || 0) + 1;
+      }
+
+      // Treatment type counts
+      facility.tags.forEach(tag => {
+        treatmentTypes.add(tag);
+        counts.treatmentTypes[tag] = (counts.treatmentTypes[tag] || 0) + 1;
+      });
+
+      // Amenity counts
+      facility.amenities.forEach(amenity => {
+        amenities.add(amenity);
+        counts.amenities[amenity] = (counts.amenities[amenity] || 0) + 1;
+      });
+    });
+
+    return {
+      filterOptions: { locations, treatmentTypes, amenities },
+      optionCounts: counts
+    };
   };
 
   useEffect(() => {
@@ -46,6 +75,8 @@ export default function SearchResults() {
 
     fetchFacilities();
   }, [searchParams, filters]);
+
+  const { filterOptions, optionCounts } = getFilterOptions(facilities);
 
   const handleFilterChange = (type: keyof SearchFiltersState, value: string) => {
     setFilters(prev => {
@@ -71,7 +102,7 @@ export default function SearchResults() {
             {/* Filter Bar */}
             <FilterBar
               filters={filters}
-              filterOptions={filterOptionsData}
+              filterOptions={filterOptions}
               optionCounts={optionCounts}
               onFilterChange={handleFilterChange}
             />
