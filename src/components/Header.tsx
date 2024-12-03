@@ -57,10 +57,10 @@ export default function Header() {
           )}
 
           {/* Desktop Navigation */}
-          <nav className="hidden md:flex items-center gap-6">
+          <nav className="hidden md:flex items-center gap-8">
             <Link to="/resources" className="text-gray-600 hover:text-blue-600">Resources</Link>
             <Link to="/insurance" className="text-gray-600 hover:text-blue-600">Insurance</Link>
-            <Link to="/about" className="text-gray-600 hover:text-blue-600">About Us</Link>
+            <Link to="/about" className="text-gray-600 hover:text-blue-600 mr-4">About Us</Link>
             {user?.role === 'admin' && (
               <Link 
                 to="/admin" 
@@ -70,43 +70,35 @@ export default function Header() {
                 Admin Dashboard
               </Link>
             )}
+            {user ? (
+              <button
+                onClick={handleAuthAction}
+                className="flex items-center gap-2 text-gray-600 hover:text-blue-600"
+              >
+                <span className="hidden md:block">My Account</span>
+                <User className="w-5 h-5" />
+              </button>
+            ) : (
+              <button
+                onClick={handleAuthAction}
+                className="bg-blue-600 text-white px-4 py-2 rounded-lg font-medium hidden md:block hover:bg-blue-700"
+              >
+                Sign In
+              </button>
+            )}
           </nav>
 
-          {/* Actions */}
-          <div className="flex items-center gap-4">
-            {loading ? (
-              <Loader2 className="w-5 h-5 animate-spin text-blue-600" />
+          {/* Mobile Menu Button */}
+          <button 
+            className="p-2 text-gray-600 hover:text-blue-600 md:hidden"
+            onClick={() => setIsMobileMenuOpen(!isMobileMenuOpen)}
+          >
+            {isMobileMenuOpen ? (
+              <X className="w-5 h-5" />
             ) : (
-              <>
-                {user ? (
-                  <button
-                    onClick={handleAuthAction}
-                    className="flex items-center gap-2 text-gray-600 hover:text-blue-600"
-                  >
-                    <span className="hidden md:block">My Account</span>
-                    <User className="w-5 h-5" />
-                  </button>
-                ) : (
-                  <button
-                    onClick={handleAuthAction}
-                    className="bg-blue-600 text-white px-4 py-2 rounded-lg font-medium hidden md:block hover:bg-blue-700"
-                  >
-                    Sign In
-                  </button>
-                )}
-                <button 
-                  className="p-2 text-gray-600 hover:text-blue-600 md:hidden"
-                  onClick={() => setIsMobileMenuOpen(!isMobileMenuOpen)}
-                >
-                  {isMobileMenuOpen ? (
-                    <X className="w-5 h-5" />
-                  ) : (
-                    <Menu className="w-5 h-5" />
-                  )}
-                </button>
-              </>
+              <Menu className="w-5 h-5" />
             )}
-          </div>
+          </button>
         </div>
 
         {/* Mobile Menu */}

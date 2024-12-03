@@ -1,9 +1,7 @@
 import { useState, useEffect } from 'react';
 import { useSearchParams } from 'react-router-dom';
-import { Search } from 'lucide-react';
 import { facilitiesService } from '../services/facilities';
 import { Facility, SearchFiltersState } from '../types';
-import { Button } from '../components/ui';
 import RehabCard from '../components/RehabCard';
 import Header from '../components/Header';
 import Footer from '../components/Footer';
@@ -91,13 +89,6 @@ export default function SearchResults() {
     fetchFacilities();
   }, [searchParams, filters]);
 
-  const handleSearch = (e: React.FormEvent<HTMLFormElement>) => {
-    e.preventDefault();
-    const formData = new FormData(e.currentTarget);
-    const query = formData.get('search') as string;
-    setSearchParams({ q: query });
-  };
-
   const handleFilterChange = (type: keyof SearchFiltersState, value: string) => {
     setFilters(prev => {
       if (type === 'rating') {
@@ -119,23 +110,6 @@ export default function SearchResults() {
       <main className="flex-grow">
         <div className="bg-white border-b">
           <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-4">
-            {/* Search Bar */}
-            <form onSubmit={handleSearch} className="flex gap-4 mb-4">
-              <div className="flex-grow relative">
-                <Search className="absolute left-4 top-1/2 transform -translate-y-1/2 text-gray-400 w-5 h-5" />
-                <input
-                  type="search"
-                  name="search"
-                  placeholder="Search by name, location, or treatment type..."
-                  defaultValue={searchParams.get('q') || ''}
-                  className="w-full pl-12 pr-4 py-3 rounded-xl border border-gray-200 focus:ring-2 focus:ring-blue-500 focus:border-transparent"
-                />
-              </div>
-              <Button type="submit" variant="primary" className="px-8">
-                Search
-              </Button>
-            </form>
-
             {/* Filter Bar */}
             <FilterBar
               filters={filters}

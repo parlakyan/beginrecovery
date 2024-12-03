@@ -1,71 +1,19 @@
 import React from 'react';
-import { Star, MapPin, Phone, ArrowRight, ShieldCheck, ShieldAlert, Clock, XCircle, AlertCircle, Edit, CreditCard } from 'lucide-react';
+import { Star, MapPin, Phone, ArrowRight, ShieldCheck, ShieldAlert, Clock, XCircle, AlertCircle, Edit, CreditCard, Ban } from 'lucide-react';
 import { useNavigate } from 'react-router-dom';
 import { useAuthStore } from '../store/authStore';
 import ImageCarousel from './ImageCarousel';
 import { Tag } from './ui';
 import { Facility } from '../types';
+import { facilitiesService } from '../services/facilities';
 
 interface RehabCardProps {
-  /** The facility data to display */
   facility: Facility;
-  /** Optional callback for edit functionality. If not provided, edit button won't show even for owners/admins */
   onEdit?: (facility: Facility) => void;
+  showOwnerControls?: boolean;
 }
 
-/**
- * RehabCard Component
- * 
- * Displays a facility card with different features based on verification status and user role.
- * 
- * Image Display:
- * - Verified listings: Shows all images in a carousel with navigation
- * - Unverified listings: Shows only the first image without navigation
- * 
- * Status Badges:
- * - Verified/Unverified badge (visible to everyone)
- * - Moderation status badge (only visible to owners):
- *   - Pending (yellow)
- *   - Rejected (red)
- *   - Archived (gray)
- * 
- * Actions:
- * - View Details (available to everyone)
- * - Edit Facility (only shown if):
- *   - User is owner or admin AND
- *   - onEdit prop is provided
- * - Upgrade to Verified (only shown if):
- *   - User is owner AND
- *   - Facility is unverified
- * 
- * Content Display:
- * - Facility name
- * - Location
- * - Phone number
- * - Description (truncated to 2 lines)
- * - Tags (shows first 2 with count indicator)
- * - Amenities (shows first 3 with count indicator)
- * - Rating
- * 
- * Layout:
- * - Responsive grid layout
- * - Fixed height image section
- * - Flexible content section
- * - Actions always at bottom
- * 
- * Usage:
- * ```tsx
- * // Basic usage (no edit functionality)
- * <RehabCard facility={facility} />
- * 
- * // With edit functionality
- * <RehabCard 
- *   facility={facility}
- *   onEdit={handleEdit}
- * />
- * ```
- */
-export default function RehabCard({ facility, onEdit }: RehabCardProps) {
+export default function RehabCard({ facility, onEdit, showOwnerControls = false }: RehabCardProps) {
   const navigate = useNavigate();
   const { user } = useAuthStore();
   const isOwner = user?.id === facility.ownerId;
@@ -91,6 +39,35 @@ export default function RehabCard({ facility, onEdit }: RehabCardProps) {
     e.stopPropagation();
     if (onEdit) {
       onEdit(facility);
+    }
+  };
+
+  const handleCancelSubscription = async (e: React.MouseEvent) => {
+    e.stopPropagation();
+    if (!facility.subscriptionId) return;
+
+    try {
+      // Call Stripe webhook to cancel subscription
+      await fetch('/api/cancel-subscription', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({
+          subscriptionId: facility.subscriptionId
+        })
+      });
+
+      // Update facility status
+      await facilitiesService.updateFacility(facility.id, {
+        subscriptionId: '',
+        isVerified: false
+      });
+
+      // Refresh the page or update UI
+      window.location.reload();
+    } catch (error) {
+      console.error('Error canceling subscription:', error);
     }
   };
 
@@ -228,6 +205,15 @@ export default function RehabCard({ facility, onEdit }: RehabCardProps) {
                 >
                   <CreditCard className="w-4 h-4" />
                   Upgrade to Verified
+                </button>
+              )}
+              {isOwner && facility.isVerified && facility.subscriptionId && (
+                <button 
+                  onClick={handleCancelSubscription}
+                  className="w-full bg-red-50 text-red-600 py-2 rounded-lg hover:bg-red-100 transition-all duration-200 flex items-center justify-center gap-2"
+                >
+                  <Ban className="w-4 h-4" />
+                  Cancel Subscription
                 </button>
               )}
             </div>
