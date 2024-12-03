@@ -8,6 +8,7 @@ import { Facility } from '../types';
 import Header from '../components/Header';
 import Footer from '../components/Footer';
 import PhotoUpload from '../components/PhotoUpload';
+import AddressAutocomplete from '../components/AddressAutocomplete';
 
 interface CreateListingForm {
   name: string;
@@ -23,7 +24,7 @@ const phoneRegex = /^(\+\d{1,2}\s?)?\(?\d{3}\)?[\s.-]?\d{3}[\s.-]?\d{4}$/;
 const emailRegex = /^[A-Z0-9._%+-]+@[A-Z0-9.-]+\.[A-Z]{2,}$/i;
 
 export default function CreateListing() {
-  const { register, handleSubmit, formState: { errors } } = useForm<CreateListingForm>();
+  const { register, handleSubmit, formState: { errors }, setValue } = useForm<CreateListingForm>();
   const [loading, setLoading] = React.useState(false);
   const [error, setError] = React.useState<string | null>(null);
   const [photos, setPhotos] = React.useState<string[]>([]);
@@ -167,20 +168,11 @@ export default function CreateListing() {
                 )}
               </div>
 
-              <div>
-                <label className="block text-sm font-medium text-gray-700 mb-1">
-                  Location
-                </label>
-                <input
-                  {...register('location', { required: 'Location is required' })}
-                  type="text"
-                  placeholder="City, State"
-                  className="w-full px-4 py-2 border rounded-lg focus:ring-2 focus:ring-blue-500 outline-none"
-                />
-                {errors.location && (
-                  <p className="mt-1 text-sm text-red-600">{errors.location.message}</p>
-                )}
-              </div>
+              <AddressAutocomplete
+                register={register}
+                setValue={setValue}
+                error={errors.location?.message}
+              />
 
               <div>
                 <label className="block text-sm font-medium text-gray-700 mb-1">
