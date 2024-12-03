@@ -1,9 +1,10 @@
-import React, { useEffect } from 'react';
+import React from 'react';
 import { Link, useNavigate, useLocation } from 'react-router-dom';
 import { Home, ArrowLeft, FileSearch } from 'lucide-react';
 import Button from '../components/ui/Button';
 import Header from '../components/Header';
 import Footer from '../components/Footer';
+import { useTitle } from '../hooks/useTitle';
 
 /**
  * NotFound (404) Page Component
@@ -15,16 +16,9 @@ export default function NotFound() {
   const navigate = useNavigate();
   const location = useLocation();
 
-  // Update document title and meta tags
-  useEffect(() => {
-    document.title = '404 - Page Not Found | Recovery Directory';
-    
-    // Update meta description
-    const metaDesc = document.querySelector('meta[name="description"]');
-    if (metaDesc) {
-      metaDesc.setAttribute('content', 'The page you\'re looking for cannot be found. Please check the URL or return to the Recovery Directory homepage.');
-    }
-  }, []);
+  useTitle('404 - Page Not Found', 
+    'The page you\'re looking for cannot be found. Please check the URL or return to the Recovery Directory homepage.'
+  );
 
   return (
     <div className="min-h-screen bg-surface flex flex-col">

@@ -4,6 +4,7 @@ import { UseFormRegister, UseFormSetValue } from 'react-hook-form';
 interface AddressAutocompleteProps {
   register: UseFormRegister<any>;
   setValue: UseFormSetValue<any>;
+  defaultValue?: string;
   error?: string;
 }
 
@@ -13,7 +14,7 @@ declare global {
   }
 }
 
-export default function AddressAutocomplete({ register, setValue, error }: AddressAutocompleteProps) {
+export default function AddressAutocomplete({ register, setValue, defaultValue, error }: AddressAutocompleteProps) {
   const inputRef = useRef<HTMLInputElement | null>(null);
   const autocompleteRef = useRef<any>(null);
 
@@ -32,7 +33,7 @@ export default function AddressAutocomplete({ register, setValue, error }: Addre
       autocompleteRef.current.addListener('place_changed', () => {
         const place = autocompleteRef.current.getPlace();
         if (place.formatted_address) {
-          setValue('location', place.formatted_address);
+          setValue('location', place.formatted_address, { shouldValidate: true });
         }
       });
     };
@@ -49,13 +50,20 @@ export default function AddressAutocomplete({ register, setValue, error }: Addre
       initAutocomplete();
     }
 
+    // Set default value if provided
+    if (defaultValue && inputRef.current) {
+      inputRef.current.value = defaultValue;
+    }
+
     return () => {
       // Cleanup
       if (autocompleteRef.current) {
-        window.google.maps.event.clearInstanceListeners(autocompleteRef.current);
+        window.google?.maps.event.clearInstanceListeners(autocompleteRef.current);
       }
     };
-  }, [setValue]);
+  }, [setValue, defaultValue]);
+
+  const { ref, ...rest } = register('location', { required: 'Location is required' });
 
   return (
     <div>
@@ -63,14 +71,15 @@ export default function AddressAutocomplete({ register, setValue, error }: Addre
         Location
       </label>
       <input
-        {...register('location', { required: 'Location is required' })}
+        {...rest}
         ref={(e) => {
-          inputRef.current = e; // Set local ref
-          register('location').ref(e); // Set react-hook-form ref
+          ref(e);
+          inputRef.current = e;
         }}
         type="text"
         className="w-full px-3 py-2 border rounded-lg focus:ring-2 focus:ring-blue-500 outline-none"
         placeholder="Enter address..."
+        defaultValue={defaultValue}
       />
       {error && (
         <p className="mt-1 text-sm text-red-600">{error}</p>

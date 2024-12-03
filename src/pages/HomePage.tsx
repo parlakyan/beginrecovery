@@ -1,201 +1,45 @@
-import { useEffect, useState } from 'react';
-import { facilitiesService } from '../services/facilities';
-import { Facility } from '../types';
+import React from 'react';
 import Header from '../components/Header';
 import Footer from '../components/Footer';
 import HeroSection from '../components/HeroSection';
-import SearchFilters from '../components/SearchFilters';
-import RehabCard from '../components/RehabCard';
-import TreatmentFinder from '../components/TreatmentFinder';
-import InsuranceSection from '../components/InsuranceSection';
-import LocationBrowser from '../components/LocationBrowser';
 import CoreValues from '../components/CoreValues';
-import EditListingModal from '../components/EditListingModal';
-
-const defaultFilters = {
-  treatmentTypes: [],
-  amenities: [],
-  insurance: [],
-  rating: null,
-  priceRange: null
-};
+import TreatmentFinder from '../components/TreatmentFinder';
+import LocationBrowser from '../components/LocationBrowser';
+import { useTitle } from '../hooks/useTitle';
 
 export default function HomePage() {
-  const [facilities, setFacilities] = useState<Facility[]>([]);
-  const [featuredFacilities, setFeaturedFacilities] = useState<Facility[]>([]);
-  const [loading, setLoading] = useState(true);
-  const [isFiltersOpen, setIsFiltersOpen] = useState(false);
-  const [filters, setFilters] = useState(defaultFilters);
-  const [editingFacility, setEditingFacility] = useState<Facility | null>(null);
-
-  const fetchFacilities = async (currentFilters = filters) => {
-    try {
-      setLoading(true);
-      
-      // Fetch facilities and featured facilities in parallel
-      const [allFacilities, featured] = await Promise.all([
-        facilitiesService.getFacilities(currentFilters),
-        facilitiesService.getFeaturedFacilities()
-      ]);
-      
-      console.log('Fetched facilities:', {
-        total: allFacilities.facilities.length,
-        featured: featured.length,
-        filters: currentFilters
-      });
-      
-      setFacilities(allFacilities.facilities);
-      setFeaturedFacilities(featured);
-    } catch (error) {
-      console.error('Error fetching facilities:', error);
-      setFacilities([]);
-      setFeaturedFacilities([]);
-    } finally {
-      setLoading(false);
-    }
-  };
-
-  useEffect(() => {
-    window.scrollTo(0, 0);
-    fetchFacilities();
-  }, []);
-
-  const handleFilterChange = (newFilters: typeof defaultFilters) => {
-    setFilters(newFilters);
-    fetchFacilities(newFilters);
-  };
-
-  const handleSave = async (data: Partial<Facility>) => {
-    if (!editingFacility) return;
-    try {
-      await facilitiesService.updateFacility(editingFacility.id, data);
-      // Refresh facilities after update
-      fetchFacilities();
-      setEditingFacility(null);
-    } catch (error) {
-      console.error('Error updating facility:', error);
-    }
-  };
-
-  const handleOpenFilters = () => {
-    setIsFiltersOpen(true);
-    // Scroll to results section
-    const resultsSection = document.getElementById('results-section');
-    if (resultsSection) {
-      resultsSection.scrollIntoView({ behavior: 'smooth' });
-    }
-  };
+  useTitle('Find Trusted Rehabilitation Centers', 
+    'Discover and connect with verified rehabilitation centers and treatment facilities across the United States.'
+  );
 
   return (
-    <div className="min-h-screen bg-gray-50">
+    <div className="min-h-screen bg-gray-50 flex flex-col">
       <Header />
       
-      <main>
-        <HeroSection onOpenFilters={handleOpenFilters} />
-        
-        <SearchFilters 
-          isOpen={isFiltersOpen}
-          onClose={() => setIsFiltersOpen(false)}
-          filters={filters}
-          onFilterChange={handleFilterChange}
-        />
+      <main className="flex-grow">
+        {/* Hero Section */}
+        <HeroSection />
 
-        {/* Featured Treatment Centers */}
-        {featuredFacilities.length > 0 && (
-          <section className="py-20 bg-white">
-            <div className="container mx-auto px-4">
-              <div className="flex justify-between items-center mb-12">
-                <div className="text-center md:text-left">
-                  <h2 className="text-3xl font-bold mb-2">Featured Treatment Centers</h2>
-                  <p className="text-gray-600">Discover our highly-rated rehabilitation facilities</p>
-                </div>
-                <button 
-                  onClick={() => setIsFiltersOpen(true)}
-                  className="text-blue-600 hover:text-blue-700 font-medium"
-                >
-                  Filter Results
-                </button>
-              </div>
-              <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6 max-w-6xl mx-auto">
-                {featuredFacilities.map((facility) => (
-                  <RehabCard 
-                    key={facility.id} 
-                    facility={facility} 
-                    onEdit={setEditingFacility}
-                  />
-                ))}
-              </div>
-            </div>
-          </section>
-        )}
-
-        {/* Find Treatment Section */}
-        <TreatmentFinder />
-
-        {/* Recent Treatment Centers */}
-        <section id="results-section" className="py-20 bg-white">
+        {/* Core Values */}
+        <section className="py-20 bg-white">
           <div className="container mx-auto px-4">
-            <div className="flex justify-between items-center mb-12">
-              <div className="text-center md:text-left">
-                <h2 className="text-3xl font-bold mb-2">Recent Treatment Centers</h2>
-                <p className="text-gray-600">Browse our latest verified rehabilitation facilities</p>
-              </div>
-              <button 
-                onClick={() => setIsFiltersOpen(true)}
-                className="text-blue-600 hover:text-blue-700 font-medium"
-              >
-                Filter Results
-              </button>
-            </div>
-            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6 max-w-6xl mx-auto">
-              {loading ? (
-                <div className="col-span-3 flex justify-center py-12">
-                  <div className="animate-spin rounded-full h-12 w-12 border-4 border-blue-600 border-t-transparent"></div>
-                </div>
-              ) : facilities.length === 0 ? (
-                <div className="col-span-3 text-center py-12">
-                  <p className="text-gray-600">No treatment centers found matching your criteria.</p>
-                  <button
-                    onClick={() => {
-                      setFilters(defaultFilters);
-                      fetchFacilities(defaultFilters);
-                    }}
-                    className="mt-4 text-blue-600 hover:text-blue-700 font-medium"
-                  >
-                    Clear Filters
-                  </button>
-                </div>
-              ) : (
-                facilities.map((facility) => (
-                  <RehabCard 
-                    key={facility.id} 
-                    facility={facility} 
-                    onEdit={setEditingFacility}
-                  />
-                ))
-              )}
-            </div>
+            <CoreValues />
           </div>
         </section>
 
-        {/* Insurance Section */}
-        <InsuranceSection />
+        {/* Treatment Finder */}
+        <section className="py-20 bg-gray-50">
+          <div className="container mx-auto px-4">
+            <TreatmentFinder />
+          </div>
+        </section>
 
         {/* Location Browser */}
-        <LocationBrowser />
-
-        {/* Core Values Section */}
-        <CoreValues />
-
-        {/* Edit Modal */}
-        {editingFacility && (
-          <EditListingModal
-            facility={editingFacility}
-            isOpen={!!editingFacility}
-            onClose={() => setEditingFacility(null)}
-            onSave={handleSave}
-          />
-        )}
+        <section className="py-20 bg-white">
+          <div className="container mx-auto px-4">
+            <LocationBrowser />
+          </div>
+        </section>
       </main>
 
       <Footer />

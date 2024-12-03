@@ -6,6 +6,7 @@ import RehabCard from '../components/RehabCard';
 import Header from '../components/Header';
 import Footer from '../components/Footer';
 import FilterBar from '../components/FilterBar';
+import { useTitle } from '../hooks/useTitle';
 
 export default function SearchResults() {
   const [searchParams] = useSearchParams();
@@ -18,6 +19,11 @@ export default function SearchResults() {
     rating: null,
     priceRange: null
   });
+
+  const query = searchParams.get('q') || '';
+  useTitle(`Search Results${query ? ` for "${query}"` : ''}`,
+    'Browse and filter rehabilitation centers and treatment facilities based on your needs.'
+  );
 
   // Extract unique values and counts from facilities
   const getFilterOptions = (facilities: Facility[]) => {
@@ -60,7 +66,6 @@ export default function SearchResults() {
     const fetchFacilities = async () => {
       setLoading(true);
       try {
-        const query = searchParams.get('q') || '';
         const result = await facilitiesService.getFacilities({
           ...filters,
           query
@@ -74,7 +79,7 @@ export default function SearchResults() {
     };
 
     fetchFacilities();
-  }, [searchParams, filters]);
+  }, [searchParams, filters, query]);
 
   const { filterOptions, optionCounts } = getFilterOptions(facilities);
 

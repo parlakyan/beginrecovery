@@ -1,4 +1,4 @@
-import { useState, useEffect } from 'react';
+import React, { useState, useEffect } from 'react';
 import { useForm } from 'react-hook-form';
 import { X, Plus } from 'lucide-react';
 import { Facility } from '../types';
@@ -179,6 +179,7 @@ const EditListingModal = ({ facility, isOpen, onClose, onSave }: EditListingModa
             <AddressAutocomplete
               register={register}
               setValue={setValue}
+              defaultValue={facility.location}
               error={errors.location?.message}
             />
 

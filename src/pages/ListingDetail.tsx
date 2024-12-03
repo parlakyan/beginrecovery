@@ -14,6 +14,7 @@ import StaffSection from '../components/StaffSection';
 import CertificationsSection from '../components/CertificationsSection';
 import { Button, Tag } from '../components/ui';
 import EditListingModal from '../components/EditListingModal';
+import { useTitle } from '../hooks/useTitle';
 
 export default function ListingDetail() {
   const { slug, id } = useParams<{ slug?: string; id?: string }>();
@@ -23,6 +24,11 @@ export default function ListingDetail() {
   const [loading, setLoading] = useState(true);
   const [isEditModalOpen, setIsEditModalOpen] = useState(false);
   const coordinates = { lat: 34.0522, lng: -118.2437 };
+
+  // Set page title based on facility name
+  useTitle(facility ? `${facility.name} | Treatment Center` : 'Loading...',
+    facility?.description || 'View detailed information about this rehabilitation center.'
+  );
 
   // Check if current user is owner or admin
   const canEdit = user && (user.role === 'admin' || (facility && user.id === facility.ownerId));
