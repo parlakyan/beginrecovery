@@ -37,8 +37,8 @@ export default function HomePage() {
       
       // Fetch facilities and featured facilities in parallel
       const [allFacilities, featured] = await Promise.all([
-        facilitiesService.getFacilities(currentFilters),
-        facilitiesService.getFeaturedFacilitiesByLocation(userLocation)
+        facilitiesService.getFacilities(),
+        facilitiesService.getFeaturedFacilities()
       ]);
       
       console.log('Fetched facilities:', {
@@ -133,15 +133,10 @@ export default function HomePage() {
                   Filter Results
                 </button>
               </div>
-              <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6 max-w-6xl mx-auto">
-                {featuredFacilities.slice(0, 3).map((facility) => (
-                  <RehabCard 
-                    key={facility.id} 
-                    facility={facility} 
-                    onEdit={setEditingFacility}
-                  />
-                ))}
-              </div>
+              <FeaturedCarousel 
+                facilities={featuredFacilities} 
+                onEdit={setEditingFacility}
+              />
             </div>
           </section>
         )}

@@ -50,6 +50,7 @@ export interface Coordinates {
  * @property phone - Contact phone number
  * @property email - Contact email address
  * @property tags - Treatment types and categories
+ * @property insurance - Accepted insurance providers
  * @property isVerified - Official verification status
  * @property isFeatured - Featured listing status
  * @property moderationStatus - Content moderation state
@@ -73,6 +74,7 @@ export interface Facility {
   phone?: string;
   email?: string;
   tags: string[];
+  insurance: string[];
   isVerified: boolean;
   isFeatured: boolean;
   moderationStatus: 'pending' | 'approved' | 'rejected' | 'archived';

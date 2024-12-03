@@ -3,34 +3,51 @@ import { useForm } from 'react-hook-form';
 import { useNavigate } from 'react-router-dom';
 import { Building2, Loader2 } from 'lucide-react';
 import { useAuthStore } from '../store/authStore';
-import { facilitiesService, usersService } from '../services/firebase';
-import { Facility, Coordinates } from '../types';
+import { facilitiesService } from '../services/firebase';
+import { usersService } from '../services/firebase';
+import { Facility } from '../types';
 import Header from '../components/Header';
 import Footer from '../components/Footer';
 import PhotoUpload from '../components/PhotoUpload';
 import AddressAutocomplete from '../components/AddressAutocomplete';
+import MultiSelect from '../components/ui/MultiSelect';
 
 interface CreateListingForm {
   name: string;
   description: string;
   location: string;
-  coordinates?: Coordinates;
+  coordinates?: {
+    lat: number;
+    lng: number;
+  };
   phone: string;
   email: string;
-  amenities: string;
-  tags: string;
+  treatmentTypes: string[];
+  amenities: string[];
+  insurance: string[];
 }
 
 const phoneRegex = /^(\+\d{1,2}\s?)?\(?\d{3}\)?[\s.-]?\d{3}[\s.-]?\d{4}$/;
 const emailRegex = /^[A-Z0-9._%+-]+@[A-Z0-9.-]+\.[A-Z]{2,}$/i;
 
 export default function CreateListing() {
-  const { register, handleSubmit, formState: { errors }, setValue } = useForm<CreateListingForm>();
+  const { register, handleSubmit, formState: { errors }, setValue, watch } = useForm<CreateListingForm>({
+    defaultValues: {
+      treatmentTypes: [],
+      amenities: [],
+      insurance: []
+    }
+  });
   const [loading, setLoading] = React.useState(false);
   const [error, setError] = React.useState<string | null>(null);
   const [photos, setPhotos] = React.useState<string[]>([]);
   const { user, refreshToken } = useAuthStore();
   const navigate = useNavigate();
+
+  // Watch form values for MultiSelect components
+  const treatmentTypes = watch('treatmentTypes');
+  const amenities = watch('amenities');
+  const insurance = watch('insurance');
 
   // Generate a temporary ID for photo uploads
   const tempId = React.useMemo(() => 'temp-' + Date.now(), []);
@@ -63,10 +80,7 @@ export default function CreateListing() {
       const formattedData: Partial<Facility> = {
         ...data,
         images: photos,
-        amenities: data.amenities.split(',').map(a => a.trim()).filter(Boolean),
-        tags: data.tags.split(',').map(t => t.trim()).filter(Boolean),
-        moderationStatus: 'pending' as const,
-        coordinates: data.coordinates // Include coordinates in facility data
+        moderationStatus: 'pending' as const
       };
 
       // Create facility
@@ -230,31 +244,29 @@ export default function CreateListing() {
                 />
               </div>
 
-              <div>
-                <label className="block text-sm font-medium text-gray-700 mb-1">
-                  Amenities
-                </label>
-                <input
-                  {...register('amenities')}
-                  type="text"
-                  placeholder="Enter amenities separated by commas"
-                  className="w-full px-4 py-2 border rounded-lg focus:ring-2 focus:ring-blue-500 outline-none"
-                />
-                <p className="mt-1 text-sm text-gray-500">Example: Pool, Gym, Private Rooms</p>
-              </div>
+              <MultiSelect
+                label="Treatment Types"
+                type="treatment"
+                value={treatmentTypes}
+                onChange={(values) => setValue('treatmentTypes', values)}
+                error={errors.treatmentTypes?.message}
+              />
 
-              <div>
-                <label className="block text-sm font-medium text-gray-700 mb-1">
-                  Treatment Types
-                </label>
-                <input
-                  {...register('tags')}
-                  type="text"
-                  placeholder="Enter treatment types separated by commas"
-                  className="w-full px-4 py-2 border rounded-lg focus:ring-2 focus:ring-blue-500 outline-none"
-                />
-                <p className="mt-1 text-sm text-gray-500">Example: Alcohol Rehab, Drug Treatment, Mental Health</p>
-              </div>
+              <MultiSelect
+                label="Amenities"
+                type="amenity"
+                value={amenities}
+                onChange={(values) => setValue('amenities', values)}
+                error={errors.amenities?.message}
+              />
+
+              <MultiSelect
+                label="Insurance Accepted"
+                type="insurance"
+                value={insurance}
+                onChange={(values) => setValue('insurance', values)}
+                error={errors.insurance?.message}
+              />
 
               <div className="flex justify-end gap-4">
                 <button

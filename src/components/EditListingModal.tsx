@@ -1,10 +1,10 @@
 import { useState, useEffect } from 'react';
 import { useForm } from 'react-hook-form';
-import { X, Plus } from 'lucide-react';
-import { Facility, Coordinates } from '../types';
-import { Tag } from './ui';
+import { X } from 'lucide-react';
+import { Facility } from '../types';
 import PhotoUpload from './PhotoUpload';
 import AddressAutocomplete from './AddressAutocomplete';
+import MultiSelect from './ui/MultiSelect';
 
 interface EditListingModalProps {
   facility: Facility;
@@ -17,25 +17,31 @@ interface EditListingForm {
   name: string;
   description: string;
   location: string;
-  coordinates?: Coordinates;
+  coordinates?: {
+    lat: number;
+    lng: number;
+  };
   phone: string;
   email: string;
+  treatmentTypes: string[];
+  amenities: string[];
+  insurance: string[];
 }
 
 const emailRegex = /^[A-Z0-9._%+-]+@[A-Z0-9.-]+\.[A-Z]{2,}$/i;
 const phoneRegex = /^(\+\d{1,2}\s?)?\(?\d{3}\)?[\s.-]?\d{3}[\s.-]?\d{4}$/;
 
 const EditListingModal = ({ facility, isOpen, onClose, onSave }: EditListingModalProps) => {
-  const { register, handleSubmit, formState: { errors }, setValue, reset } = useForm<EditListingForm>();
-  const [formData, setFormData] = useState<Partial<Facility>>({
-    amenities: [],
-    images: [],
-    tags: [],
-    coordinates: facility.coordinates
-  });
-  const [newAmenity, setNewAmenity] = useState('');
-  const [newTag, setNewTag] = useState('');
+  const { register, handleSubmit, formState: { errors }, setValue, watch, reset } = useForm<EditListingForm>();
   const [loading, setLoading] = useState(false);
+  const [formData, setFormData] = useState<Partial<Facility>>({
+    images: []
+  });
+
+  // Watch form values for MultiSelect components
+  const treatmentTypes = watch('treatmentTypes', []);
+  const amenities = watch('amenities', []);
+  const insurance = watch('insurance', []);
 
   // Reset form when modal opens or facility changes
   useEffect(() => {
@@ -47,74 +53,18 @@ const EditListingModal = ({ facility, isOpen, onClose, onSave }: EditListingModa
         location: facility.location || '',
         coordinates: facility.coordinates,
         phone: facility.phone || '',
-        email: facility.email || ''
+        email: facility.email || '',
+        treatmentTypes: facility.tags || [],
+        amenities: facility.amenities || [],
+        insurance: facility.insurance || []
       });
 
       // Reset form data
       setFormData({
-        amenities: facility.amenities || [],
-        images: facility.images || [],
-        tags: facility.tags || [],
-        coordinates: facility.coordinates
+        images: facility.images || []
       });
-
-      // Reset other state
-      setNewAmenity('');
-      setNewTag('');
     }
   }, [facility, isOpen, reset]);
-
-  const onSubmit = async (data: EditListingForm) => {
-    try {
-      setLoading(true);
-      await onSave({
-        ...data,
-        amenities: formData.amenities,
-        images: formData.images,
-        tags: formData.tags,
-        coordinates: data.coordinates || formData.coordinates // Include coordinates in save data
-      });
-      onClose();
-    } catch (error) {
-      console.error('Error saving facility:', error);
-    } finally {
-      setLoading(false);
-    }
-  };
-
-  const handleAddAmenity = () => {
-    if (newAmenity.trim()) {
-      setFormData(prev => ({
-        ...prev,
-        amenities: [...(prev.amenities || []), newAmenity.trim()]
-      }));
-      setNewAmenity('');
-    }
-  };
-
-  const handleRemoveAmenity = (index: number) => {
-    setFormData(prev => ({
-      ...prev,
-      amenities: prev.amenities?.filter((_, i) => i !== index)
-    }));
-  };
-
-  const handleAddTag = () => {
-    if (newTag.trim()) {
-      setFormData(prev => ({
-        ...prev,
-        tags: [...(prev.tags || []), newTag.trim()]
-      }));
-      setNewTag('');
-    }
-  };
-
-  const handleRemoveTag = (index: number) => {
-    setFormData(prev => ({
-      ...prev,
-      tags: prev.tags?.filter((_, i) => i !== index)
-    }));
-  };
 
   const handlePhotosChange = (photos: string[]) => {
     setFormData(prev => ({
@@ -123,15 +73,21 @@ const EditListingModal = ({ facility, isOpen, onClose, onSave }: EditListingModa
     }));
   };
 
-  const handleClose = () => {
-    reset();
-    setFormData({
-      amenities: [],
-      images: [],
-      tags: [],
-      coordinates: undefined
-    });
-    onClose();
+  const onSubmit = async (data: EditListingForm) => {
+    try {
+      setLoading(true);
+      await onSave({
+        ...data,
+        images: formData.images,
+        tags: data.treatmentTypes,
+        insurance: data.insurance
+      });
+      onClose();
+    } catch (error) {
+      console.error('Error saving facility:', error);
+    } finally {
+      setLoading(false);
+    }
   };
 
   if (!isOpen) return null;
@@ -143,7 +99,7 @@ const EditListingModal = ({ facility, isOpen, onClose, onSave }: EditListingModa
           <div className="flex justify-between items-center">
             <h2 className="text-2xl font-bold">Edit Facility</h2>
             <button
-              onClick={handleClose}
+              onClick={onClose}
               className="p-2 hover:bg-gray-100 rounded-lg transition-colors"
             >
               <X className="w-5 h-5" />
@@ -152,84 +108,80 @@ const EditListingModal = ({ facility, isOpen, onClose, onSave }: EditListingModa
         </div>
 
         <form onSubmit={handleSubmit(onSubmit)} className="p-6 space-y-6">
-          {/* Basic Information */}
-          <div className="space-y-4">
-            <div>
-              <label className="block text-sm font-medium text-gray-700 mb-1">
-                Facility Name
-              </label>
-              <input
-                {...register('name', { required: 'Facility name is required' })}
-                type="text"
-                className="w-full px-3 py-2 border rounded-lg focus:ring-2 focus:ring-blue-500 outline-none"
-              />
-              {errors.name && (
-                <p className="mt-1 text-sm text-red-600">{errors.name.message}</p>
-              )}
-            </div>
-
-            <div>
-              <label className="block text-sm font-medium text-gray-700 mb-1">
-                Description
-              </label>
-              <textarea
-                {...register('description', { required: 'Description is required' })}
-                className="w-full px-3 py-2 border rounded-lg focus:ring-2 focus:ring-blue-500 outline-none"
-                rows={4}
-              />
-              {errors.description && (
-                <p className="mt-1 text-sm text-red-600">{errors.description.message}</p>
-              )}
-            </div>
-
-            <AddressAutocomplete
-              register={register}
-              setValue={setValue}
-              error={errors.location?.message}
+          <div>
+            <label className="block text-sm font-medium text-gray-700 mb-1">
+              Facility Name
+            </label>
+            <input
+              {...register('name', { required: 'Facility name is required' })}
+              type="text"
+              className="w-full px-3 py-2 border rounded-lg focus:ring-2 focus:ring-blue-500 outline-none"
             />
-
-            <div>
-              <label className="block text-sm font-medium text-gray-700 mb-1">
-                Phone
-              </label>
-              <input
-                {...register('phone', {
-                  required: 'Phone number is required',
-                  pattern: {
-                    value: phoneRegex,
-                    message: 'Please enter a valid phone number'
-                  }
-                })}
-                type="tel"
-                className="w-full px-3 py-2 border rounded-lg focus:ring-2 focus:ring-blue-500 outline-none"
-              />
-              {errors.phone && (
-                <p className="mt-1 text-sm text-red-600">{errors.phone.message}</p>
-              )}
-            </div>
-
-            <div>
-              <label className="block text-sm font-medium text-gray-700 mb-1">
-                Email Address
-              </label>
-              <input
-                {...register('email', {
-                  required: 'Email is required',
-                  pattern: {
-                    value: emailRegex,
-                    message: 'Please enter a valid email address'
-                  }
-                })}
-                type="email"
-                className="w-full px-3 py-2 border rounded-lg focus:ring-2 focus:ring-blue-500 outline-none"
-              />
-              {errors.email && (
-                <p className="mt-1 text-sm text-red-600">{errors.email.message}</p>
-              )}
-            </div>
+            {errors.name && (
+              <p className="mt-1 text-sm text-red-600">{errors.name.message}</p>
+            )}
           </div>
 
-          {/* Photos */}
+          <div>
+            <label className="block text-sm font-medium text-gray-700 mb-1">
+              Description
+            </label>
+            <textarea
+              {...register('description', { required: 'Description is required' })}
+              className="w-full px-3 py-2 border rounded-lg focus:ring-2 focus:ring-blue-500 outline-none"
+              rows={4}
+            />
+            {errors.description && (
+              <p className="mt-1 text-sm text-red-600">{errors.description.message}</p>
+            )}
+          </div>
+
+          <AddressAutocomplete
+            register={register}
+            setValue={setValue}
+            error={errors.location?.message}
+          />
+
+          <div>
+            <label className="block text-sm font-medium text-gray-700 mb-1">
+              Phone
+            </label>
+            <input
+              {...register('phone', {
+                required: 'Phone number is required',
+                pattern: {
+                  value: phoneRegex,
+                  message: 'Please enter a valid phone number'
+                }
+              })}
+              type="tel"
+              className="w-full px-3 py-2 border rounded-lg focus:ring-2 focus:ring-blue-500 outline-none"
+            />
+            {errors.phone && (
+              <p className="mt-1 text-sm text-red-600">{errors.phone.message}</p>
+            )}
+          </div>
+
+          <div>
+            <label className="block text-sm font-medium text-gray-700 mb-1">
+              Email Address
+            </label>
+            <input
+              {...register('email', {
+                required: 'Email is required',
+                pattern: {
+                  value: emailRegex,
+                  message: 'Please enter a valid email address'
+                }
+              })}
+              type="email"
+              className="w-full px-3 py-2 border rounded-lg focus:ring-2 focus:ring-blue-500 outline-none"
+            />
+            {errors.email && (
+              <p className="mt-1 text-sm text-red-600">{errors.email.message}</p>
+            )}
+          </div>
+
           <div>
             <label className="block text-sm font-medium text-gray-700 mb-2">
               Photos
@@ -242,88 +194,34 @@ const EditListingModal = ({ facility, isOpen, onClose, onSave }: EditListingModa
             />
           </div>
 
-          {/* Amenities */}
-          <div>
-            <label className="block text-sm font-medium text-gray-700 mb-2">
-              Amenities
-            </label>
-            <div className="flex gap-2 mb-2">
-              <input
-                type="text"
-                value={newAmenity}
-                onChange={(e) => setNewAmenity(e.target.value)}
-                className="flex-1 px-3 py-2 border rounded-lg focus:ring-2 focus:ring-blue-500 outline-none"
-                placeholder="Add amenity..."
-              />
-              <button
-                type="button"
-                onClick={handleAddAmenity}
-                className="px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700"
-              >
-                <Plus className="w-5 h-5" />
-              </button>
-            </div>
-            <div className="flex flex-wrap gap-2">
-              {formData.amenities?.map((amenity, index) => (
-                <div key={index} className="flex items-center">
-                  <Tag variant="primary">
-                    {amenity}
-                    <button
-                      type="button"
-                      onClick={() => handleRemoveAmenity(index)}
-                      className="ml-2 hover:text-blue-800"
-                    >
-                      <X className="w-4 h-4" />
-                    </button>
-                  </Tag>
-                </div>
-              ))}
-            </div>
-          </div>
+          <MultiSelect
+            label="Treatment Types"
+            type="treatment"
+            value={treatmentTypes}
+            onChange={(values) => setValue('treatmentTypes', values)}
+            error={errors.treatmentTypes?.message}
+          />
 
-          {/* Tags */}
-          <div>
-            <label className="block text-sm font-medium text-gray-700 mb-2">
-              Tags
-            </label>
-            <div className="flex gap-2 mb-2">
-              <input
-                type="text"
-                value={newTag}
-                onChange={(e) => setNewTag(e.target.value)}
-                className="flex-1 px-3 py-2 border rounded-lg focus:ring-2 focus:ring-blue-500 outline-none"
-                placeholder="Add tag..."
-              />
-              <button
-                type="button"
-                onClick={handleAddTag}
-                className="px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700"
-              >
-                <Plus className="w-5 h-5" />
-              </button>
-            </div>
-            <div className="flex flex-wrap gap-2">
-              {formData.tags?.map((tag, index) => (
-                <div key={index} className="flex items-center">
-                  <Tag variant="secondary">
-                    {tag}
-                    <button
-                      type="button"
-                      onClick={() => handleRemoveTag(index)}
-                      className="ml-2 hover:text-teal-800"
-                    >
-                      <X className="w-4 h-4" />
-                    </button>
-                  </Tag>
-                </div>
-              ))}
-            </div>
-          </div>
+          <MultiSelect
+            label="Amenities"
+            type="amenity"
+            value={amenities}
+            onChange={(values) => setValue('amenities', values)}
+            error={errors.amenities?.message}
+          />
+
+          <MultiSelect
+            label="Insurance Accepted"
+            type="insurance"
+            value={insurance}
+            onChange={(values) => setValue('insurance', values)}
+            error={errors.insurance?.message}
+          />
 
           <div className="flex justify-end gap-4 pt-4 border-t">
             <button
               type="button"
-              onClick={handleClose}
+              onClick={onClose}
               className="px-4 py-2 text-gray-600 hover:text-gray-800"
             >
               Cancel
