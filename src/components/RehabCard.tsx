@@ -7,17 +7,63 @@ import { Tag } from './ui';
 import { Facility } from '../types';
 
 interface RehabCardProps {
+  /** The facility data to display */
   facility: Facility;
+  /** Optional callback for edit functionality. If not provided, edit button won't show even for owners/admins */
   onEdit?: (facility: Facility) => void;
 }
 
 /**
- * RehabCard component displays facility information in a card format
- * Status badges are only shown for:
- * - Pending (yellow)
- * - Rejected (red)
- * - Archived (gray)
- * Owner actions (Edit/Upgrade) are stacked vertically when both present
+ * RehabCard Component
+ * 
+ * Displays a facility card with different features based on verification status and user role.
+ * 
+ * Image Display:
+ * - Verified listings: Shows all images in a carousel with navigation
+ * - Unverified listings: Shows only the first image without navigation
+ * 
+ * Status Badges:
+ * - Verified/Unverified badge (visible to everyone)
+ * - Moderation status badge (only visible to owners):
+ *   - Pending (yellow)
+ *   - Rejected (red)
+ *   - Archived (gray)
+ * 
+ * Actions:
+ * - View Details (available to everyone)
+ * - Edit Facility (only shown if):
+ *   - User is owner or admin AND
+ *   - onEdit prop is provided
+ * - Upgrade to Verified (only shown if):
+ *   - User is owner AND
+ *   - Facility is unverified
+ * 
+ * Content Display:
+ * - Facility name
+ * - Location
+ * - Phone number
+ * - Description (truncated to 2 lines)
+ * - Tags (shows first 2 with count indicator)
+ * - Amenities (shows first 3 with count indicator)
+ * - Rating
+ * 
+ * Layout:
+ * - Responsive grid layout
+ * - Fixed height image section
+ * - Flexible content section
+ * - Actions always at bottom
+ * 
+ * Usage:
+ * ```tsx
+ * // Basic usage (no edit functionality)
+ * <RehabCard facility={facility} />
+ * 
+ * // With edit functionality
+ * <RehabCard 
+ *   facility={facility}
+ *   onEdit={handleEdit}
+ * />
+ * ```
  */
 export default function RehabCard({ facility, onEdit }: RehabCardProps) {
   const navigate = useNavigate();

@@ -2,17 +2,53 @@ import { useState, useEffect, useCallback } from 'react';
 import { ChevronLeft, ChevronRight } from 'lucide-react';
 
 interface ImageCarouselProps {
+  /** Array of image URLs to display */
   images: string[];
+  /** Whether to show navigation controls (arrows and dots). Only applies to verified listings with multiple images */
   showNavigation?: boolean;
+  /** Callback function when an image is clicked */
   onImageClick?: () => void;
+  /** Position of the pagination dots */
   paginationPosition?: 'bottom' | 'elevated';
+  /** Whether the facility is verified. Verified listings show all images in a carousel, unverified show only the first image */
   isVerified?: boolean;
 }
 
 /**
- * ImageCarousel component
- * Shows all images for verified listings
- * Shows only the first image for unverified listings
+ * ImageCarousel Component
+ * 
+ * Displays facility images with different behaviors based on verification status:
+ * - Verified listings: Shows all images in a carousel with navigation
+ * - Unverified listings: Shows only the first image without navigation
+ * 
+ * Features:
+ * - Touch swipe support for mobile
+ * - Keyboard navigation (left/right arrows)
+ * - Automatic image loading optimization
+ * - Responsive design
+ * - Smooth transitions between images
+ * 
+ * Navigation controls (for verified listings with multiple images):
+ * - Arrow buttons on desktop
+ * - Swipe gestures on mobile
+ * - Pagination dots
+ * 
+ * Usage:
+ * ```tsx
+ * // For verified listing
+ * <ImageCarousel
+ *   images={facility.images}
+ *   showNavigation={true}
+ *   isVerified={true}
+ *   onImageClick={handleClick}
+ * />
+ * 
+ * // For unverified listing (shows only first image)
+ * <ImageCarousel
+ *   images={facility.images}
+ *   isVerified={false}
+ * />
+ * ```
  */
 export default function ImageCarousel({ 
   images = [], 
