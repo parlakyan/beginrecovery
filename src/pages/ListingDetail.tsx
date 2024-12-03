@@ -1,77 +1,63 @@
-import { useEffect, useState, useCallback } from 'react';
+import React, { useEffect, useState } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
-import { Edit2, ShieldCheck, ShieldAlert, Clock, MapPin, Star } from 'lucide-react';
+import { Shield, ShieldCheck, MapPin, Clock, Phone } from 'lucide-react';
 import { facilitiesService } from '../services/facilities';
-import { useAuthStore } from '../store/authStore';
 import { Facility } from '../types';
 import Header from '../components/Header';
 import Footer from '../components/Footer';
-import ImageCarousel from '../components/ImageCarousel';
 import ContactBox from '../components/ContactBox';
-import ReviewsSection from '../components/ReviewsSection';
-import MapSection from '../components/MapSection';
-import StaffSection from '../components/StaffSection';
-import CertificationsSection from '../components/CertificationsSection';
-import { Button, Tag } from '../components/ui';
 import EditListingModal from '../components/EditListingModal';
+import { Tag } from '../components/ui';
+import { useAuthStore } from '../store/authStore';
+
+interface CollectionGroup {
+  label: string;
+  items: string[];
+  type: 'highlights' | 'tags' | 'substances' | 'amenities' | 'insurance' | 'accreditation' | 'languages';
+}
 
 export default function ListingDetail() {
-  const { slug, id } = useParams<{ slug?: string; id?: string }>();
-  const navigate = useNavigate();
-  const { user } = useAuthStore();
+  const { slug } = useParams<{ slug: string }>();
   const [facility, setFacility] = useState<Facility | null>(null);
   const [loading, setLoading] = useState(true);
-  const [isEditModalOpen, setIsEditModalOpen] = useState(false);
-
-  // Check if current user is owner or admin
-  const canEdit = user && (user.role === 'admin' || (facility && user.id === facility.ownerId));
-
-  const fetchFacility = useCallback(async () => {
-    try {
-      setLoading(true);
-      let data = null;
-
-      if (id) {
-        // If we have an ID, fetch by ID and redirect to slug URL
-        data = await facilitiesService.getFacilityById(id);
-        if (data && data.slug) {
-          navigate(`/${data.slug}`, { replace: true });
-        }
-      } else if (slug) {
-        // If we have a slug, fetch by slug
-        data = await facilitiesService.getFacilityBySlug(slug);
-      }
-
-      if (!data) {
-        // If no facility found, redirect to 404
-        navigate('/404', { replace: true });
-        return;
-      }
-
-      setFacility(data);
-    } catch (error) {
-      console.error('Error fetching facility:', error);
-      // On error, redirect to 404
-      navigate('/404', { replace: true });
-    } finally {
-      setLoading(false);
-    }
-  }, [id, slug, navigate]);
+  const [editModalOpen, setEditModalOpen] = useState(false);
+  const { user } = useAuthStore();
+  const navigate = useNavigate();
 
   useEffect(() => {
     window.scrollTo(0, 0);
+  }, []);
+
+  useEffect(() => {
+    const fetchFacility = async () => {
+      if (!slug) return;
+
+      try {
+        const data = await facilitiesService.getFacilityBySlug(slug);
+        setFacility(data);
+      } catch (error) {
+        console.error('Error fetching facility:', error);
+      } finally {
+        setLoading(false);
+      }
+    };
+
     fetchFacility();
-  }, [fetchFacility, slug]); // Add slug as dependency to refetch when URL changes
+  }, [slug]);
 
   const handleVerificationToggle = async () => {
     if (!facility) return;
+
     try {
       if (facility.isVerified) {
         await facilitiesService.unverifyFacility(facility.id);
       } else {
         await facilitiesService.verifyFacility(facility.id);
       }
-      await fetchFacility(); // Refetch facility data
+      
+      // Refresh facility data
+      const updated = await facilitiesService.getFacilityById(facility.id);
+      setFacility(updated);
     } catch (error) {
       console.error('Error toggling verification:', error);
     }
@@ -79,10 +65,12 @@ export default function ListingDetail() {
 
   const handleSave = async (data: Partial<Facility>) => {
     if (!facility) return;
+
     try {
       await facilitiesService.updateFacility(facility.id, data);
-      await fetchFacility(); // Refetch facility data
-      setIsEditModalOpen(false);
+      // Refresh facility data
+      const updated = await facilitiesService.getFacilityById(facility.id);
+      setFacility(updated);
     } catch (error) {
       console.error('Error updating facility:', error);
     }
@@ -92,7 +80,7 @@ export default function ListingDetail() {
     return (
       <div className="min-h-screen bg-gray-50">
         <Header />
-        <div className="flex justify-center items-center min-h-[60vh]">
+        <div className="flex justify-center items-center min-h-[400px]">
           <div className="animate-spin rounded-full h-12 w-12 border-4 border-blue-600 border-t-transparent"></div>
         </div>
         <Footer />
@@ -101,140 +89,138 @@ export default function ListingDetail() {
   }
 
   if (!facility) {
-    return null;
+    return (
+      <div className="min-h-screen bg-gray-50">
+        <Header />
+        <div className="container mx-auto px-4 py-8">
+          <div className="text-center">
+            <h1 className="text-2xl font-bold mb-4">Facility Not Found</h1>
+            <p className="text-gray-600 mb-4">The facility you're looking for doesn't exist or has been removed.</p>
+            <button
+              onClick={() => navigate('/')}
+              className="text-blue-600 hover:text-blue-700 font-medium"
+            >
+              Return to Home
+            </button>
+          </div>
+        </div>
+        <Footer />
+      </div>
+    );
   }
 
-  return (
-    <div className="min-h-screen bg-gray-50 flex flex-col">
-      <Header />
-      
-      <main className="flex-grow pb-20">
-        {/* Hero Section with Image Carousel */}
-        <div className="relative h-[50vh] min-h-[400px] bg-gray-900">
-          <ImageCarousel 
-            images={facility.images} 
-            showNavigation={facility.images.length > 1}
-            paginationPosition="elevated"
-            isVerified={facility.isVerified}
-          />
-          
-          {/* Admin and Owner Controls */}
-          {canEdit && (
-            <div className="absolute top-4 right-4 flex items-center gap-2 z-10">
-              <Button
-                variant="secondary"
-                onClick={() => setIsEditModalOpen(true)}
-                className="flex items-center gap-2"
-              >
-                <Edit2 className="w-4 h-4" />
-                Edit Facility
-              </Button>
+  const collectionGroups: CollectionGroup[] = [
+    { label: 'Highlights', items: facility.highlights, type: 'highlights' },
+    { label: 'Treatment Types', items: facility.tags, type: 'tags' },
+    { label: 'Substances We Treat', items: facility.substances, type: 'substances' },
+    { label: 'Amenities', items: facility.amenities, type: 'amenities' },
+    { label: 'Insurance Accepted', items: facility.insurance, type: 'insurance' },
+    { label: 'Accreditation', items: facility.accreditation, type: 'accreditation' },
+    { label: 'Languages', items: facility.languages, type: 'languages' }
+  ];
 
-              {user.role === 'admin' && (
-                <>
-                  <Button
-                    variant="secondary"
-                    onClick={handleVerificationToggle}
-                    className={`flex items-center gap-2 ${
-                      facility.isVerified 
-                        ? 'bg-green-50 text-green-700 hover:bg-green-100' 
-                        : 'bg-gray-50 text-gray-700 hover:bg-gray-100'
-                    }`}
-                  >
-                    {facility.isVerified ? (
-                      <>
-                        <ShieldCheck className="w-4 h-4" />
-                        Verified
-                      </>
-                    ) : (
-                      <>
-                        <ShieldAlert className="w-4 h-4" />
-                        Unverified
-                      </>
-                    )}
-                  </Button>
-                </>
-              )}
+  const isOwner = user?.id === facility.ownerId;
+  const isAdmin = user?.role === 'admin';
+  const canEdit = isOwner || isAdmin;
+
+  return (
+    <div className="min-h-screen bg-gray-50">
+      <Header />
+
+      <main className="container mx-auto px-4 py-8">
+        <div className="max-w-5xl mx-auto">
+          {/* Admin Controls */}
+          {isAdmin && (
+            <div className="mb-6 flex items-center gap-4 p-4 bg-white rounded-lg shadow-sm">
+              <button
+                onClick={handleVerificationToggle}
+                className="flex items-center gap-2 px-4 py-2 rounded-lg border hover:bg-gray-50"
+              >
+                {facility.isVerified ? (
+                  <>
+                    <ShieldCheck className="w-5 h-5 text-green-600" />
+                    <span>Verified</span>
+                  </>
+                ) : (
+                  <>
+                    <Shield className="w-5 h-5 text-gray-400" />
+                    <span>Not Verified</span>
+                  </>
+                )}
+              </button>
             </div>
           )}
-        </div>
 
-        <div className="relative max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 -mt-20">
+          {/* Main Content */}
           <div className="grid grid-cols-1 lg:grid-cols-3 gap-8">
-            {/* Main Content */}
+            {/* Left Column */}
             <div className="lg:col-span-2 space-y-8">
-              {/* Basic Info Box */}
-              <div className="bg-white rounded-lg shadow-lg p-6">
-                <div className="flex flex-col md:flex-row md:items-start md:justify-between gap-4">
-                  <div className="flex-1">
-                    <h1 className="text-3xl font-bold text-gray-900 mb-4">{facility.name}</h1>
-                    
-                    {/* Location and Hours */}
-                    <div className="flex flex-row gap-6 mb-6">
-                      <div className="flex items-center text-gray-600">
-                        <MapPin className="w-5 h-5 mr-2 flex-shrink-0" />
-                        <span>{facility.location}</span>
-                      </div>
-                      <div className="flex items-center text-gray-600">
-                        <Clock className="w-5 h-5 mr-2 flex-shrink-0" />
-                        <span>Open 24/7</span>
-                      </div>
-                    </div>
-
-                    {/* Description */}
-                    <p className="text-gray-600 mb-6">{facility.description}</p>
-
-                    {/* Tags */}
-                    <div className="flex flex-wrap gap-2 mb-6">
-                      {facility.tags.map((tag: string, index: number) => (
-                        <Tag key={index} variant="secondary">{tag}</Tag>
-                      ))}
-                    </div>
-
-                    {/* Amenities */}
-                    <div>
-                      <h2 className="text-xl font-semibold mb-4">Amenities & Services</h2>
-                      <div className="flex flex-wrap gap-2">
-                        {facility.amenities.map((amenity: string, index: number) => (
-                          <Tag key={index} variant="primary">{amenity}</Tag>
-                        ))}
-                      </div>
-                    </div>
-                  </div>
-
-                  {/* Reviews Summary */}
-                  <div className="flex flex-col items-center bg-surface px-6 py-4 rounded-lg">
-                    <div className="flex items-center gap-2 mb-1">
-                      <Star className="w-6 h-6 text-yellow-400 fill-current" />
-                      <span className="text-2xl font-bold">{facility.rating.toFixed(1)}</span>
-                    </div>
-                    <div className="text-center">
-                      <div className="font-medium text-gray-900">Excellent</div>
-                      <div className="text-sm text-gray-600">{facility.reviewCount} reviews</div>
-                    </div>
-                  </div>
-                </div>
+              {/* Image Gallery */}
+              <div className="bg-white rounded-xl overflow-hidden">
+                <img
+                  src={facility.images[0] || 'https://via.placeholder.com/800x400?text=No+Image'}
+                  alt={facility.name}
+                  className="w-full aspect-video object-cover"
+                />
               </div>
 
-              {/* Certifications Section - Only for verified facilities */}
-              {facility.isVerified && <CertificationsSection />}
+              {/* Facility Info */}
+              <div className="bg-white rounded-xl p-6 space-y-6">
+                <div className="flex justify-between items-start">
+                  <div>
+                    <h1 className="text-2xl font-bold">{facility.name}</h1>
+                    <div className="mt-2 space-y-2">
+                      <div className="flex items-center gap-2 text-gray-600">
+                        <MapPin className="w-5 h-5" />
+                        <span>{facility.location}</span>
+                      </div>
+                      <div className="flex items-center gap-2 text-gray-600">
+                        <Clock className="w-5 h-5" />
+                        <span>Open 24/7</span>
+                      </div>
+                      {facility.phone && (
+                        <div className="flex items-center gap-2 text-gray-600">
+                          <Phone className="w-5 h-5" />
+                          <span>{facility.phone}</span>
+                        </div>
+                      )}
+                    </div>
+                  </div>
+                  {canEdit && (
+                    <button
+                      onClick={() => setEditModalOpen(true)}
+                      className="px-4 py-2 text-blue-600 hover:bg-blue-50 rounded-lg"
+                    >
+                      Edit
+                    </button>
+                  )}
+                </div>
 
-              {/* Reviews Section */}
-              <ReviewsSection facility={facility} />
+                <div className="prose max-w-none">
+                  <p>{facility.description}</p>
+                </div>
 
-              {/* Staff Section - Only for verified facilities */}
-              {facility.isVerified && <StaffSection />}
-
-              {/* Map Section */}
-              <MapSection 
-                coordinates={facility.coordinates} 
-                address={facility.location}
-              />
+                {/* Collection Groups */}
+                <div className="space-y-6">
+                  {collectionGroups.map(group => 
+                    group.items && group.items.length > 0 && (
+                      <div key={group.type}>
+                        <h3 className="text-lg font-semibold mb-3">{group.label}</h3>
+                        <div className="flex flex-wrap gap-2">
+                          {group.items.map((item, index) => (
+                            <Tag key={index} variant="primary">{item}</Tag>
+                          ))}
+                        </div>
+                      </div>
+                    )
+                  )}
+                </div>
+              </div>
             </div>
 
-            {/* Contact Box - Sticky */}
+            {/* Right Column */}
             <div className="lg:col-span-1">
-              <div className="sticky top-24 z-0">
+              <div className="sticky top-24">
                 <ContactBox facility={facility} />
               </div>
             </div>
@@ -243,11 +229,11 @@ export default function ListingDetail() {
       </main>
 
       {/* Edit Modal */}
-      {isEditModalOpen && (
+      {canEdit && (
         <EditListingModal
           facility={facility}
-          isOpen={isEditModalOpen}
-          onClose={() => setIsEditModalOpen(false)}
+          isOpen={editModalOpen}
+          onClose={() => setEditModalOpen(false)}
           onSave={handleSave}
         />
       )}

@@ -1,17 +1,6 @@
-import React from 'react';
-import { Link, useNavigate, useLocation } from 'react-router-dom';
-import { 
-  User, 
-  Settings, 
-  Heart, 
-  Bell, 
-  Shield, 
-  LogOut,
-  Edit2,
-  Loader2,
-  Building2,
-  Plus
-} from 'lucide-react';
+import React, { useEffect, useState } from 'react';
+import { useNavigate } from 'react-router-dom';
+import { Building2, Loader2 } from 'lucide-react';
 import { useAuthStore } from '../store/authStore';
 import { facilitiesService } from '../services/facilities';
 import { Facility } from '../types';
@@ -21,364 +10,128 @@ import RehabCard from '../components/RehabCard';
 import EditListingModal from '../components/EditListingModal';
 
 export default function AccountPage() {
+  const [listings, setListings] = useState<Facility[]>([]);
+  const [loading, setLoading] = useState(true);
+  const [editingFacility, setEditingFacility] = useState<Facility | null>(null);
+  const { user } = useAuthStore();
   const navigate = useNavigate();
-  const location = useLocation();
-  const { user, loading, signOut } = useAuthStore();
-  const [activeTab, setActiveTab] = React.useState(() => {
-    // Get initial tab from location state or default to 'profile'
-    return (location.state as any)?.activeTab || 'profile';
-  });
-  const [userListings, setUserListings] = React.useState<Facility[]>([]);
-  const [listingsLoading, setListingsLoading] = React.useState(false);
-  const [editingFacility, setEditingFacility] = React.useState<Facility | null>(null);
 
-  // Load user's facility listings
-  const loadUserListings = React.useCallback(async () => {
-    if (!user?.id) return;
-    
-    try {
-      setListingsLoading(true);
-      console.log('Loading listings for user:', user.id);
-      const listings = await facilitiesService.getUserListings(user.id);
-      console.log('Loaded listings:', listings.length);
-      setUserListings(listings);
-    } catch (error) {
-      console.error('Error loading user listings:', error);
-    } finally {
-      setListingsLoading(false);
+  // Scroll to top on mount
+  useEffect(() => {
+    window.scrollTo(0, 0);
+  }, []);
+
+  // Redirect if not logged in
+  useEffect(() => {
+    if (!user) {
+      navigate('/login', { 
+        state: { 
+          returnUrl: '/account'
+        }
+      });
     }
-  }, [user?.id]);
+  }, [user, navigate]);
 
-  // Handle facility update
-  const handleUpdateFacility = async (data: Partial<Facility>) => {
+  // Fetch user's listings
+  useEffect(() => {
+    const fetchListings = async () => {
+      if (!user) return;
+
+      try {
+        const userListings = await facilitiesService.getUserListings(user.id);
+        setListings(userListings);
+      } catch (error) {
+        console.error('Error fetching listings:', error);
+      } finally {
+        setLoading(false);
+      }
+    };
+
+    fetchListings();
+  }, [user]);
+
+  const handleSave = async (data: Partial<Facility>) => {
     if (!editingFacility) return;
+
     try {
       await facilitiesService.updateFacility(editingFacility.id, data);
-      await loadUserListings(); // Refresh listings after update
-      setEditingFacility(null); // Close modal
+      
+      // Refresh listings
+      if (user) {
+        const updated = await facilitiesService.getUserListings(user.id);
+        setListings(updated);
+      }
+      
+      setEditingFacility(null);
     } catch (error) {
       console.error('Error updating facility:', error);
-      throw error;
     }
   };
 
-  // Load listings when component mounts or when user changes
-  React.useEffect(() => {
-    if (user?.id && user.role === 'owner') {
-      loadUserListings();
-    }
-  }, [user?.id, user?.role, loadUserListings]);
-
-  // Debug logging for user role
-  React.useEffect(() => {
-    if (user) {
-      console.log('AccountPage - User Data:', {
-        email: user.email,
-        role: user.role,
-        isAdmin: user.role === 'admin',
-        createdAt: user.createdAt
-      });
-    }
-  }, [user]);
-
-  // Loading state
-  if (loading) {
-    return (
-      <div className="min-h-screen flex items-center justify-center">
-        <Loader2 className="w-6 h-6 animate-spin text-blue-600" />
-      </div>
-    );
+  if (!user) {
+    return null;
   }
 
   return (
     <div className="min-h-screen bg-gray-50">
       <Header />
-      
-      <div className="container mx-auto px-4 py-8">
-        <div className="max-w-6xl mx-auto">
-          <div className="flex flex-col md:flex-row gap-8">
-            {/* Sidebar Navigation */}
-            <div className="w-full md:w-64 space-y-2">
-              <button
-                onClick={() => setActiveTab('profile')}
-                className={`w-full flex items-center gap-3 px-4 py-2 rounded-lg text-left ${
-                  activeTab === 'profile'
-                    ? 'bg-blue-50 text-blue-600'
-                    : 'hover:bg-gray-100'
-                }`}
-              >
-                <User className="w-5 h-5" />
-                Profile
-              </button>
-              
-              {/* Listings tab - Only visible to owners */}
-              {user?.role === 'owner' && (
-                <button
-                  onClick={() => setActiveTab('listings')}
-                  className={`w-full flex items-center gap-3 px-4 py-2 rounded-lg text-left ${
-                    activeTab === 'listings'
-                      ? 'bg-blue-50 text-blue-600'
-                      : 'hover:bg-gray-100'
-                  }`}
-                >
-                  <Building2 className="w-5 h-5" />
-                  My Listings
-                </button>
-              )}
-              
-              <button
-                onClick={() => setActiveTab('settings')}
-                className={`w-full flex items-center gap-3 px-4 py-2 rounded-lg text-left ${
-                  activeTab === 'settings'
-                    ? 'bg-blue-50 text-blue-600'
-                    : 'hover:bg-gray-100'
-                }`}
-              >
-                <Settings className="w-5 h-5" />
-                Settings
-              </button>
-              
-              <button
-                onClick={() => setActiveTab('saved')}
-                className={`w-full flex items-center gap-3 px-4 py-2 rounded-lg text-left ${
-                  activeTab === 'saved'
-                    ? 'bg-blue-50 text-blue-600'
-                    : 'hover:bg-gray-100'
-                }`}
-              >
-                <Heart className="w-5 h-5" />
-                Saved Facilities
-              </button>
-              
-              <button
-                onClick={() => setActiveTab('notifications')}
-                className={`w-full flex items-center gap-3 px-4 py-2 rounded-lg text-left ${
-                  activeTab === 'notifications'
-                    ? 'bg-blue-50 text-blue-600'
-                    : 'hover:bg-gray-100'
-                }`}
-              >
-                <Bell className="w-5 h-5" />
-                Notifications
-              </button>
-              
-              <button
-                onClick={() => setActiveTab('privacy')}
-                className={`w-full flex items-center gap-3 px-4 py-2 rounded-lg text-left ${
-                  activeTab === 'privacy'
-                    ? 'bg-blue-50 text-blue-600'
-                    : 'hover:bg-gray-100'
-                }`}
-              >
-                <Shield className="w-5 h-5" />
-                Privacy & Security
-              </button>
-              
-              <button
-                onClick={signOut}
-                className="w-full flex items-center gap-3 px-4 py-2 rounded-lg text-left text-red-600 hover:bg-red-50"
-              >
-                <LogOut className="w-5 h-5" />
-                Sign Out
-              </button>
+
+      <main className="container mx-auto px-4 py-8">
+        <div className="max-w-5xl mx-auto">
+          {/* Header */}
+          <div className="flex justify-between items-center mb-8">
+            <div className="flex items-center gap-3">
+              <Building2 className="w-8 h-8 text-blue-600" />
+              <h1 className="text-2xl font-bold">My Listings</h1>
             </div>
-
-            {/* Main Content Area */}
-            <div className="flex-1">
-              {/* Profile Tab */}
-              {activeTab === 'profile' && (
-                <div className="bg-white rounded-xl shadow-md p-6">
-                  <div className="flex items-center justify-between mb-6">
-                    <h2 className="text-2xl font-bold">Profile Information</h2>
-                    <button className="flex items-center gap-2 text-blue-600 hover:text-blue-700">
-                      <Edit2 className="w-4 h-4" />
-                      Edit Profile
-                    </button>
-                  </div>
-
-                  <div className="space-y-6">
-                    <div>
-                      <label className="block text-sm font-medium text-gray-700">Email</label>
-                      <div className="mt-1 text-gray-900">{user?.email}</div>
-                    </div>
-
-                    <div>
-                      <label className="block text-sm font-medium text-gray-700">Account Type</label>
-                      <div className="mt-1 text-gray-900 capitalize">{user?.role}</div>
-                    </div>
-
-                    <div>
-                      <label className="block text-sm font-medium text-gray-700">Member Since</label>
-                      <div className="mt-1 text-gray-900">
-                        {new Date(user?.createdAt || Date.now()).toLocaleDateString()}
-                      </div>
-                    </div>
-                  </div>
-                </div>
-              )}
-
-              {/* Listings Tab */}
-              {activeTab === 'listings' && user?.role === 'owner' && (
-                <div className="space-y-6">
-                  <div className="flex items-center justify-between">
-                    <h2 className="text-2xl font-bold">My Listings</h2>
-                    <Link
-                      to="/create-listing"
-                      className="bg-blue-600 text-white px-4 py-2 rounded-lg hover:bg-blue-700 flex items-center gap-2"
-                    >
-                      <Plus className="w-4 h-4" />
-                      Add New Listing
-                    </Link>
-                  </div>
-
-                  {listingsLoading ? (
-                    <div className="flex justify-center py-12">
-                      <Loader2 className="w-6 h-6 animate-spin text-blue-600" />
-                    </div>
-                  ) : userListings.length === 0 ? (
-                    <div className="bg-white rounded-xl shadow-md p-12 text-center">
-                      <Building2 className="w-12 h-12 text-gray-400 mx-auto mb-4" />
-                      <h3 className="text-lg font-semibold mb-2">No Listings Yet</h3>
-                      <p className="text-gray-600 mb-6">Create your first facility listing to get started</p>
-                      <Link
-                        to="/create-listing"
-                        className="inline-flex items-center gap-2 bg-blue-600 text-white px-6 py-3 rounded-lg hover:bg-blue-700"
-                      >
-                        <Plus className="w-4 h-4" />
-                        Create Listing
-                      </Link>
-                    </div>
-                  ) : (
-                    <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-                      {userListings.map((facility) => (
-                        <RehabCard 
-                          key={facility.id} 
-                          facility={facility}
-                          onEdit={setEditingFacility}
-                        />
-                      ))}
-                    </div>
-                  )}
-                </div>
-              )}
-
-              {/* Settings Tab */}
-              {activeTab === 'settings' && (
-                <div className="bg-white rounded-xl shadow-md p-6">
-                  <h2 className="text-2xl font-bold mb-6">Account Settings</h2>
-                  
-                  <div className="space-y-6">
-                    <div>
-                      <h3 className="text-lg font-semibold mb-4">Email Preferences</h3>
-                      <div className="space-y-4">
-                        <label className="flex items-center gap-3">
-                          <input type="checkbox" className="rounded text-blue-600" />
-                          <span>Receive updates about saved facilities</span>
-                        </label>
-                        <label className="flex items-center gap-3">
-                          <input type="checkbox" className="rounded text-blue-600" />
-                          <span>Receive newsletter</span>
-                        </label>
-                        <label className="flex items-center gap-3">
-                          <input type="checkbox" className="rounded text-blue-600" />
-                          <span>Receive promotional emails</span>
-                        </label>
-                      </div>
-                    </div>
-
-                    <div>
-                      <h3 className="text-lg font-semibold mb-4">Communication Settings</h3>
-                      <div className="space-y-4">
-                        <label className="flex items-center gap-3">
-                          <input type="checkbox" className="rounded text-blue-600" />
-                          <span>Enable SMS notifications</span>
-                        </label>
-                        <label className="flex items-center gap-3">
-                          <input type="checkbox" className="rounded text-blue-600" />
-                          <span>Enable browser notifications</span>
-                        </label>
-                      </div>
-                    </div>
-                  </div>
-                </div>
-              )}
-
-              {/* Saved Facilities Tab */}
-              {activeTab === 'saved' && (
-                <div className="bg-white rounded-xl shadow-md p-6">
-                  <h2 className="text-2xl font-bold mb-6">Saved Facilities</h2>
-                  
-                  <div className="text-center py-8 text-gray-500">
-                    <Heart className="w-12 h-12 mx-auto mb-4 stroke-current" />
-                    <p>You haven't saved any facilities yet.</p>
-                    <Link 
-                      to="/"
-                      className="mt-4 inline-block text-blue-600 hover:text-blue-700"
-                    >
-                      Browse Facilities
-                    </Link>
-                  </div>
-                </div>
-              )}
-
-              {/* Notifications Tab */}
-              {activeTab === 'notifications' && (
-                <div className="bg-white rounded-xl shadow-md p-6">
-                  <h2 className="text-2xl font-bold mb-6">Notifications</h2>
-                  
-                  <div className="text-center py-8 text-gray-500">
-                    <Bell className="w-12 h-12 mx-auto mb-4 stroke-current" />
-                    <p>No new notifications</p>
-                  </div>
-                </div>
-              )}
-
-              {/* Privacy & Security Tab */}
-              {activeTab === 'privacy' && (
-                <div className="bg-white rounded-xl shadow-md p-6">
-                  <h2 className="text-2xl font-bold mb-6">Privacy & Security</h2>
-                  
-                  <div className="space-y-6">
-                    <div>
-                      <h3 className="text-lg font-semibold mb-4">Password</h3>
-                      <button className="bg-blue-600 text-white px-4 py-2 rounded-lg hover:bg-blue-700">
-                        Change Password
-                      </button>
-                    </div>
-
-                    <div>
-                      <h3 className="text-lg font-semibold mb-4">Two-Factor Authentication</h3>
-                      <button className="bg-gray-100 text-gray-800 px-4 py-2 rounded-lg hover:bg-gray-200">
-                        Enable 2FA
-                      </button>
-                    </div>
-
-                    <div>
-                      <h3 className="text-lg font-semibold mb-4">Data & Privacy</h3>
-                      <div className="space-y-4">
-                        <button className="text-blue-600 hover:text-blue-700">
-                          Download my data
-                        </button>
-                        <button className="block text-red-600 hover:text-red-700">
-                          Delete account
-                        </button>
-                      </div>
-                    </div>
-                  </div>
-                </div>
-              )}
-            </div>
+            <button
+              onClick={() => navigate('/create-listing')}
+              className="px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700"
+            >
+              Add New Listing
+            </button>
           </div>
-        </div>
-      </div>
 
-      {/* Edit Listing Modal */}
+          {/* Listings Grid */}
+          {loading ? (
+            <div className="flex justify-center items-center min-h-[400px]">
+              <div className="flex items-center gap-2">
+                <Loader2 className="w-6 h-6 animate-spin text-blue-600" />
+                <span className="text-gray-600">Loading listings...</span>
+              </div>
+            </div>
+          ) : listings.length === 0 ? (
+            <div className="text-center py-12">
+              <h2 className="text-xl font-semibold mb-2">No Listings Yet</h2>
+              <p className="text-gray-600 mb-6">Create your first listing to get started.</p>
+              <button
+                onClick={() => navigate('/create-listing')}
+                className="px-6 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700"
+              >
+                Create Listing
+              </button>
+            </div>
+          ) : (
+            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+              {listings.map(facility => (
+                <RehabCard
+                  key={facility.id}
+                  facility={facility}
+                  onEdit={setEditingFacility}
+                />
+              ))}
+            </div>
+          )}
+        </div>
+      </main>
+
+      {/* Edit Modal */}
       {editingFacility && (
         <EditListingModal
           facility={editingFacility}
           isOpen={!!editingFacility}
           onClose={() => setEditingFacility(null)}
-          onSave={handleUpdateFacility}
+          onSave={handleSave}
         />
       )}
 
