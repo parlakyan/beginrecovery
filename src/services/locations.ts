@@ -81,13 +81,14 @@ export const locationsService = {
       console.log('Fetching top locations');
       const facilitiesRef = collection(db, FACILITIES_COLLECTION);
       
-      // Get all approved facilities
+      // Get only approved facilities
       const facilitiesQuery = query(
         facilitiesRef,
         where('moderationStatus', '==', 'approved')
       );
       
       const snapshot = await getDocs(facilitiesQuery);
+      console.log('Total facilities found:', snapshot.size);
       
       // Count facilities per location
       const locationCounts = new Map<string, { city: string; state: string; totalListings: number }>();
@@ -115,7 +116,7 @@ export const locationsService = {
         .sort((a, b) => b.totalListings - a.totalListings)
         .slice(0, count);
 
-      console.log('Fetched top locations:', sortedLocations.length);
+      console.log('Top locations:', sortedLocations);
       return sortedLocations;
     } catch (error) {
       console.error('Error getting top locations:', error);

@@ -33,14 +33,26 @@ export default function Footer() {
   const navigate = useNavigate();
   const [topLocations, setTopLocations] = useState<{ city: string; state: string; totalListings: number }[]>([]);
   const [loading, setLoading] = useState(true);
+  const [error, setError] = useState<string | null>(null);
 
   useEffect(() => {
     const fetchTopLocations = async () => {
       try {
+        setLoading(true);
+        setError(null);
         const locations = await locationsService.getTopLocations(10);
-        setTopLocations(locations);
+        
+        // Only show locations that have at least one listing
+        const validLocations = locations.filter(loc => loc.totalListings > 0);
+        
+        if (validLocations.length === 0) {
+          setError('No locations found with active listings');
+        }
+        
+        setTopLocations(validLocations);
       } catch (error) {
         console.error('Error fetching top locations:', error);
+        setError('Failed to load locations');
       } finally {
         setLoading(false);
       }
@@ -73,6 +85,10 @@ export default function Footer() {
                     <div className="h-4 bg-gray-700 rounded w-3/4"></div>
                   </li>
                 ))
+              ) : error ? (
+                <li className="text-gray-400">{error}</li>
+              ) : topLocations.length === 0 ? (
+                <li className="text-gray-400">No locations available</li>
               ) : (
                 topLocations.map((location, index) => (
                   <li key={index}>
