@@ -130,10 +130,11 @@ export const locationsService = {
       const facilitiesRef = collection(db, FACILITIES_COLLECTION);
       const locationsRef = collection(db, LOCATIONS_COLLECTION);
       
-      // Get all approved facilities
+      // Get all approved and active facilities
       const facilitiesQuery = query(
         facilitiesRef,
-        where('moderationStatus', '==', 'approved')
+        where('moderationStatus', '==', 'approved'),
+        where('status', '!=', 'archived') // Exclude archived facilities
       );
       
       // Get all featured locations
@@ -143,6 +144,8 @@ export const locationsService = {
         getDocs(facilitiesQuery),
         getDocs(locationsQuery)
       ]);
+
+      console.log('Found facilities:', facilitiesSnapshot.size);
       
       // Create map of featured locations with full data
       const featuredLocations = new Map<string, { id: string; isFeatured: boolean; image?: string }>();

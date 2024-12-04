@@ -149,6 +149,12 @@ export default function HomePage() {
                 <h2 className="text-3xl font-bold mb-2">Recent Treatment Centers</h2>
                 <p className="text-gray-600">Browse our latest rehabilitation facilities</p>
               </div>
+              <button 
+                onClick={() => setIsFiltersOpen(true)}
+                className="text-blue-600 hover:text-blue-700 font-medium"
+              >
+                Filter Results
+              </button>
             </div>
             <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6 max-w-6xl mx-auto">
               {loading ? (
