@@ -178,12 +178,16 @@ export const locationsService = {
         getDocs(locationsQuery)
       ]);
       
-      // Create map of featured locations
-      const featuredLocations = new Map<string, boolean>();
+      // Create map of featured locations with full data
+      const featuredLocations = new Map<string, { id: string; isFeatured: boolean; image?: string }>();
       locationsSnapshot.docs.forEach(doc => {
         const data = doc.data();
         const key = `${data.city}, ${data.state}`;
-        featuredLocations.set(key, Boolean(data.isFeatured));
+        featuredLocations.set(key, {
+          id: doc.id,
+          isFeatured: Boolean(data.isFeatured),
+          image: data.image || undefined
+        });
       });
       
       // Extract unique cities and count listings
@@ -194,16 +198,19 @@ export const locationsService = {
         if (data.city && data.state) {
           const key = `${data.city}, ${data.state}`;
           const existing = cityMap.get(key);
+          const featuredData = featuredLocations.get(key);
           
           if (existing) {
             existing.totalListings++;
           } else {
             cityMap.set(key, {
+              id: featuredData?.id,
               city: data.city,
               state: data.state,
               totalListings: 1,
               coordinates: data.coordinates,
-              isFeatured: featuredLocations.get(key) || false
+              isFeatured: featuredData?.isFeatured || false,
+              image: featuredData?.image
             });
           }
         }
