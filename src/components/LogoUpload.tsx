@@ -105,7 +105,11 @@ export default function LogoUpload({
     }
   }, [facilityId, onLogoChange]);
 
-  const handleRemoveLogo = useCallback(async () => {
+  const handleRemoveLogo = useCallback(async (e: React.MouseEvent) => {
+    // Stop event from bubbling up to parent elements
+    e.stopPropagation();
+    e.preventDefault();
+
     try {
       console.log('Removing logo files from storage');
       await storageService.deleteFiles(`facilities/${facilityId}/logo`);

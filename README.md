@@ -9,7 +9,10 @@ A comprehensive platform connecting individuals seeking rehabilitation services 
 - Full photo gallery with slideshow (up to 12 photos)
 - Green "Verified" badge
 - "Currently accepting patients" status indicator
-- Facility logo display
+- Facility logo display and management
+  - Custom logo upload
+  - Logo appears in contact box
+  - Logo management in edit modal
 - Homepage showcase based on location
 - Certifications section
 - Staff section
@@ -22,11 +25,13 @@ A comprehensive platform connecting individuals seeking rehabilitation services 
 - Basic facility information
 - Standard search listing
 - Basic contact information
+- Logo can be uploaded but won't display until verified
 
 ## Homepage Sections
 
 ### Featured Treatment Centers
 - Shows up to 24 featured facilities
+- Displays facility logos for verified listings
 - Prioritizes facilities based on user's location
 - Horizontal carousel with 3 facilities per slide
 - Smooth sliding transitions
@@ -38,6 +43,7 @@ A comprehensive platform connecting individuals seeking rehabilitation services 
 - Excludes pending/rejected/archived facilities
 - Paginated grid layout
 - Filter and search capabilities
+- Shows logos only for verified listings
 
 ## User Roles & Permissions
 
@@ -47,12 +53,13 @@ A comprehensive platform connecting individuals seeking rehabilitation services 
 - Can approve/reject/archive listings
 - Can toggle verification status
 - Can feature/unfeature listings
+- Can manage facility logos and photos
 
 ### Facility Owner
 - Can create and edit own listings
 - Can upgrade to verified status
 - Can view listing status (pending/approved/rejected)
-- Can manage facility photos
+- Can manage facility photos and logo
 - Access to owner dashboard
 
 ### Regular User
@@ -124,7 +131,7 @@ firebase init
 # Select Storage when prompted
 firebase deploy --only storage
 ```
-See `docs/PHOTO_UPLOAD.md` for detailed storage configuration.
+See `docs/STORAGE.md` for detailed storage configuration and `docs/PHOTO_UPLOAD.md` for photo/logo management.
 
 ### 5. Stripe Setup
 1. Create a Stripe account
@@ -155,6 +162,7 @@ npm run build
     - `ImageCarousel/`: Image slideshow component
     - `RehabCard/`: Facility card component
     - `EditListingModal/`: Facility editing modal
+    - `LogoUpload/`: Logo management component
   - `pages/`: Page components
   - `services/`: Service modules (Firebase, Storage, etc.)
   - `hooks/`: Custom React hooks
@@ -179,12 +187,15 @@ npm run build
 - Owner dashboard for listing management
 - Admin dashboard for content moderation
 
-### Photo System
+### Photo & Logo System
 - Up to 12 photos per facility
+- One logo per facility
 - Slideshow for verified listings
 - Single photo for unverified listings
+- Logo display for verified listings
 - Drag and drop support
 - Progress tracking
+- Storage cleanup on removal
 
 ### Location Services
 - User location detection
@@ -207,11 +218,13 @@ All contributions MUST adhere to the design system guidelines in `docs/DESIGN_SY
 - Accessibility standards
 
 ## Firebase Storage
-The project uses Firebase Storage for handling facility photos. Key points:
-- Photos are stored in a structured format
+The project uses Firebase Storage for handling facility photos and logos. Key points:
+- Organized storage structure
+- Separate directories for photos and logos
 - Public read access, authenticated write access
 - File size and type restrictions
-- Detailed documentation in `docs/PHOTO_UPLOAD.md`
+- Automatic cleanup on removal
+- Detailed documentation in `docs/STORAGE.md`
 
 ## Contributing
 Please read the CONTRIBUTING.md for details on our code of conduct and the process for submitting pull requests.

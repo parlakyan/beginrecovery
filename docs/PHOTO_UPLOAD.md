@@ -1,12 +1,13 @@
-# Photo Upload Documentation
+# Photo & Logo Upload Documentation
 
 ## Overview
-The photo upload system uses Firebase Cloud Storage to handle facility images. It supports up to 12 photos per facility, with different display rules for verified and unverified listings.
+The upload system uses Firebase Cloud Storage to handle facility images and logos. It supports up to 12 photos per facility and one logo, with different display rules for verified and unverified listings.
 
 ## Verification-Based Features
 
 ### Verified (Paid) Listings
 - Show all uploaded photos (up to 12)
+- Show facility logo
 - Full slideshow functionality
 - Navigation controls (arrows and dots)
 - Touch swipe support
@@ -15,6 +16,7 @@ The photo upload system uses Firebase Cloud Storage to handle facility images. I
 
 ### Unverified (Free) Listings
 - Show only the first photo
+- No logo display
 - No slideshow functionality
 - Can still upload multiple photos (shown after upgrading)
 - Basic image display
@@ -22,6 +24,7 @@ The photo upload system uses Firebase Cloud Storage to handle facility images. I
 
 ## Features
 - Maximum 12 photos per facility
+- One logo per facility
 - Drag and drop support
 - Progress tracking
 - File validation
@@ -34,20 +37,34 @@ Images are stored in Firebase Cloud Storage with the following structure:
 gs://beginrecovery-bb288.appspot.com/
 └── facilities/
     └── [facilityId]/
-        └── [timestamp]-[randomString]-[filename]
+        ├── photos/
+        │   └── [timestamp]-[randomString]-[filename]
+        └── logo/
+            └── [timestamp]-[randomString]-[filename]
 ```
 
 Example:
 ```
-gs://beginrecovery-bb288.appspot.com/facilities/abc123/1684789123456-x7y9z2-photo.jpg
+gs://beginrecovery-bb288.appspot.com/facilities/abc123/photos/1684789123456-x7y9z2-photo.jpg
+gs://beginrecovery-bb288.appspot.com/facilities/abc123/logo/1684789123456-x7y9z2-logo.jpg
 ```
 
 ## File Restrictions
 - Maximum file size: 5MB
 - Allowed file types: JPEG, PNG, WebP
 - Maximum photos per facility: 12
+- Maximum logo per facility: 1
 
 ## Component Integration
+
+### LogoUpload Component
+Located in `src/components/LogoUpload.tsx`
+- Handles logo file uploads
+- Provides drag and drop interface
+- Shows upload progress
+- Displays logo preview
+- Handles file validation
+- Manages logo removal and cleanup
 
 ### PhotoUpload Component
 Located in `src/components/PhotoUpload.tsx`
@@ -66,6 +83,12 @@ Located in `src/components/ImageCarousel.tsx`
 - Provides touch swipe support
 - Shows navigation controls when appropriate
 - Handles image transitions
+
+### ContactBox Component
+Located in `src/components/ContactBox.tsx`
+- Displays facility logo for verified listings
+- Shows fallback icon when no logo
+- Handles logo display based on verification status
 
 ### RehabCard Component
 Located in `src/components/RehabCard.tsx`
@@ -98,7 +121,7 @@ service firebase.storage {
       allow write: if request.auth != null 
         && request.resource.size < 5 * 1024 * 1024
         && request.resource.contentType.matches('image/.*')
-        && request.resource.name.matches('facilities/[^/]+/.+');
+        && request.resource.name.matches('facilities/[^/]+/(photos|logo)/.+');
     }
   }
 }
@@ -137,6 +160,8 @@ Located in `src/services/storage.ts`
 - Generates unique filenames
 - Tracks upload progress
 - Manages photo order
+- Handles file deletion
+- Manages file moves between directories
 
 ## Setup Process
 
@@ -164,6 +189,15 @@ firebase deploy --only storage
 ```
 
 ## Component Usage Examples
+
+### Logo Upload
+```typescript
+<LogoUpload
+  facilityId={facility.id}
+  existingLogo={facility.logo}
+  onLogoChange={handleLogoChange}
+/>
+```
 
 ### Create Listing Form
 ```typescript
@@ -205,6 +239,8 @@ firebase deploy --only storage
 - Authentication checks
 - CORS error handling
 - Verification status checks
+- File deletion errors
+- File move errors
 
 ## Security
 - Public read access
@@ -214,6 +250,7 @@ firebase deploy --only storage
 - Size limitations
 - CORS restrictions to allowed domains
 - Verification status enforcement
+- Proper file cleanup
 
 ## Troubleshooting
 
@@ -238,17 +275,26 @@ If you encounter CORS errors:
 4. Check browser console for CORS errors
 5. Verify verification status is correct
 
+### Logo Removal Issues
+1. Check Firebase deleteField is working
+2. Verify storage cleanup completed
+3. Confirm database update succeeded
+4. Check component state updates
+5. Verify UI reflects changes
+
 ## Best Practices
 1. Always validate files before upload
 2. Use unique filenames
-3. Organize files by facility ID
+3. Organize files by facility ID and type
 4. Handle errors gracefully
 5. Show upload progress
 6. Clean up unused images
 7. Optimize images for web display
 8. Maintain proper CORS configuration
-9. Check verification status before displaying multiple images
+9. Check verification status before displaying
 10. Handle verification status changes properly
+11. Clean up storage on file removal
+12. Use proper file organization
 
 ## Future Improvements
 1. Image compression
@@ -261,3 +307,5 @@ If you encounter CORS errors:
 8. Automated cleanup of unused images
 9. Better handling of verification status changes
 10. Improved image transition animations
+11. Logo resizing/cropping tools
+12. Better file organization structure

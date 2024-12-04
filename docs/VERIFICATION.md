@@ -11,7 +11,11 @@ The Recovery Directory platform uses a two-tier system for facility listings:
 Features available to verified listings:
 1. Green "Verified" badge
 2. "Currently accepting patients" status indicator
-3. Facility logo display
+3. Facility logo display and management
+   - Upload custom logo
+   - Logo appears in contact box
+   - Logo management in edit modal
+   - Logo removal with storage cleanup
 4. Homepage showcase based on location
 5. Certifications section
 6. Staff section
@@ -26,11 +30,13 @@ Basic features available to free listings:
 2. Single photo display
 3. Standard search listing
 4. Basic contact information
+5. No logo display (logo can be uploaded but won't be shown until verified)
 
 ## Homepage Display
 
 ### Featured Treatment Centers
 - Shows up to 24 featured facilities
+- Displays facility logos for verified listings
 - Prioritizes facilities based on user's location
 - Horizontal carousel with 3 facilities per slide
 - Smooth sliding transitions
@@ -44,6 +50,7 @@ Basic features available to free listings:
 - Excludes facilities with pending/rejected/archived status
 - Ordered by rating and creation date
 - Paginated with 12 facilities per page
+- Shows logos only for verified listings
 
 ## Implementation Details
 
@@ -51,6 +58,14 @@ Basic features available to free listings:
 - Stored in facility document as `isVerified` boolean
 - Updated via Stripe webhook on successful payment
 - Preserved during moderation status changes
+- Controls logo visibility and management
+
+### Logo Management
+- Stored in Firebase Storage under facility ID
+- Separate logo directory for each facility
+- Automatic cleanup on removal
+- URL stored in facility document
+- Field removed when logo deleted
 
 ### Location Services
 - Automatic user location detection
@@ -62,8 +77,16 @@ Basic features available to free listings:
 
 ### Component Behavior
 
+#### LogoUpload
+- Available to all listings
+- Shows preview and upload progress
+- Handles file validation
+- Manages storage cleanup
+- Only displayed for verified listings
+
 #### FeaturedCarousel
 - Shows 3 facilities at a time
+- Displays logos for verified listings
 - Smooth sliding transitions
 - Navigation controls
 - Pagination indicators
@@ -71,6 +94,7 @@ Basic features available to free listings:
 
 #### RehabCard
 - Shows verification badge
+- Shows logo for verified listings
 - Adapts photo display based on status
 - Shows/hides premium features
 
@@ -80,6 +104,7 @@ Basic features available to free listings:
 - Handles navigation based on status
 
 #### ContactBox
+- Shows logo for verified listings
 - Shows all contact options for verified
 - Limited options for unverified
 - Displays upgrade prompt for unverified
@@ -100,6 +125,7 @@ Basic features available to free listings:
 
 ### State Management
 - Verification status in facility document
+- Logo URL and management
 - Subscription status tracking
 - Payment webhook handling
 - Status change handling
@@ -111,7 +137,7 @@ Basic features available to free listings:
 ### Initial Setup
 1. Create facility listing (unverified)
 2. Complete basic information
-3. Upload photos
+3. Upload photos and logo
 4. Submit for moderation
 
 ### Upgrade Process
@@ -119,12 +145,16 @@ Basic features available to free listings:
 2. Process payment through Stripe
 3. Webhook updates verification status
 4. Features automatically unlock
+   - Logo becomes visible
+   - All photos displayed
+   - Premium features enabled
 
 ### Status Changes
 - Automatic on successful payment
 - Preserved during moderation
 - Reverts on subscription cancellation
 - Admin can manually toggle
+- Logo visibility updates automatically
 
 ## Testing Verification
 
@@ -134,23 +164,26 @@ Basic features available to free listings:
 3. Test status changes via webhook
 4. Test status preservation during moderation
 5. Test feature visibility changes
-6. Test location-based sorting
-7. Test carousel functionality
-8. Test address validation
-9. Test map display
-10. Test coordinates accuracy
+6. Test logo visibility changes
+7. Test logo removal and cleanup
+8. Test location-based sorting
+9. Test carousel functionality
+10. Test address validation
+11. Test map display
+12. Test coordinates accuracy
 
 ### Component Testing
 1. RehabCard display modes
-2. ImageCarousel behavior
-3. ContactBox options
-4. Feature visibility
-5. Badge display
-6. Location detection
-7. Carousel navigation
-8. Address autocomplete
-9. Map rendering
-10. Error handling
+2. Logo upload and removal
+3. ImageCarousel behavior
+4. ContactBox options
+5. Feature visibility
+6. Badge display
+7. Location detection
+8. Carousel navigation
+9. Address autocomplete
+10. Map rendering
+11. Error handling
 
 ## Security
 
@@ -159,12 +192,14 @@ Basic features available to free listings:
 - Owner write access
 - Admin full control
 - Payment verification
+- Storage access control
 
 ### Status Protection
 - Server-side verification
 - Webhook authentication
 - Status change logging
 - Access control checks
+- Storage rules enforcement
 
 ## Best Practices
 
@@ -177,6 +212,7 @@ Basic features available to free listings:
 6. Location fallback handling
 7. Address validation
 8. Coordinates verification
+9. Clean up resources on removal
 
 ### UI/UX
 1. Clear verification indicators
@@ -187,6 +223,7 @@ Basic features available to free listings:
 6. Location-aware content
 7. Loading states
 8. Error messages
+9. Logo visibility rules
 
 ### Testing
 1. Test both states
@@ -197,6 +234,7 @@ Basic features available to free listings:
 6. Test location scenarios
 7. Test address input
 8. Test map display
+9. Test logo management
 
 ## Troubleshooting
 
@@ -209,6 +247,8 @@ Basic features available to free listings:
 6. Address validation errors
 7. Map display problems
 8. Coordinate accuracy
+9. Logo not displaying
+10. Logo removal issues
 
 ### Solutions
 1. Check webhook logs
@@ -219,6 +259,8 @@ Basic features available to free listings:
 6. Check location permissions
 7. Verify address data
 8. Confirm coordinates
+9. Check storage paths
+10. Verify file cleanup
 
 ## Future Improvements
 1. Granular feature control
@@ -229,3 +271,5 @@ Basic features available to free listings:
 6. Advanced location filtering
 7. Improved address validation
 8. Better map interactions
+9. Enhanced logo management
+10. Automated image optimization

@@ -5,6 +5,35 @@ The Recovery Directory platform uses a component-based architecture with several
 
 ## Core Components
 
+### LogoUpload
+Handles facility logo upload and management.
+
+#### Features
+- Drag and drop support
+- Image preview
+- File validation
+- Upload progress
+- Logo removal
+- Storage cleanup
+
+#### Props
+```typescript
+interface LogoUploadProps {
+  facilityId: string;
+  existingLogo?: string;
+  onLogoChange: (logo: string | undefined) => void;
+}
+```
+
+#### Usage
+```tsx
+<LogoUpload 
+  facilityId={facility.id}
+  existingLogo={facility.logo}
+  onLogoChange={handleLogoChange}
+/>
+```
+
 ### RehabCard
 Primary component for displaying facility information.
 
@@ -67,6 +96,7 @@ Modal component for editing facility information.
 #### Features
 - Form validation
 - Photo management
+- Logo management
 - Real-time updates
 - Error handling
 - Status preservation
@@ -97,6 +127,7 @@ Displays facility contact information and actions.
 #### Features
 - Contact buttons
 - Verification status
+- Logo display
 - Upgrade prompt
 - Contact form
 - Social links
@@ -123,15 +154,18 @@ graph TD
     A --> D[EditListingModal]
     D --> B
     D --> E[PhotoUpload]
+    D --> F[LogoUpload]
 ```
 
 ### Edit Flow
 ```mermaid
 graph TD
     A[EditListingModal] --> B[PhotoUpload]
-    A --> C[Form Fields]
-    B --> D[Storage Service]
-    C --> E[Facilities Service]
+    A --> C[LogoUpload]
+    A --> D[Form Fields]
+    B --> E[Storage Service]
+    C --> E
+    D --> F[Facilities Service]
 ```
 
 ## Component Guidelines
@@ -141,6 +175,7 @@ graph TD
 - Use Zustand for global state
 - Handle async operations
 - Manage loading states
+- Clean up storage on removal
 
 ### Error Handling
 - Form validation
@@ -148,6 +183,7 @@ graph TD
 - Upload errors
 - Network issues
 - User feedback
+- Storage cleanup errors
 
 ### Accessibility
 - ARIA labels
@@ -174,6 +210,7 @@ graph TD
    - Lazy loading
    - Memoization
    - Code splitting
+   - Clean up resources
 
 ### Props
 1. Required vs Optional
@@ -196,11 +233,24 @@ graph TD
    - Batch updates
    - Optimize renders
    - Handle side effects
+   - Clean up on unmount
 
 ## Testing
 
 ### Unit Tests
 ```typescript
+describe('LogoUpload', () => {
+  it('handles logo upload successfully', async () => {
+    render(<LogoUpload facilityId="123" />);
+    // Test upload flow
+  });
+
+  it('handles logo removal correctly', async () => {
+    render(<LogoUpload facilityId="123" existingLogo="logo.jpg" />);
+    // Test removal flow
+  });
+});
+
 describe('RehabCard', () => {
   it('shows verified badge when verified', () => {
     render(<RehabCard facility={verifiedFacility} />);
@@ -215,6 +265,11 @@ describe('EditListingModal', () => {
   it('saves changes and updates display', async () => {
     render(<EditListingModal facility={facility} />);
     // Test edit flow
+  });
+
+  it('handles logo changes correctly', async () => {
+    render(<EditListingModal facility={facility} />);
+    // Test logo update flow
   });
 });
 ```
@@ -244,6 +299,15 @@ describe('EditListingModal', () => {
 {facility.isVerified && (
   <VerifiedFeatures />
 )}
+```
+
+### Resource Cleanup
+```tsx
+useEffect(() => {
+  return () => {
+    // Clean up resources
+  };
+}, []);
 ```
 
 ## Future Improvements
