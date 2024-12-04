@@ -19,6 +19,11 @@ export default function SearchResults() {
     priceRange: null
   });
 
+  // Scroll to top when search params change
+  useEffect(() => {
+    window.scrollTo({ top: 0, behavior: 'smooth' });
+  }, [searchParams]);
+
   // Extract unique values and counts from facilities
   const getFilterOptions = (facilities: Facility[]) => {
     const locations = new Set<string>();
@@ -60,7 +65,6 @@ export default function SearchResults() {
     const fetchFacilities = async () => {
       setLoading(true);
       try {
-        // Get search query and location from URL params
         const query = searchParams.get('q') || '';
         const location = searchParams.get('location') || '';
         
