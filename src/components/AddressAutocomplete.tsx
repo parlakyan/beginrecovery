@@ -82,7 +82,7 @@ export default function AddressAutocomplete({ register, setValue, error }: Addre
                 }
               });
 
-              // Set individual address fields if they exist in your form
+              // Set individual address fields
               if (addressComponents.street_number && addressComponents.route) {
                 setValue('street', `${addressComponents.street_number} ${addressComponents.route}`);
               }
@@ -95,6 +95,15 @@ export default function AddressAutocomplete({ register, setValue, error }: Addre
               if (addressComponents.postal_code) {
                 setValue('zipCode', addressComponents.postal_code);
               }
+
+              // Log the extracted components for debugging
+              console.log('Extracted address components:', {
+                street: addressComponents.street_number && addressComponents.route ? 
+                  `${addressComponents.street_number} ${addressComponents.route}` : undefined,
+                city: addressComponents.locality,
+                state: addressComponents.state_short,
+                zipCode: addressComponents.postal_code
+              });
             } catch (err) {
               console.warn('Error processing address components:', err);
             }

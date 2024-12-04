@@ -13,6 +13,9 @@ export interface Facility {
   name: string;
   description: string;
   location: string;
+  // Add city and state fields
+  city?: string;
+  state?: string;
   coordinates?: {
     lat: number;
     lng: number;

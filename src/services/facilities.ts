@@ -124,6 +124,9 @@ const transformFacilityData = (doc: QueryDocumentSnapshot<DocumentData>): Facili
     name,
     description: data.description || '',
     location,
+    // Add city and state fields
+    city: data.city,
+    state: data.state,
     coordinates: data.coordinates,
     amenities: data.amenities || [],
     images: data.images || [],
@@ -146,7 +149,7 @@ const transformFacilityData = (doc: QueryDocumentSnapshot<DocumentData>): Facili
     isFeatured: Boolean(data.isFeatured),
     moderationStatus: data.moderationStatus || 'pending',
     slug: data.slug || generateSlug(name, location),
-    logo: data.logo || undefined // Ensure logo is undefined if not present
+    logo: data.logo || undefined
   };
 };
 

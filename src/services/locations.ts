@@ -19,6 +19,7 @@ import { db } from '../lib/firebase';
 import { FeaturedLocation } from '../types';
 
 const LOCATIONS_COLLECTION = 'featuredLocations';
+const FACILITIES_COLLECTION = 'facilities';
 
 /**
  * Transforms Firestore document to FeaturedLocation type
@@ -157,7 +158,7 @@ export const locationsService = {
   async getAllCities() {
     try {
       console.log('Fetching all cities with listings');
-      const facilitiesRef = collection(db, 'facilities');
+      const facilitiesRef = collection(db, FACILITIES_COLLECTION);
       
       const q = query(
         facilitiesRef,
@@ -170,8 +171,9 @@ export const locationsService = {
       const cityMap = new Map<string, { city: string; state: string; count: number }>();
       
       snapshot.docs.forEach(doc => {
-        const location = doc.data().location || '';
-        const [city, state] = location.split(',').map((part: string) => part.trim());
+        const data = doc.data();
+        const city = data.city;
+        const state = data.state;
         
         if (city && state) {
           const key = `${city}, ${state}`;
