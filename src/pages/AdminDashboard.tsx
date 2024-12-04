@@ -62,6 +62,7 @@ export default function AdminDashboard() {
 
       <div className="container mx-auto px-4 py-8">
         <div className="bg-white rounded-xl shadow-sm">
+          {/* Page Header */}
           <div className="p-6 border-b">
             <h1 className="text-2xl font-bold">Admin Dashboard</h1>
             <p className="text-gray-600 mt-2">
@@ -69,11 +70,14 @@ export default function AdminDashboard() {
             </p>
           </div>
 
-          <Tabs
-            tabs={tabs}
-            activeTab={activeTab}
-            onTabChange={handleTabChange}
-          />
+          {/* Tabs Content - Add p-6 padding to match header */}
+          <div className="p-6">
+            <Tabs
+              tabs={tabs}
+              activeTab={activeTab}
+              onTabChange={handleTabChange}
+            />
+          </div>
         </div>
       </div>
 

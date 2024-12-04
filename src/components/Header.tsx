@@ -46,8 +46,8 @@ export default function Header() {
     if (user) {
       // Scroll to top before navigating
       window.scrollTo(0, 0);
-      // Navigate admin users to admin dashboard, others to account page
-      navigate(user.role === 'admin' ? '/admin' : '/account');
+      // Always navigate to account page
+      navigate('/account');
     } else {
       navigate('/login', { state: { from: location } });
     }
@@ -108,9 +108,7 @@ export default function Header() {
                 onClick={handleAuthAction}
                 className="flex items-center gap-2 text-gray-600 hover:text-blue-600"
               >
-                <span className="hidden md:block">
-                  {user.role === 'admin' ? 'Admin' : 'My Account'}
-                </span>
+                <span className="hidden md:block">My Account</span>
                 <User className="w-5 h-5" />
               </button>
             ) : (
@@ -186,6 +184,15 @@ export default function Header() {
                   onClick={() => setIsMobileMenuOpen(false)}
                 >
                   Admin Dashboard
+                </Link>
+              )}
+              {user && (
+                <Link
+                  to="/account"
+                  className="block px-4 py-2 text-gray-600 hover:bg-gray-50"
+                  onClick={() => setIsMobileMenuOpen(false)}
+                >
+                  My Account
                 </Link>
               )}
               {!user && (

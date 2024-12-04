@@ -172,8 +172,18 @@ export const locationsService = {
       
       snapshot.docs.forEach(doc => {
         const data = doc.data();
-        const city = data.city;
-        const state = data.state;
+        let city = data.city;
+        let state = data.state;
+        
+        // If city/state not available, try to extract from location
+        if (!city || !state) {
+          const location = data.location || '';
+          const parts = location.split(',').map((part: string) => part.trim());
+          if (parts.length >= 2) {
+            city = city || parts[0];
+            state = state || parts[1];
+          }
+        }
         
         if (city && state) {
           const key = `${city}, ${state}`;
