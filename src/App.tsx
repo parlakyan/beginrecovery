@@ -1,133 +1,71 @@
-import { StrictMode, useEffect } from 'react';
-import { Routes, Route } from 'react-router-dom';
-import { browserLocalPersistence, setPersistence } from 'firebase/auth';
+import { useEffect } from 'react';
+import { Routes, Route, useLocation } from 'react-router-dom';
+import { useAuthStore } from './store/authStore';
+import { facilitiesService } from './services/facilities';
 import HomePage from './pages/HomePage';
 import ListingDetail from './pages/ListingDetail';
-import Login from './pages/Login';
-import Register from './pages/Register';
-import AdminDashboard from './pages/AdminDashboard';
-import AddListing from './pages/AddListing';
 import CreateListing from './pages/CreateListing';
-import Payment from './pages/Payment';
+import AccountPage from './pages/AccountPage';
+import LoginPage from './pages/Login';
+import RegisterPage from './pages/Register';
+import ResetPasswordPage from './pages/ResetPassword';
+import NotFoundPage from './pages/NotFound';
+import PaymentPage from './pages/Payment';
+import SearchResults from './pages/SearchResults';
+import AdminDashboard from './pages/AdminDashboard';
 import PaymentSuccess from './pages/payment/Success';
 import PaymentCancel from './pages/payment/Cancel';
-import ResetPassword from './pages/ResetPassword';
-import AccountPage from './pages/AccountPage';
-import NotFound from './pages/NotFound';
-import SearchResults from './pages/SearchResults';
-import ProtectedRoute from './components/ProtectedRoute';
-import NetworkStatus from './components/NetworkStatus';
-import { useAuthStore } from './store/authStore';
-import { auth } from './lib/firebase';
-import { facilitiesService } from './services/facilities';
-import { Loader2 } from 'lucide-react';
 
-/**
- * Main Application Component
- * 
- * Handles:
- * - Route configuration
- * - Authentication persistence
- * - Protected routes
- * - Role-based access control
- * 
- * Routes:
- * - Public: Home, Login, Register, Reset Password, Search
- * - Protected: Account, Create Listing, Payment
- * - Role-Based: Admin Dashboard (requires admin role)
- */
 export default function App() {
-  const { initialized } = useAuthStore();
+  const location = useLocation();
+  const { user, refreshToken } = useAuthStore();
 
-  // Initialize app settings and run migrations
+  // Scroll to top on route change
   useEffect(() => {
-    const initializeApp = async () => {
-      try {
-        // Set auth persistence to LOCAL to maintain session
-        await setPersistence(auth, browserLocalPersistence);
-        console.log('Auth persistence set to LOCAL');
+    window.scrollTo(0, 0);
+  }, [location.pathname]);
 
-        // Run slug migration for facilities
+  // Refresh token periodically
+  useEffect(() => {
+    if (!user) return;
+
+    const refreshInterval = setInterval(() => {
+      refreshToken();
+    }, 45 * 60 * 1000); // 45 minutes
+
+    return () => clearInterval(refreshInterval);
+  }, [user, refreshToken]);
+
+  // Run migrations if needed
+  useEffect(() => {
+    const runMigrations = async () => {
+      try {
         await facilitiesService.migrateExistingSlugs();
       } catch (error) {
-        console.error('Initialization error:', error);
+        console.error('Error running migrations:', error);
       }
     };
 
-    if (initialized) {
-      initializeApp();
-    }
-  }, [initialized]);
-
-  // Show loading screen while initializing
-  if (!initialized) {
-    return (
-      <div className="min-h-screen flex items-center justify-center">
-        <div className="flex items-center gap-2">
-          <Loader2 className="w-6 h-6 animate-spin text-blue-600" />
-          <span>Loading application...</span>
-        </div>
-      </div>
-    );
-  }
+    runMigrations();
+  }, []);
 
   return (
-    <>
-      <Routes>
-        {/* Public Routes */}
-        <Route path="/" element={<HomePage />} />
-        <Route path="/search" element={<SearchResults />} />
-        <Route path="/listing/:id" element={<ListingDetail />} />
-        <Route path="/login" element={<Login />} />
-        <Route path="/register" element={<Register />} />
-        <Route path="/reset-password" element={<ResetPassword />} />
-
-        {/* Protected Routes - Require Authentication */}
-        <Route path="/create-listing" element={
-          <ProtectedRoute>
-            <CreateListing />
-          </ProtectedRoute>
-        } />
-        <Route path="/payment" element={
-          <ProtectedRoute>
-            <Payment />
-          </ProtectedRoute>
-        } />
-        <Route path="/payment/success" element={
-          <ProtectedRoute>
-            <PaymentSuccess />
-          </ProtectedRoute>
-        } />
-        <Route path="/payment/cancel" element={
-          <ProtectedRoute>
-            <PaymentCancel />
-          </ProtectedRoute>
-        } />
-        <Route path="/account/*" element={
-          <ProtectedRoute>
-            <AccountPage />
-          </ProtectedRoute>
-        } />
-
-        {/* Admin Routes - Require Admin Role */}
-        <Route path="/admin/*" element={
-          <ProtectedRoute requiredRole="admin">
-            <AdminDashboard />
-          </ProtectedRoute>
-        } />
-
-        {/* 404 Route - Must come after other routes */}
-        <Route path="/404" element={<NotFound />} />
-        
-        {/* Facility Slug Route - Must come after other routes to avoid conflicts */}
-        <Route path="/:slug" element={<ListingDetail />} />
-        
-        {/* Catch-all Route - Must be last */}
-        <Route path="*" element={<NotFound />} />
-      </Routes>
-
-      {/* Network Status Indicator */}
-      <NetworkStatus />
-    </>
+    <Routes>
+      <Route path="/" element={<HomePage />} />
+      <Route path="/search" element={<SearchResults />} />
+      <Route path="/create-listing" element={<CreateListing />} />
+      <Route path="/account" element={<AccountPage />} />
+      <Route path="/login" element={<LoginPage />} />
+      <Route path="/register" element={<RegisterPage />} />
+      <Route path="/reset-password" element={<ResetPasswordPage />} />
+      <Route path="/payment" element={<PaymentPage />} />
+      <Route path="/payment/success" element={<PaymentSuccess />} />
+      <Route path="/payment/cancel" element={<PaymentCancel />} />
+      <Route path="/admin" element={<AdminDashboard />} />
+      <Route path="/404" element={<NotFoundPage />} />
+      <Route path="/:slug" element={<ListingDetail />} />
+      <Route path="/facility/:id" element={<ListingDetail />} />
+      <Route path="*" element={<NotFoundPage />} />
+    </Routes>
   );
 }

@@ -80,9 +80,8 @@ export default function ListingDetail() {
   const handleSave = async (data: Partial<Facility>) => {
     if (!facility) return;
     try {
-      // Use the returned facility data from updateFacility
-      const updatedFacility = await facilitiesService.updateFacility(facility.id, data);
-      setFacility(updatedFacility); // Update state with returned data
+      await facilitiesService.updateFacility(facility.id, data);
+      await fetchFacility(); // Refetch facility data
       setIsEditModalOpen(false);
     } catch (error) {
       console.error('Error updating facility:', error);
@@ -235,7 +234,7 @@ export default function ListingDetail() {
 
             {/* Contact Box - Sticky */}
             <div className="lg:col-span-1">
-              <div className="sticky top-24 z-0">
+              <div className="sticky top-24" style={{ zIndex: 1 }}>
                 <ContactBox facility={facility} />
               </div>
             </div>

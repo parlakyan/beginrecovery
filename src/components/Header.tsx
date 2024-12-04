@@ -44,6 +44,8 @@ export default function Header() {
   const handleAuthAction = () => {
     setIsMobileMenuOpen(false);
     if (user) {
+      // Scroll to top before navigating
+      window.scrollTo(0, 0);
       navigate('/account');
     } else {
       navigate('/login', { state: { from: location } });
