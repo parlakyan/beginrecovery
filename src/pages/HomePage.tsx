@@ -138,6 +138,52 @@ export default function HomePage() {
           </section>
         )}
 
+        {/* Find Treatment Section */}
+        <TreatmentFinder />
+
+        {/* Recent Treatment Centers */}
+        <section id="results-section" className="py-20 bg-white">
+          <div className="container mx-auto px-4">
+            <div className="flex justify-between items-center mb-12">
+              <div className="text-center md:text-left">
+                <h2 className="text-3xl font-bold mb-2">Recent Treatment Centers</h2>
+                <p className="text-gray-600">Browse our latest rehabilitation facilities</p>
+              </div>
+            </div>
+            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6 max-w-6xl mx-auto">
+              {loading ? (
+                <div className="col-span-3 flex justify-center py-12">
+                  <div className="animate-spin rounded-full h-12 w-12 border-4 border-blue-600 border-t-transparent"></div>
+                </div>
+              ) : facilities.length === 0 ? (
+                <div className="col-span-3 text-center py-12">
+                  <p className="text-gray-600">No treatment centers found matching your criteria.</p>
+                  <button
+                    onClick={() => {
+                      setFilters(defaultFilters);
+                      fetchFacilities(defaultFilters);
+                    }}
+                    className="mt-4 text-blue-600 hover:text-blue-700 font-medium"
+                  >
+                    Clear Filters
+                  </button>
+                </div>
+              ) : (
+                facilities.map((facility) => (
+                  <RehabCard 
+                    key={facility.id} 
+                    facility={facility} 
+                    onEdit={setEditingFacility}
+                  />
+                ))
+              )}
+            </div>
+          </div>
+        </section>
+
+        {/* Insurance Section */}
+        <InsuranceSection />
+
         {/* Location Browser */}
         <LocationBrowser />
 
