@@ -124,6 +124,76 @@ export const locationsService = {
     }
   },
 
+  async getAllCities(): Promise<CityInfo[]> {
+    try {
+      console.log('Fetching all cities with listings');
+      const facilitiesRef = collection(db, FACILITIES_COLLECTION);
+      const locationsRef = collection(db, LOCATIONS_COLLECTION);
+      
+      // Get all approved facilities
+      const facilitiesQuery = query(
+        facilitiesRef,
+        where('moderationStatus', '==', 'approved')
+      );
+      
+      // Get all featured locations
+      const locationsQuery = query(locationsRef);
+      
+      const [facilitiesSnapshot, locationsSnapshot] = await Promise.all([
+        getDocs(facilitiesQuery),
+        getDocs(locationsQuery)
+      ]);
+      
+      // Create map of featured locations with full data
+      const featuredLocations = new Map<string, { id: string; isFeatured: boolean; image?: string }>();
+      locationsSnapshot.docs.forEach(doc => {
+        const data = doc.data();
+        const key = `${data.city}, ${data.state}`;
+        featuredLocations.set(key, {
+          id: doc.id,
+          isFeatured: Boolean(data.isFeatured),
+          image: data.image || undefined
+        });
+      });
+      
+      // Extract unique cities and count listings
+      const cityMap = new Map<string, CityInfo>();
+      
+      facilitiesSnapshot.docs.forEach(doc => {
+        const data = doc.data();
+        if (data.city && data.state) {
+          const key = `${data.city}, ${data.state}`;
+          const existing = cityMap.get(key);
+          const featuredData = featuredLocations.get(key);
+          
+          if (existing) {
+            existing.totalListings++;
+          } else {
+            cityMap.set(key, {
+              id: featuredData?.id,
+              city: data.city,
+              state: data.state,
+              totalListings: 1,
+              coordinates: data.coordinates,
+              isFeatured: featuredData?.isFeatured || false,
+              image: featuredData?.image
+            });
+          }
+        }
+      });
+
+      // Convert to array and sort by listing count
+      const cities = Array.from(cityMap.values())
+        .sort((a, b) => b.totalListings - a.totalListings);
+
+      console.log('Fetched cities:', cities.length);
+      return cities;
+    } catch (error) {
+      console.error('Error getting cities:', error);
+      return [];
+    }
+  },
+
   async addFeaturedLocation(data: Partial<FeaturedLocation>) {
     try {
       console.log('Adding featured location:', data);
@@ -204,76 +274,6 @@ export const locationsService = {
     } catch (error) {
       console.error('Error reordering featured locations:', error);
       throw error;
-    }
-  },
-
-  async getAllCities(): Promise<CityInfo[]> {
-    try {
-      console.log('Fetching all cities with listings');
-      const facilitiesRef = collection(db, FACILITIES_COLLECTION);
-      const locationsRef = collection(db, LOCATIONS_COLLECTION);
-      
-      // Get all approved facilities
-      const facilitiesQuery = query(
-        facilitiesRef,
-        where('moderationStatus', '==', 'approved')
-      );
-      
-      // Get all featured locations
-      const locationsQuery = query(locationsRef);
-      
-      const [facilitiesSnapshot, locationsSnapshot] = await Promise.all([
-        getDocs(facilitiesQuery),
-        getDocs(locationsQuery)
-      ]);
-      
-      // Create map of featured locations with full data
-      const featuredLocations = new Map<string, { id: string; isFeatured: boolean; image?: string }>();
-      locationsSnapshot.docs.forEach(doc => {
-        const data = doc.data();
-        const key = `${data.city}, ${data.state}`;
-        featuredLocations.set(key, {
-          id: doc.id,
-          isFeatured: Boolean(data.isFeatured),
-          image: data.image || undefined
-        });
-      });
-      
-      // Extract unique cities and count listings
-      const cityMap = new Map<string, CityInfo>();
-      
-      facilitiesSnapshot.docs.forEach(doc => {
-        const data = doc.data();
-        if (data.city && data.state) {
-          const key = `${data.city}, ${data.state}`;
-          const existing = cityMap.get(key);
-          const featuredData = featuredLocations.get(key);
-          
-          if (existing) {
-            existing.totalListings++;
-          } else {
-            cityMap.set(key, {
-              id: featuredData?.id,
-              city: data.city,
-              state: data.state,
-              totalListings: 1,
-              coordinates: data.coordinates,
-              isFeatured: featuredData?.isFeatured || false,
-              image: featuredData?.image
-            });
-          }
-        }
-      });
-
-      // Convert to array and sort by listing count
-      const cities = Array.from(cityMap.values())
-        .sort((a, b) => b.totalListings - a.totalListings);
-
-      console.log('Fetched cities:', cities.length);
-      return cities;
-    } catch (error) {
-      console.error('Error getting cities:', error);
-      return [];
     }
   },
 
