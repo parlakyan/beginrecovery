@@ -16,7 +16,7 @@ import {
   writeBatch
 } from 'firebase/firestore';
 import { db } from '../lib/firebase';
-import { FeaturedLocation } from '../types';
+import { FeaturedLocation, CityInfo } from '../types';
 
 const LOCATIONS_COLLECTION = 'featuredLocations';
 const FACILITIES_COLLECTION = 'facilities';
@@ -44,7 +44,8 @@ const transformLocationData = (doc: QueryDocumentSnapshot<DocumentData>): Featur
     coordinates: data.coordinates,
     createdAt,
     updatedAt,
-    order: data.order || 0
+    order: data.order || 0,
+    isFeatured: Boolean(data.isFeatured)
   };
 };
 
@@ -59,6 +60,7 @@ export const locationsService = {
       
       const q = query(
         locationsRef,
+        where('isFeatured', '==', true),
         orderBy('order', 'asc')
       );
       
@@ -86,6 +88,7 @@ export const locationsService = {
       const locationData = {
         ...data,
         order: maxOrder,
+        isFeatured: true,
         createdAt: serverTimestamp(),
         updatedAt: serverTimestamp()
       };
@@ -155,57 +158,107 @@ export const locationsService = {
     }
   },
 
-  async getAllCities() {
+  async getAllCities(): Promise<CityInfo[]> {
     try {
       console.log('Fetching all cities with listings');
       const facilitiesRef = collection(db, FACILITIES_COLLECTION);
+      const locationsRef = collection(db, LOCATIONS_COLLECTION);
       
-      const q = query(
+      // Get all approved facilities
+      const facilitiesQuery = query(
         facilitiesRef,
         where('moderationStatus', '==', 'approved')
       );
       
-      const snapshot = await getDocs(q);
+      // Get all featured locations
+      const locationsQuery = query(locationsRef);
+      
+      const [facilitiesSnapshot, locationsSnapshot] = await Promise.all([
+        getDocs(facilitiesQuery),
+        getDocs(locationsQuery)
+      ]);
+      
+      // Create map of featured locations
+      const featuredLocations = new Map<string, boolean>();
+      locationsSnapshot.docs.forEach(doc => {
+        const data = doc.data();
+        const key = `${data.city}, ${data.state}`;
+        featuredLocations.set(key, Boolean(data.isFeatured));
+      });
       
       // Extract unique cities and count listings
-      const cityMap = new Map<string, { city: string; state: string; count: number }>();
+      const cityMap = new Map<string, CityInfo>();
       
-      snapshot.docs.forEach(doc => {
+      facilitiesSnapshot.docs.forEach(doc => {
         const data = doc.data();
-        let city = data.city;
-        let state = data.state;
-        
-        // If city/state not available, try to extract from location
-        if (!city || !state) {
-          const location = data.location || '';
-          const parts = location.split(',').map((part: string) => part.trim());
-          if (parts.length >= 2) {
-            city = city || parts[0];
-            state = state || parts[1];
-          }
-        }
-        
-        if (city && state) {
-          const key = `${city}, ${state}`;
+        if (data.city && data.state) {
+          const key = `${data.city}, ${data.state}`;
           const existing = cityMap.get(key);
           
           if (existing) {
-            existing.count++;
+            existing.totalListings++;
           } else {
-            cityMap.set(key, { city, state, count: 1 });
+            cityMap.set(key, {
+              city: data.city,
+              state: data.state,
+              totalListings: 1,
+              coordinates: data.coordinates,
+              isFeatured: featuredLocations.get(key) || false
+            });
           }
         }
       });
 
-      // Convert to array and sort by count
+      // Convert to array and sort by listing count
       const cities = Array.from(cityMap.values())
-        .sort((a, b) => b.count - a.count);
+        .sort((a, b) => b.totalListings - a.totalListings);
 
       console.log('Fetched cities:', cities.length);
       return cities;
     } catch (error) {
       console.error('Error getting cities:', error);
       return [];
+    }
+  },
+
+  async toggleLocationFeatured(city: string, state: string, isFeatured: boolean) {
+    try {
+      console.log('Toggling location featured status:', { city, state, isFeatured });
+      const locationsRef = collection(db, LOCATIONS_COLLECTION);
+      
+      // Check if location already exists
+      const q = query(
+        locationsRef,
+        where('city', '==', city),
+        where('state', '==', state)
+      );
+      
+      const snapshot = await getDocs(q);
+      
+      if (snapshot.empty) {
+        // Create new location if it doesn't exist
+        if (isFeatured) {
+          await this.addFeaturedLocation({
+            city,
+            state,
+            image: '',
+            totalListings: 0,
+            isFeatured: true
+          });
+        }
+      } else {
+        // Update existing location
+        const locationDoc = snapshot.docs[0];
+        await updateDoc(locationDoc.ref, {
+          isFeatured,
+          updatedAt: serverTimestamp()
+        });
+      }
+      
+      console.log('Toggled location featured status successfully');
+    } catch (error) {
+      console.error('Error toggling location featured status:', error);
+      throw error;
     }
   }
 };

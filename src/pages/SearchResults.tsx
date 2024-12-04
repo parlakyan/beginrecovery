@@ -60,15 +60,30 @@ export default function SearchResults() {
     const fetchFacilities = async () => {
       setLoading(true);
       try {
+        // Get search query and location from URL params
         const query = searchParams.get('q') || '';
+        const location = searchParams.get('location') || '';
+        
+        // If location is provided, use it as the search query
+        const searchQuery = location || query;
+        
         const results = await facilitiesService.searchFacilities({
-          query,
+          query: searchQuery,
           treatmentTypes: filters.treatmentTypes,
           amenities: filters.amenities,
           insurance: filters.insurance,
           rating: filters.rating
         });
-        setFacilities(results);
+
+        // If location is provided, filter results to match the exact city/state
+        const filteredResults = location 
+          ? results.filter(facility => {
+              const facilityLocation = `${facility.city}, ${facility.state}`;
+              return facilityLocation.toLowerCase() === location.toLowerCase();
+            })
+          : results;
+
+        setFacilities(filteredResults);
       } catch (error) {
         console.error('Error fetching facilities:', error);
         setFacilities([]);
@@ -96,6 +111,11 @@ export default function SearchResults() {
     });
   };
 
+  // Get the location for display
+  const location = searchParams.get('location');
+  const searchQuery = searchParams.get('q');
+  const searchTitle = location || searchQuery || 'All Treatment Centers';
+
   return (
     <div className="min-h-screen bg-gray-50 flex flex-col">
       <Header />
@@ -117,14 +137,30 @@ export default function SearchResults() {
           {/* Results Count */}
           <div className="mb-6">
             <h2 className="text-xl font-semibold text-gray-900">
-              {facilities.length} Treatment Centers Found
+              {facilities.length} Treatment Centers {location ? `in ${location}` : `Found`}
             </h2>
+            {searchQuery && !location && (
+              <p className="text-gray-600 mt-1">
+                Search results for "{searchQuery}"
+              </p>
+            )}
           </div>
 
           {/* Results Grid */}
           {loading ? (
             <div className="flex justify-center items-center min-h-[400px]">
               <div className="animate-spin rounded-full h-12 w-12 border-4 border-blue-600 border-t-transparent"></div>
+            </div>
+          ) : facilities.length === 0 ? (
+            <div className="text-center py-12">
+              <h3 className="text-lg font-medium text-gray-900 mb-2">
+                No Treatment Centers Found
+              </h3>
+              <p className="text-gray-600">
+                {location 
+                  ? `We couldn't find any treatment centers in ${location}`
+                  : 'Try adjusting your search criteria'}
+              </p>
             </div>
           ) : (
             <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">

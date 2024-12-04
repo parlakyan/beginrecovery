@@ -56,6 +56,20 @@ export interface FeaturedLocation {
   createdAt: string;
   updatedAt: string;
   order: number;
+  isFeatured: boolean;
+}
+
+export interface CityInfo {
+  id?: string;
+  city: string;
+  state: string;
+  totalListings: number;
+  coordinates?: {
+    lat: number;
+    lng: number;
+  };
+  isFeatured?: boolean;
+  image?: string;
 }
 
 export interface UserStats {

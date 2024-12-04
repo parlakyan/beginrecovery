@@ -42,7 +42,7 @@ export default function AdminDashboard() {
     },
     {
       id: 'locations',
-      label: 'Featured Locations',
+      label: 'Locations',
       content: <LocationsPage />
     },
     {
@@ -61,16 +61,16 @@ export default function AdminDashboard() {
       <Header />
 
       <div className="container mx-auto px-4 py-8">
-        <div className="bg-white rounded-xl shadow-sm">
+        <div className="bg-white rounded-xl shadow-md">
           {/* Page Header */}
           <div className="p-6 border-b">
             <h1 className="text-2xl font-bold">Admin Dashboard</h1>
             <p className="text-gray-600 mt-2">
-              Manage facilities, featured locations, and users
+              Manage facilities, locations, and users
             </p>
           </div>
 
-          {/* Tabs Content - Add p-6 padding to match header */}
+          {/* Tabs Content */}
           <div className="p-6">
             <Tabs
               tabs={tabs}
