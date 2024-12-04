@@ -33,8 +33,8 @@ export default function LocationImageUpload({ currentImage, onUpload }: Location
       setUploading(true);
       setError(null);
 
-      // Delete old image if it exists
-      if (currentImage) {
+      // Delete old image if it exists and is in our locations folder
+      if (currentImage && currentImage.includes('locations/')) {
         try {
           const oldImageRef = ref(storage, currentImage);
           await deleteObject(oldImageRef);
@@ -43,8 +43,9 @@ export default function LocationImageUpload({ currentImage, onUpload }: Location
         }
       }
 
-      // Create a unique filename
-      const filename = `locations/${Date.now()}-${file.name}`;
+      // Create a unique filename with timestamp and original extension
+      const extension = file.name.split('.').pop();
+      const filename = `locations/${Date.now()}-${Math.random().toString(36).substring(2)}.${extension}`;
       const storageRef = ref(storage, filename);
 
       // Upload the file
@@ -55,9 +56,9 @@ export default function LocationImageUpload({ currentImage, onUpload }: Location
 
       // Call the onUpload callback with the URL
       onUpload(downloadUrl);
-    } catch (error) {
+    } catch (error: any) {
       console.error('Error uploading image:', error);
-      setError('Failed to upload image. Please try again.');
+      setError(error.message || 'Failed to upload image. Please try again.');
     } finally {
       setUploading(false);
       if (fileInputRef.current) {
@@ -73,15 +74,17 @@ export default function LocationImageUpload({ currentImage, onUpload }: Location
       setUploading(true);
       setError(null);
 
-      // Delete the image from storage
-      const imageRef = ref(storage, currentImage);
-      await deleteObject(imageRef);
+      // Only delete if it's in our locations folder
+      if (currentImage.includes('locations/')) {
+        const imageRef = ref(storage, currentImage);
+        await deleteObject(imageRef);
+      }
 
       // Clear the image URL
       onUpload('');
-    } catch (error) {
+    } catch (error: any) {
       console.error('Error removing image:', error);
-      setError('Failed to remove image. Please try again.');
+      setError(error.message || 'Failed to remove image. Please try again.');
     } finally {
       setUploading(false);
     }
