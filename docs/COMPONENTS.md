@@ -5,6 +5,54 @@ The Recovery Directory platform uses a component-based architecture with several
 
 ## Core Components
 
+### Tabs
+Reusable tab interface component for consistent tab navigation across the application.
+
+#### Features
+- Consistent tab styling
+- Active tab indication
+- Content switching
+- Scroll handling
+- Customizable appearance
+
+#### Props
+```typescript
+interface TabsProps {
+  tabs: Tab[];
+  activeTab: string;
+  onTabChange: (tabId: string) => void;
+  className?: string;
+}
+
+interface Tab {
+  id: string;
+  label: string;
+  content: React.ReactNode;
+}
+```
+
+#### Usage
+```tsx
+const tabs = [
+  {
+    id: 'tab1',
+    label: 'First Tab',
+    content: <FirstTabContent />
+  },
+  {
+    id: 'tab2',
+    label: 'Second Tab',
+    content: <SecondTabContent />
+  }
+];
+
+<Tabs
+  tabs={tabs}
+  activeTab={currentTab}
+  onTabChange={handleTabChange}
+/>
+```
+
 ### LogoUpload
 Handles facility logo upload and management.
 
@@ -168,6 +216,15 @@ graph TD
     D --> F[Facilities Service]
 ```
 
+### Tab Navigation Flow
+```mermaid
+graph TD
+    A[Tabs] --> B[Tab Content]
+    B --> C[Content Components]
+    A --> D[URL Params]
+    D --> E[Browser History]
+```
+
 ## Component Guidelines
 
 ### State Management
@@ -175,7 +232,7 @@ graph TD
 - Use Zustand for global state
 - Handle async operations
 - Manage loading states
-- Clean up storage on removal
+- Clean up on unmount
 
 ### Error Handling
 - Form validation
@@ -239,6 +296,20 @@ graph TD
 
 ### Unit Tests
 ```typescript
+describe('Tabs', () => {
+  it('renders tabs correctly', () => {
+    render(<Tabs tabs={mockTabs} activeTab="tab1" onTabChange={jest.fn()} />);
+    expect(screen.getByText('First Tab')).toBeInTheDocument();
+  });
+
+  it('handles tab changes', () => {
+    const handleChange = jest.fn();
+    render(<Tabs tabs={mockTabs} activeTab="tab1" onTabChange={handleChange} />);
+    fireEvent.click(screen.getByText('Second Tab'));
+    expect(handleChange).toHaveBeenCalledWith('tab2');
+  });
+});
+
 describe('LogoUpload', () => {
   it('handles logo upload successfully', async () => {
     render(<LogoUpload facilityId="123" />);
@@ -248,13 +319,6 @@ describe('LogoUpload', () => {
   it('handles logo removal correctly', async () => {
     render(<LogoUpload facilityId="123" existingLogo="logo.jpg" />);
     // Test removal flow
-  });
-});
-
-describe('RehabCard', () => {
-  it('shows verified badge when verified', () => {
-    render(<RehabCard facility={verifiedFacility} />);
-    expect(screen.getByText('Verified')).toBeInTheDocument();
   });
 });
 ```
