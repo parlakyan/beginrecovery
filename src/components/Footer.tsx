@@ -1,17 +1,7 @@
-import React from 'react';
+import React, { useState, useEffect } from 'react';
 import { Link, useNavigate } from 'react-router-dom';
 import { Building2, MapPin, Tags, Phone } from 'lucide-react';
-
-const popularLocations = [
-  'Los Angeles, CA',
-  'New York City, NY',
-  'Miami, FL',
-  'Malibu, CA',
-  'San Diego, CA',
-  'Phoenix, AZ',
-  'Houston, TX',
-  'Chicago, IL'
-];
+import { locationsService } from '../services/locations';
 
 const popularCenters = [
   'Serenity Recovery Center',
@@ -41,6 +31,23 @@ const specializations = [
 
 export default function Footer() {
   const navigate = useNavigate();
+  const [topLocations, setTopLocations] = useState<{ city: string; state: string; totalListings: number }[]>([]);
+  const [loading, setLoading] = useState(true);
+
+  useEffect(() => {
+    const fetchTopLocations = async () => {
+      try {
+        const locations = await locationsService.getTopLocations(10);
+        setTopLocations(locations);
+      } catch (error) {
+        console.error('Error fetching top locations:', error);
+      } finally {
+        setLoading(false);
+      }
+    };
+
+    fetchTopLocations();
+  }, []);
 
   const handleListCenter = () => {
     navigate('/create-listing');
@@ -59,13 +66,28 @@ export default function Footer() {
               <h3 className="text-lg font-semibold text-white">Popular Locations</h3>
             </div>
             <ul className="space-y-3">
-              {popularLocations.map((location, index) => (
-                <li key={index}>
-                  <Link to={`/search?location=${encodeURIComponent(location)}`} className="hover:text-blue-400 transition-colors">
-                    Rehab Centers in {location}
-                  </Link>
-                </li>
-              ))}
+              {loading ? (
+                // Loading skeleton
+                Array(8).fill(0).map((_, index) => (
+                  <li key={index} className="animate-pulse">
+                    <div className="h-4 bg-gray-700 rounded w-3/4"></div>
+                  </li>
+                ))
+              ) : (
+                topLocations.map((location, index) => (
+                  <li key={index}>
+                    <Link 
+                      to={`/search?location=${encodeURIComponent(`${location.city}, ${location.state}`)}`} 
+                      className="hover:text-blue-400 transition-colors flex items-center justify-between group"
+                    >
+                      <span>Rehab Centers in {location.city}, {location.state}</span>
+                      <span className="text-sm text-gray-500 group-hover:text-blue-400">
+                        ({location.totalListings})
+                      </span>
+                    </Link>
+                  </li>
+                ))
+              )}
             </ul>
           </div>
 

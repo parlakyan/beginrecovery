@@ -13,7 +13,8 @@ import {
   updateDoc,
   deleteDoc,
   Timestamp,
-  writeBatch
+  writeBatch,
+  limit
 } from 'firebase/firestore';
 import { db } from '../lib/firebase';
 import { FeaturedLocation, CityInfo } from '../types';
@@ -71,6 +72,53 @@ export const locationsService = {
       return locations;
     } catch (error) {
       console.error('Error getting featured locations:', error);
+      return [];
+    }
+  },
+
+  async getTopLocations(count: number = 10): Promise<{ city: string; state: string; totalListings: number }[]> {
+    try {
+      console.log('Fetching top locations');
+      const facilitiesRef = collection(db, FACILITIES_COLLECTION);
+      
+      // Get all approved facilities
+      const facilitiesQuery = query(
+        facilitiesRef,
+        where('moderationStatus', '==', 'approved')
+      );
+      
+      const snapshot = await getDocs(facilitiesQuery);
+      
+      // Count facilities per location
+      const locationCounts = new Map<string, { city: string; state: string; totalListings: number }>();
+      
+      snapshot.docs.forEach(doc => {
+        const data = doc.data();
+        if (data.city && data.state) {
+          const key = `${data.city}, ${data.state}`;
+          const existing = locationCounts.get(key);
+          
+          if (existing) {
+            existing.totalListings++;
+          } else {
+            locationCounts.set(key, {
+              city: data.city,
+              state: data.state,
+              totalListings: 1
+            });
+          }
+        }
+      });
+      
+      // Convert to array and sort by listing count
+      const sortedLocations = Array.from(locationCounts.values())
+        .sort((a, b) => b.totalListings - a.totalListings)
+        .slice(0, count);
+
+      console.log('Fetched top locations:', sortedLocations.length);
+      return sortedLocations;
+    } catch (error) {
+      console.error('Error getting top locations:', error);
       return [];
     }
   },
