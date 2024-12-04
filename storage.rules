@@ -17,7 +17,20 @@ service firebase.storage {
       allow read: if true;
     }
 
-    // Facilities folder rules
+    // Admin folders - only admins can write
+    match /licenses/{fileName} {
+      allow write: if isAdmin() && isValidImage();
+    }
+
+    match /insurances/{fileName} {
+      allow write: if isAdmin() && isValidImage();
+    }
+
+    match /locations/{fileName} {
+      allow write: if isAdmin() && isValidImage();
+    }
+
+    // Facilities folder - owners and admins can write
     match /facilities/{facilityId}/{fileName} {
       allow write: if request.auth != null 
         && isValidImage()
@@ -27,23 +40,8 @@ service firebase.storage {
         );
     }
 
-    // Licenses folder rules - Admin only
-    match /licenses/{fileName} {
-      allow write: if isAdmin() && isValidImage();
-    }
-
-    // Insurances folder rules - Admin only
-    match /insurances/{fileName} {
-      allow write: if isAdmin() && isValidImage();
-    }
-
-    // Locations folder rules - Admin only
-    match /locations/{fileName} {
-      allow write: if isAdmin() && isValidImage();
-    }
-
     // Allow admins to delete files they have access to
-    match /{path=**} {
+    match /{allPaths=**} {
       allow delete: if isAdmin();
     }
   }

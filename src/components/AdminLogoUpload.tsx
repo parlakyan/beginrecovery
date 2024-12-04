@@ -37,23 +37,23 @@ export default function AdminLogoUpload({
     setIsUploading(true);
     setUploadProgress(0);
     try {
+      const file = files[0];
       const timestamp = Date.now();
-      const fileName = `${timestamp}-${files[0].name}`;
+      const fileExtension = file.name.split('.').pop()?.toLowerCase() || '';
+      const fileName = `${timestamp}.${fileExtension}`;
       const path = `${folder}/${fileName}`;
       
-      const results = await storageService.uploadImages(files, path, (progress) => {
+      const result = await storageService.uploadImage(file, path, (progress) => {
         setUploadProgress(progress);
       });
 
-      const uploadedUrl = results[0];
-
-      if ('error' in uploadedUrl) {
-        setError(uploadedUrl.error);
+      if ('error' in result) {
+        setError(result.error);
         return;
       }
 
-      if ('url' in uploadedUrl) {
-        onUpload(uploadedUrl.url);
+      if ('url' in result) {
+        onUpload(result.url);
       }
     } catch (err) {
       console.error('Error uploading logo:', err);
@@ -82,23 +82,23 @@ export default function AdminLogoUpload({
     setIsUploading(true);
     setUploadProgress(0);
     try {
+      const file = files[0];
       const timestamp = Date.now();
-      const fileName = `${timestamp}-${files[0].name}`;
+      const fileExtension = file.name.split('.').pop()?.toLowerCase() || '';
+      const fileName = `${timestamp}.${fileExtension}`;
       const path = `${folder}/${fileName}`;
 
-      const results = await storageService.uploadImages(files, path, (progress) => {
+      const result = await storageService.uploadImage(file, path, (progress) => {
         setUploadProgress(progress);
       });
 
-      const uploadedUrl = results[0];
-
-      if ('error' in uploadedUrl) {
-        setError(uploadedUrl.error);
+      if ('error' in result) {
+        setError(result.error);
         return;
       }
 
-      if ('url' in uploadedUrl) {
-        onUpload(uploadedUrl.url);
+      if ('url' in result) {
+        onUpload(result.url);
       }
     } catch (err) {
       console.error('Error uploading logo:', err);
