@@ -14,14 +14,15 @@ import {
 import { useAuthStore } from '../../store/authStore';
 import { usersService } from '../../services/users';
 import { User, UserStats } from '../../types';
-import Header from '../../components/Header';
-import Footer from '../../components/Footer';
 import ConfirmationDialog from '../../components/ConfirmationDialog';
+import DropdownSelect from '../../components/ui/DropdownSelect';
 
 export default function UsersPage() {
   const navigate = useNavigate();
   const { user: currentUser } = useAuthStore();
   const [searchTerm, setSearchTerm] = useState('');
+  const [roleFilter, setRoleFilter] = useState('all');
+  const [statusFilter, setStatusFilter] = useState('all');
   const [users, setUsers] = useState<User[]>([]);
   const [userStats, setUserStats] = useState<Record<string, UserStats>>({});
   const [loading, setLoading] = useState(true);
@@ -36,20 +37,6 @@ export default function UsersPage() {
     isOpen: false,
     email: null
   });
-
-  // Redirect if not admin
-  useEffect(() => {
-    window.scrollTo(0, 0);
-    
-    if (currentUser?.role !== 'admin') {
-      console.log('UsersPage - Unauthorized Access:', {
-        userEmail: currentUser?.email,
-        userRole: currentUser?.role,
-        redirecting: true
-      });
-      navigate('/');
-    }
-  }, [currentUser, navigate]);
 
   // Fetch users and their stats
   const fetchData = async () => {
@@ -80,9 +67,14 @@ export default function UsersPage() {
     fetchData();
   }, []);
 
-  // Filter users based on search
+  // Filter users based on search and filters
   const filteredUsers = users.filter(user => {
-    return user.email.toLowerCase().includes(searchTerm.toLowerCase());
+    const matchesSearch = user.email.toLowerCase().includes(searchTerm.toLowerCase());
+    const matchesRole = roleFilter === 'all' || user.role === roleFilter;
+    const matchesStatus = statusFilter === 'all' || 
+      (statusFilter === 'active' && !user.isSuspended) ||
+      (statusFilter === 'suspended' && user.isSuspended);
+    return matchesSearch && matchesRole && matchesStatus;
   });
 
   const handleSuspend = async (userId: string) => {
@@ -134,154 +126,171 @@ export default function UsersPage() {
   };
 
   return (
-    <div className="min-h-screen bg-gray-50">
-      <Header />
-      
-      <div className="container mx-auto px-4 py-8">
-        <div className="bg-white rounded-xl shadow-sm">
-          <div className="p-6 border-b">
-            <h1 className="text-2xl font-bold">User Management</h1>
-            <p className="text-gray-600 mt-2">
-              Manage users and their permissions
-            </p>
-          </div>
-
-          {/* Search */}
-          <div className="p-4 border-b">
-            <div className="relative max-w-md">
-              <Search className="absolute left-3 top-1/2 -translate-y-1/2 text-gray-400 w-5 h-5" />
-              <input
-                type="text"
-                placeholder="Search users by email..."
-                className="w-full pl-10 pr-4 py-2 border rounded-lg focus:ring-2 focus:ring-blue-300 outline-none"
-                value={searchTerm}
-                onChange={(e) => setSearchTerm(e.target.value)}
-              />
-            </div>
-          </div>
-
-          {/* Content */}
-          <div className="p-6">
-            {loading ? (
-              <div className="flex justify-center py-8">
-                <div className="animate-spin h-8 w-8 border-4 border-blue-600 rounded-full border-t-transparent"></div>
-              </div>
-            ) : users.length === 0 ? (
-              <div className="text-center py-8">
-                <AlertCircle className="w-12 h-12 text-blue-600 mx-auto mb-4" />
-                <h2 className="text-xl font-semibold mb-2">No Users Found</h2>
-                <p className="text-gray-600">
-                  No users match your search criteria.
-                </p>
-              </div>
-            ) : (
-              <div className="overflow-x-auto">
-                <table className="w-full">
-                  <thead>
-                    <tr className="border-b">
-                      <th className="text-left py-4 px-4 font-semibold">User</th>
-                      <th className="text-left py-4 px-4 font-semibold">Role</th>
-                      <th className="text-left py-4 px-4 font-semibold">Listings</th>
-                      <th className="text-left py-4 px-4 font-semibold">Last Login</th>
-                      <th className="text-left py-4 px-4 font-semibold">Status</th>
-                      <th className="text-left py-4 px-4 font-semibold">Actions</th>
-                    </tr>
-                  </thead>
-                  <tbody>
-                    {filteredUsers.map((user) => {
-                      const stats = userStats[user.id];
-                      return (
-                        <tr key={user.id} className="border-b hover:bg-gray-50">
-                          <td className="py-4 px-4">
-                            <div className="font-medium">{user.email}</div>
-                            <div className="text-sm text-gray-500">
-                              Joined {formatDate(user.createdAt)}
-                            </div>
-                          </td>
-                          <td className="py-4 px-4">
-                            <span className={`inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium ${
-                              user.role === 'admin' 
-                                ? 'bg-purple-100 text-purple-800'
-                                : user.role === 'owner'
-                                ? 'bg-blue-100 text-blue-800'
-                                : 'bg-gray-100 text-gray-800'
-                            }`}>
-                              {user.role}
-                            </span>
-                          </td>
-                          <td className="py-4 px-4">
-                            <div className="flex items-center gap-4">
-                              <div>
-                                <div className="font-medium">{stats?.totalListings || 0} total</div>
-                                <div className="text-sm text-gray-500">
-                                  {stats?.verifiedListings || 0} verified
-                                </div>
-                              </div>
-                              {stats?.totalListings > 0 && (
-                                <a 
-                                  href={`/admin/users/${user.id}/listings`}
-                                  target="_blank"
-                                  rel="noopener noreferrer"
-                                  className="text-blue-600 hover:text-blue-700"
-                                >
-                                  <ExternalLink className="w-4 h-4" />
-                                </a>
-                              )}
-                            </div>
-                          </td>
-                          <td className="py-4 px-4">
-                            <div className="flex items-center gap-2 text-gray-600">
-                              <Clock className="w-4 h-4" />
-                              {formatDate(stats?.lastLogin || '')}
-                            </div>
-                          </td>
-                          <td className="py-4 px-4">
-                            <span className={`inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium ${
-                              user.isSuspended
-                                ? 'bg-red-100 text-red-800'
-                                : 'bg-green-100 text-green-800'
-                            }`}>
-                              {user.isSuspended ? 'Suspended' : 'Active'}
-                            </span>
-                          </td>
-                          <td className="py-4 px-4">
-                            <div className="flex items-center gap-2">
-                              {user.isSuspended ? (
-                                <button
-                                  onClick={() => handleUnsuspend(user.id)}
-                                  className="p-1 text-green-600 hover:bg-green-50 rounded flex items-center gap-1"
-                                  title="Unsuspend User"
-                                >
-                                  <RotateCcw className="w-5 h-5" />
-                                  <span className="text-sm">Unsuspend</span>
-                                </button>
-                              ) : (
-                                <button
-                                  onClick={() => setSuspendDialog({ isOpen: true, userId: user.id })}
-                                  className="p-1 text-red-600 hover:bg-red-50 rounded"
-                                  title="Suspend User"
-                                >
-                                  <Ban className="w-5 h-5" />
-                                </button>
-                              )}
-                              <button
-                                onClick={() => setResetPasswordDialog({ isOpen: true, email: user.email })}
-                                className="p-1 text-blue-600 hover:bg-blue-50 rounded"
-                                title="Reset Password"
-                              >
-                                <Mail className="w-5 h-5" />
-                              </button>
-                            </div>
-                          </td>
-                        </tr>
-                      );
-                    })}
-                  </tbody>
-                </table>
-              </div>
-            )}
+    <div className="space-y-6">
+      {/* Filters */}
+      <div className="flex flex-wrap gap-4">
+        {/* Search */}
+        <div className="flex-1 min-w-[240px]">
+          <div className="relative">
+            <Search className="absolute left-3 top-1/2 -translate-y-1/2 text-gray-400 w-5 h-5" />
+            <input
+              type="text"
+              placeholder="Search users by email..."
+              className="w-full pl-10 pr-4 py-2 border rounded-lg focus:ring-2 focus:ring-blue-300 outline-none"
+              value={searchTerm}
+              onChange={(e) => setSearchTerm(e.target.value)}
+            />
           </div>
         </div>
+
+        {/* Role Filter */}
+        <div className="w-48">
+          <select
+            className="w-full px-4 py-2 border rounded-lg"
+            value={roleFilter}
+            onChange={(e) => setRoleFilter(e.target.value)}
+          >
+            <option value="all">All Roles</option>
+            <option value="admin">Admin</option>
+            <option value="owner">Owner</option>
+            <option value="user">User</option>
+          </select>
+        </div>
+
+        {/* Status Filter */}
+        <div className="w-48">
+          <select
+            className="w-full px-4 py-2 border rounded-lg"
+            value={statusFilter}
+            onChange={(e) => setStatusFilter(e.target.value)}
+          >
+            <option value="all">All Status</option>
+            <option value="active">Active</option>
+            <option value="suspended">Suspended</option>
+          </select>
+        </div>
+      </div>
+
+      {/* Content */}
+      <div className="bg-white rounded-lg shadow">
+        {loading ? (
+          <div className="flex justify-center py-8">
+            <div className="animate-spin h-8 w-8 border-4 border-blue-600 rounded-full border-t-transparent"></div>
+          </div>
+        ) : users.length === 0 ? (
+          <div className="text-center py-8">
+            <AlertCircle className="w-12 h-12 text-blue-600 mx-auto mb-4" />
+            <h2 className="text-xl font-semibold mb-2">No Users Found</h2>
+            <p className="text-gray-600">
+              No users match your search criteria.
+            </p>
+          </div>
+        ) : (
+          <div className="overflow-x-auto">
+            <table className="w-full">
+              <thead>
+                <tr className="border-b">
+                  <th className="text-left py-4 px-4 font-semibold">User</th>
+                  <th className="text-left py-4 px-4 font-semibold">Role</th>
+                  <th className="text-left py-4 px-4 font-semibold">Listings</th>
+                  <th className="text-left py-4 px-4 font-semibold">Last Login</th>
+                  <th className="text-left py-4 px-4 font-semibold">Status</th>
+                  <th className="text-left py-4 px-4 font-semibold">Actions</th>
+                </tr>
+              </thead>
+              <tbody>
+                {filteredUsers.map((user) => {
+                  const stats = userStats[user.id];
+                  return (
+                    <tr key={user.id} className="border-b hover:bg-gray-50">
+                      <td className="py-4 px-4">
+                        <div className="font-medium">{user.email}</div>
+                        <div className="text-sm text-gray-500">
+                          Joined {formatDate(user.createdAt)}
+                        </div>
+                      </td>
+                      <td className="py-4 px-4">
+                        <span className={`inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium ${
+                          user.role === 'admin' 
+                            ? 'bg-purple-100 text-purple-800'
+                            : user.role === 'owner'
+                            ? 'bg-blue-100 text-blue-800'
+                            : 'bg-gray-100 text-gray-800'
+                        }`}>
+                          {user.role}
+                        </span>
+                      </td>
+                      <td className="py-4 px-4">
+                        <div className="flex items-center gap-4">
+                          <div>
+                            <div className="font-medium">{stats?.totalListings || 0} total</div>
+                            <div className="text-sm text-gray-500">
+                              {stats?.verifiedListings || 0} verified
+                            </div>
+                          </div>
+                          {stats?.totalListings > 0 && (
+                            <a 
+                              href={`/admin/users/${user.id}/listings`}
+                              target="_blank"
+                              rel="noopener noreferrer"
+                              className="text-blue-600 hover:text-blue-700"
+                            >
+                              <ExternalLink className="w-4 h-4" />
+                            </a>
+                          )}
+                        </div>
+                      </td>
+                      <td className="py-4 px-4">
+                        <div className="flex items-center gap-2 text-gray-600">
+                          <Clock className="w-4 h-4" />
+                          {formatDate(stats?.lastLogin || '')}
+                        </div>
+                      </td>
+                      <td className="py-4 px-4">
+                        <span className={`inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium ${
+                          user.isSuspended
+                            ? 'bg-red-100 text-red-800'
+                            : 'bg-green-100 text-green-800'
+                        }`}>
+                          {user.isSuspended ? 'Suspended' : 'Active'}
+                        </span>
+                      </td>
+                      <td className="py-4 px-4">
+                        <div className="flex items-center gap-2">
+                          {user.isSuspended ? (
+                            <button
+                              onClick={() => handleUnsuspend(user.id)}
+                              className="p-1 text-green-600 hover:bg-green-50 rounded flex items-center gap-1"
+                              title="Unsuspend User"
+                            >
+                              <RotateCcw className="w-5 h-5" />
+                              <span className="text-sm">Unsuspend</span>
+                            </button>
+                          ) : (
+                            <button
+                              onClick={() => setSuspendDialog({ isOpen: true, userId: user.id })}
+                              className="p-1 text-red-600 hover:bg-red-50 rounded"
+                              title="Suspend User"
+                            >
+                              <Ban className="w-5 h-5" />
+                            </button>
+                          )}
+                          <button
+                            onClick={() => setResetPasswordDialog({ isOpen: true, email: user.email })}
+                            className="p-1 text-blue-600 hover:bg-blue-50 rounded"
+                            title="Reset Password"
+                          >
+                            <Mail className="w-5 h-5" />
+                          </button>
+                        </div>
+                      </td>
+                    </tr>
+                  );
+                })}
+              </tbody>
+            </table>
+          </div>
+        )}
       </div>
 
       {/* Suspend Confirmation */}
@@ -311,8 +320,6 @@ export default function UsersPage() {
         message="Are you sure you want to send a password reset email to this user?"
         type="warning"
       />
-
-      <Footer />
     </div>
   );
 }
