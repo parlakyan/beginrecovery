@@ -1,11 +1,12 @@
 import React, { useCallback, useState } from 'react';
 import { Upload, X, Loader2, AlertCircle } from 'lucide-react';
 import { storageService } from '../services/storage';
+import { useAuthStore } from '../store/authStore';
 
 interface AdminLogoUploadProps {
   currentLogo?: string;
   onUpload: (url: string) => void;
-  folder: 'licenses' | 'insurances';
+  folder: 'licenses' | 'insurances' | 'locations';
 }
 
 export default function AdminLogoUpload({ 
@@ -16,10 +17,16 @@ export default function AdminLogoUpload({
   const [isUploading, setIsUploading] = useState(false);
   const [error, setError] = useState<string | undefined>();
   const [uploadProgress, setUploadProgress] = useState<number>(0);
+  const { user } = useAuthStore();
 
   const handleDrop = useCallback(async (e: React.DragEvent<HTMLDivElement>) => {
     e.preventDefault();
     setError(undefined);
+
+    if (!user || user.role !== 'admin') {
+      setError('Only admins can upload logos');
+      return;
+    }
 
     const files = Array.from(e.dataTransfer.files);
     if (files.length > 1) {
@@ -30,7 +37,14 @@ export default function AdminLogoUpload({
     setIsUploading(true);
     setUploadProgress(0);
     try {
-      const results = await storageService.uploadImages(files, `${folder}/${Date.now()}`);
+      const timestamp = Date.now();
+      const fileName = `${timestamp}-${files[0].name}`;
+      const path = `${folder}/${fileName}`;
+      
+      const results = await storageService.uploadImages(files, path, (progress) => {
+        setUploadProgress(progress);
+      });
+
       const uploadedUrl = results[0];
 
       if ('error' in uploadedUrl) {
@@ -48,10 +62,16 @@ export default function AdminLogoUpload({
       setIsUploading(false);
       setUploadProgress(0);
     }
-  }, [folder, onUpload]);
+  }, [folder, onUpload, user]);
 
   const handleFileSelect = useCallback(async (e: React.ChangeEvent<HTMLInputElement>) => {
     setError(undefined);
+
+    if (!user || user.role !== 'admin') {
+      setError('Only admins can upload logos');
+      return;
+    }
+
     const files = Array.from(e.target.files || []);
     
     if (files.length > 1) {
@@ -62,7 +82,14 @@ export default function AdminLogoUpload({
     setIsUploading(true);
     setUploadProgress(0);
     try {
-      const results = await storageService.uploadImages(files, `${folder}/${Date.now()}`);
+      const timestamp = Date.now();
+      const fileName = `${timestamp}-${files[0].name}`;
+      const path = `${folder}/${fileName}`;
+
+      const results = await storageService.uploadImages(files, path, (progress) => {
+        setUploadProgress(progress);
+      });
+
       const uploadedUrl = results[0];
 
       if ('error' in uploadedUrl) {
@@ -82,22 +109,30 @@ export default function AdminLogoUpload({
       // Reset input value to allow uploading the same file again
       e.target.value = '';
     }
-  }, [folder, onUpload]);
+  }, [folder, onUpload, user]);
 
   const handleRemoveLogo = useCallback(async (e: React.MouseEvent) => {
     e.stopPropagation();
     e.preventDefault();
 
+    if (!user || user.role !== 'admin') {
+      setError('Only admins can remove logos');
+      return;
+    }
+
     try {
       if (currentLogo) {
-        await storageService.deleteFile(currentLogo);
+        // Extract path from URL
+        const url = new URL(currentLogo);
+        const path = decodeURIComponent(url.pathname.split('/o/')[1].split('?')[0]);
+        await storageService.deleteFile(path);
       }
       onUpload('');
     } catch (err) {
       console.error('Error removing logo:', err);
       setError('Failed to remove logo. Please try again.');
     }
-  }, [currentLogo, onUpload]);
+  }, [currentLogo, onUpload, user]);
 
   const dragOverHandler = useCallback((e: React.DragEvent<HTMLDivElement>) => {
     e.preventDefault();

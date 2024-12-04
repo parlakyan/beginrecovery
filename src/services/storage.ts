@@ -137,8 +137,10 @@ export const storageService = {
 
   async deleteFile(path: string): Promise<void> {
     try {
+      console.log('Deleting file:', path);
       const fileRef = ref(storage, path);
       await deleteObject(fileRef);
+      console.log('File deleted successfully');
     } catch (error) {
       console.error('Error deleting file:', error);
       throw error;
