@@ -6,8 +6,11 @@ import {
   query,
   where,
   serverTimestamp,
-  getDoc
+  getDoc,
+  Timestamp
 } from 'firebase/firestore';
+import { auth } from '../lib/firebase';
+import { sendPasswordResetEmail } from 'firebase/auth';
 import { db } from '../lib/firebase';
 import { User, UserStats } from '../types';
 
@@ -19,7 +22,8 @@ export const usersService = {
       return snapshot.docs.map(doc => ({
         id: doc.id,
         ...doc.data(),
-        createdAt: doc.data().createdAt?.toDate?.()?.toISOString() || new Date().toISOString()
+        createdAt: doc.data().createdAt?.toDate?.()?.toISOString() || new Date().toISOString(),
+        lastLogin: doc.data().lastLogin?.toDate?.()?.toISOString() || null
       } as User));
     } catch (error) {
       console.error('Error getting users:', error);
@@ -40,6 +44,15 @@ export const usersService = {
     }
   },
 
+  async resetUserPassword(email: string): Promise<void> {
+    try {
+      await sendPasswordResetEmail(auth, email);
+    } catch (error) {
+      console.error('Error resetting password:', error);
+      throw error;
+    }
+  },
+
   async getUserStats(): Promise<UserStats> {
     try {
       const usersRef = collection(db, 'users');
@@ -53,16 +66,22 @@ export const usersService = {
       const thisMonth = new Date();
       thisMonth.setDate(1); // First day of current month
       const newUsersThisMonth = usersSnapshot.docs.filter(doc => {
-        const createdAt = doc.data().createdAt?.toDate();
-        return createdAt && createdAt >= thisMonth;
+        const createdAt = doc.data().createdAt;
+        if (createdAt instanceof Timestamp) {
+          return createdAt.toDate() >= thisMonth;
+        }
+        return false;
       }).length;
 
       // Get active users (logged in within last 30 days)
       const thirtyDaysAgo = new Date();
       thirtyDaysAgo.setDate(thirtyDaysAgo.getDate() - 30);
       const activeUsers = usersSnapshot.docs.filter(doc => {
-        const lastLogin = doc.data().lastLogin?.toDate();
-        return lastLogin && lastLogin >= thirtyDaysAgo;
+        const lastLogin = doc.data().lastLogin;
+        if (lastLogin instanceof Timestamp) {
+          return lastLogin.toDate() >= thirtyDaysAgo;
+        }
+        return false;
       }).length;
 
       // Get facilities stats
@@ -72,9 +91,10 @@ export const usersService = {
 
       // Get most recent login
       const lastLogin = usersSnapshot.docs
-        .map(doc => doc.data().lastLogin?.toDate())
-        .filter(Boolean)
-        .sort((a, b) => b.getTime() - a.getTime())[0]?.toISOString();
+        .map(doc => doc.data().lastLogin)
+        .filter((login): login is Timestamp => login instanceof Timestamp)
+        .sort((a, b) => b.toDate().getTime() - a.toDate().getTime())[0]
+        ?.toDate()?.toISOString();
 
       return {
         totalUsers,

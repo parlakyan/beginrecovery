@@ -13,8 +13,7 @@ import {
   updateDoc,
   deleteDoc,
   Timestamp,
-  writeBatch,
-  limit
+  writeBatch
 } from 'firebase/firestore';
 import { db } from '../lib/firebase';
 import { FeaturedLocation, CityInfo } from '../types';
@@ -22,9 +21,6 @@ import { FeaturedLocation, CityInfo } from '../types';
 const LOCATIONS_COLLECTION = 'featuredLocations';
 const FACILITIES_COLLECTION = 'facilities';
 
-/**
- * Transforms Firestore document to FeaturedLocation type
- */
 const transformLocationData = (doc: QueryDocumentSnapshot<DocumentData>): FeaturedLocation => {
   const data = doc.data();
   
@@ -42,7 +38,7 @@ const transformLocationData = (doc: QueryDocumentSnapshot<DocumentData>): Featur
     state: data.state || '',
     image: data.image || '',
     totalListings: data.totalListings || 0,
-    coordinates: data.coordinates,
+    coordinates: data.coordinates || { lat: 0, lng: 0 },
     createdAt,
     updatedAt,
     order: data.order || 0,
@@ -50,9 +46,6 @@ const transformLocationData = (doc: QueryDocumentSnapshot<DocumentData>): Featur
   };
 };
 
-/**
- * Featured locations management service
- */
 export const locationsService = {
   async getFeaturedLocations() {
     try {
@@ -130,11 +123,10 @@ export const locationsService = {
       const facilitiesRef = collection(db, FACILITIES_COLLECTION);
       const locationsRef = collection(db, LOCATIONS_COLLECTION);
       
-      // Get all approved and active facilities
+      // Get all approved facilities
       const facilitiesQuery = query(
         facilitiesRef,
-        where('moderationStatus', '==', 'approved'),
-        where('status', '!=', 'archived') // Exclude archived facilities
+        where('moderationStatus', '==', 'approved')
       );
       
       // Get all featured locations
@@ -164,7 +156,7 @@ export const locationsService = {
       
       facilitiesSnapshot.docs.forEach(doc => {
         const data = doc.data();
-        if (data.city && data.state) {
+        if (data.city && data.state && data.coordinates) {
           const key = `${data.city}, ${data.state}`;
           const existing = cityMap.get(key);
           const featuredData = featuredLocations.get(key);
@@ -302,7 +294,8 @@ export const locationsService = {
             state,
             image: '',
             totalListings: 0,
-            isFeatured: true
+            isFeatured: true,
+            coordinates: { lat: 0, lng: 0 }
           });
         }
       } else {

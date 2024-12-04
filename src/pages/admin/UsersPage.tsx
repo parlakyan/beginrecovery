@@ -8,7 +8,9 @@ import {
   Clock, 
   XCircle,
   Building2,
-  AlertCircle
+  AlertCircle,
+  KeyRound,
+  Mail
 } from 'lucide-react';
 import { usersService } from '../../services/users';
 import { facilitiesService } from '../../services/facilities';
@@ -18,6 +20,7 @@ export default function UsersPage() {
   const [users, setUsers] = useState<User[]>([]);
   const [stats, setStats] = useState<UserStats>({});
   const [loading, setLoading] = useState(true);
+  const [resettingPassword, setResettingPassword] = useState<string | null>(null);
 
   useEffect(() => {
     const fetchUsers = async () => {
@@ -52,16 +55,27 @@ export default function UsersPage() {
     }
   };
 
-  const getStatusColor = (status: string) => {
-    switch (status) {
-      case 'active':
-        return 'text-green-600';
-      case 'suspended':
-        return 'text-red-600';
-      case 'pending':
-        return 'text-yellow-600';
+  const handleResetPassword = async (email: string) => {
+    try {
+      setResettingPassword(email);
+      await usersService.resetUserPassword(email);
+      alert('Password reset email sent successfully');
+    } catch (error) {
+      console.error('Error resetting password:', error);
+      alert('Failed to send password reset email');
+    } finally {
+      setResettingPassword(null);
+    }
+  };
+
+  const getRoleColor = (role: string) => {
+    switch (role) {
+      case 'admin':
+        return 'bg-purple-100 text-purple-800';
+      case 'owner':
+        return 'bg-blue-100 text-blue-800';
       default:
-        return 'text-gray-600';
+        return 'bg-gray-100 text-gray-800';
     }
   };
 
@@ -119,7 +133,7 @@ export default function UsersPage() {
               </p>
             </div>
             <div className="flex items-center text-green-600">
-              <span className="text-sm font-medium">{Math.round(((stats.totalListings || 0) / 100) * 100)}% growth</span>
+              <span className="text-sm font-medium">{Math.round(((stats.verifiedListings || 0) / (stats.totalListings || 1)) * 100)}% verified</span>
             </div>
           </div>
         </div>
@@ -135,7 +149,7 @@ export default function UsersPage() {
           <div className="flex items-center justify-between">
             <div>
               <h3 className="text-2xl font-bold text-gray-900">{stats.activeUsers || 0}</h3>
-              <p className="text-sm text-gray-500">Last active {stats.lastLogin || 'recently'}</p>
+              <p className="text-sm text-gray-500">Last active {stats.lastLogin ? new Date(stats.lastLogin).toLocaleDateString() : 'recently'}</p>
             </div>
           </div>
         </div>
@@ -173,6 +187,8 @@ export default function UsersPage() {
                 <th className="text-left py-4 px-6 font-semibold text-gray-600">User</th>
                 <th className="text-left py-4 px-6 font-semibold text-gray-600">Role</th>
                 <th className="text-left py-4 px-6 font-semibold text-gray-600">Status</th>
+                <th className="text-left py-4 px-6 font-semibold text-gray-600">Listings</th>
+                <th className="text-left py-4 px-6 font-semibold text-gray-600">Last Login</th>
                 <th className="text-left py-4 px-6 font-semibold text-gray-600">Actions</th>
               </tr>
             </thead>
@@ -182,11 +198,11 @@ export default function UsersPage() {
                   <td className="py-4 px-6">
                     <div>
                       <div className="font-medium text-gray-900">{user.email}</div>
-                      <div className="text-sm text-gray-500">Created {user.createdAt}</div>
+                      <div className="text-sm text-gray-500">Created {new Date(user.createdAt).toLocaleDateString()}</div>
                     </div>
                   </td>
                   <td className="py-4 px-6">
-                    <span className="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-blue-100 text-blue-800">
+                    <span className={`inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium ${getRoleColor(user.role)}`}>
                       {user.role}
                     </span>
                   </td>
@@ -199,26 +215,55 @@ export default function UsersPage() {
                     </div>
                   </td>
                   <td className="py-4 px-6">
-                    <button
-                      onClick={() => handleToggleSuspend(user.id, user.isSuspended || false)}
-                      className={`inline-flex items-center px-3 py-1.5 border rounded-lg text-sm font-medium transition-colors ${
-                        user.isSuspended
-                          ? 'border-green-200 text-green-600 hover:bg-green-50'
-                          : 'border-red-200 text-red-600 hover:bg-red-50'
-                      }`}
-                    >
-                      {user.isSuspended ? (
-                        <>
-                          <CheckCircle className="w-4 h-4 mr-1.5" />
-                          Reactivate
-                        </>
-                      ) : (
-                        <>
-                          <Ban className="w-4 h-4 mr-1.5" />
-                          Suspend
-                        </>
-                      )}
-                    </button>
+                    <div className="text-sm">
+                      <span className="font-medium">{user.verifiedListings || 0}</span>
+                      <span className="text-gray-500"> verified of </span>
+                      <span className="font-medium">{user.facilities?.length || 0}</span>
+                      <span className="text-gray-500"> total</span>
+                    </div>
+                  </td>
+                  <td className="py-4 px-6">
+                    <div className="text-sm text-gray-500">
+                      {user.lastLogin ? new Date(user.lastLogin).toLocaleDateString() : 'Never'}
+                    </div>
+                  </td>
+                  <td className="py-4 px-6">
+                    <div className="flex items-center gap-2">
+                      <button
+                        onClick={() => handleResetPassword(user.email)}
+                        disabled={resettingPassword === user.email}
+                        className={`inline-flex items-center px-3 py-1.5 border rounded-lg text-sm font-medium transition-colors border-gray-200 text-gray-600 hover:bg-gray-50 ${
+                          resettingPassword === user.email ? 'opacity-50 cursor-not-allowed' : ''
+                        }`}
+                      >
+                        {resettingPassword === user.email ? (
+                          <Mail className="w-4 h-4 mr-1.5 animate-spin" />
+                        ) : (
+                          <KeyRound className="w-4 h-4 mr-1.5" />
+                        )}
+                        Reset Password
+                      </button>
+                      <button
+                        onClick={() => handleToggleSuspend(user.id, user.isSuspended || false)}
+                        className={`inline-flex items-center px-3 py-1.5 border rounded-lg text-sm font-medium transition-colors ${
+                          user.isSuspended
+                            ? 'border-green-200 text-green-600 hover:bg-green-50'
+                            : 'border-red-200 text-red-600 hover:bg-red-50'
+                        }`}
+                      >
+                        {user.isSuspended ? (
+                          <>
+                            <CheckCircle className="w-4 h-4 mr-1.5" />
+                            Reactivate
+                          </>
+                        ) : (
+                          <>
+                            <Ban className="w-4 h-4 mr-1.5" />
+                            Suspend
+                          </>
+                        )}
+                      </button>
+                    </div>
                   </td>
                 </tr>
               ))}
