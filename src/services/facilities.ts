@@ -124,7 +124,6 @@ const transformFacilityData = (doc: QueryDocumentSnapshot<DocumentData>): Facili
     name,
     description: data.description || '',
     location,
-    // Add city and state fields
     city: data.city,
     state: data.state,
     coordinates: data.coordinates,
@@ -567,24 +566,36 @@ export const facilitiesService = {
       const facilitiesRef = collection(db, FACILITIES_COLLECTION);
       
       // Start with base query for approved facilities
-      const q = query(
+      let q = query(
         facilitiesRef,
         where('moderationStatus', '==', 'approved')
       );
 
       // Get all facilities and filter in memory
-      // This is a temporary solution until we implement proper search indexing
       const snapshot = await getDocs(q);
       let facilities = snapshot.docs.map(doc => transformFacilityData(doc as QueryDocumentSnapshot<DocumentData>));
 
       // Apply filters
       facilities = facilities.filter(facility => {
-        // Text search
+        // Text search across multiple fields
         const searchText = searchQuery.toLowerCase();
-        const matchesQuery = !searchQuery || 
-          facility.name.toLowerCase().includes(searchText) ||
-          facility.description.toLowerCase().includes(searchText) ||
-          facility.location.toLowerCase().includes(searchText);
+        const matchesQuery = !searchQuery || [
+          facility.name,
+          facility.description,
+          facility.location,
+          facility.city,
+          facility.state,
+          facility.email,
+          facility.phone,
+          ...facility.tags,
+          ...facility.highlights,
+          ...facility.substances,
+          ...facility.insurance,
+          ...facility.accreditation,
+          ...facility.languages
+        ].some(field => 
+          field && field.toString().toLowerCase().includes(searchText)
+        );
 
         // Treatment types
         const matchesTreatment = treatmentTypes.length === 0 ||
@@ -608,9 +619,22 @@ export const facilitiesService = {
                matchesRating;
       });
 
-      // Sort by rating and then name
+      // Sort results by relevance and rating
       facilities.sort((a, b) => {
+        // First sort by exact name match
+        const aNameMatch = a.name.toLowerCase().includes(searchQuery.toLowerCase());
+        const bNameMatch = b.name.toLowerCase().includes(searchQuery.toLowerCase());
+        if (aNameMatch && !bNameMatch) return -1;
+        if (!aNameMatch && bNameMatch) return 1;
+
+        // Then sort by rating
         if (b.rating !== a.rating) return b.rating - a.rating;
+
+        // Then sort by verification status
+        if (a.isVerified && !b.isVerified) return -1;
+        if (!a.isVerified && b.isVerified) return 1;
+
+        // Finally sort by name
         return a.name.localeCompare(b.name);
       });
 

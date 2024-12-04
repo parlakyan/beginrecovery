@@ -61,13 +61,17 @@ export default function SearchResults() {
       setLoading(true);
       try {
         const query = searchParams.get('q') || '';
-        const result = await facilitiesService.getFacilities({
-          ...filters,
-          query
+        const results = await facilitiesService.searchFacilities({
+          query,
+          treatmentTypes: filters.treatmentTypes,
+          amenities: filters.amenities,
+          insurance: filters.insurance,
+          rating: filters.rating
         });
-        setFacilities(result.facilities);
+        setFacilities(results);
       } catch (error) {
         console.error('Error fetching facilities:', error);
+        setFacilities([]);
       } finally {
         setLoading(false);
       }
@@ -79,7 +83,7 @@ export default function SearchResults() {
   const { filterOptions, optionCounts } = getFilterOptions(facilities);
 
   const handleFilterChange = (type: keyof SearchFiltersState, value: string) => {
-    setFilters(prev => {
+    setFilters((prev: SearchFiltersState) => {
       if (type === 'rating') {
         return { ...prev, rating: parseInt(value) };
       }

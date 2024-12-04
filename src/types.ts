@@ -13,7 +13,6 @@ export interface Facility {
   name: string;
   description: string;
   location: string;
-  // Add city and state fields
   city?: string;
   state?: string;
   coordinates?: {
@@ -65,6 +64,14 @@ export interface UserStats {
   lastLogin: string;
   joinDate: string;
   status: 'active' | 'suspended';
+}
+
+export interface SearchFiltersState {
+  treatmentTypes: string[];
+  amenities: string[];
+  insurance: string[];
+  rating: number | null;
+  priceRange: number | null;
 }
 
 export type CollectionType = 
