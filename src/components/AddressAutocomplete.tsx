@@ -67,15 +67,17 @@ export default function AddressAutocomplete({ register, setValue, error }: Addre
           }
 
           // Extract and set address components if available
-          if (place.address_components?.length) {
+          if (place.address_components && Array.isArray(place.address_components)) {
             try {
               const addressComponents: { [key: string]: string } = {};
               place.address_components.forEach((component: any) => {
-                const type = component.types[0];
-                if (type) {
-                  addressComponents[type] = component.long_name;
-                  if (type === 'administrative_area_level_1') {
-                    addressComponents.state_short = component.short_name;
+                if (component && component.types && Array.isArray(component.types)) {
+                  const type = component.types[0];
+                  if (type) {
+                    addressComponents[type] = component.long_name;
+                    if (type === 'administrative_area_level_1') {
+                      addressComponents.state_short = component.short_name;
+                    }
                   }
                 }
               });

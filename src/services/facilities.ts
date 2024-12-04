@@ -597,5 +597,143 @@ export const facilitiesService = {
       console.error('Error searching facilities:', error);
       return [];
     }
+  },
+
+  async getAllListingsForAdmin(): Promise<Facility[]> {
+    try {
+      console.log('Fetching all listings for admin');
+      const facilitiesRef = collection(db, FACILITIES_COLLECTION);
+      
+      // Get all facilities without filtering by moderation status
+      const snapshot = await getDocs(facilitiesRef);
+      console.log('Total documents:', snapshot.size);
+      
+      const facilities = snapshot.docs.map(transformFacilityData);
+      console.log('Transformed facilities:', facilities.length);
+      
+      // Sort by creation date, newest first
+      facilities.sort((a, b) => new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime());
+      
+      return facilities;
+    } catch (error) {
+      console.error('Error getting admin listings:', error);
+      throw error;
+    }
+  },
+
+  async getArchivedListings(): Promise<Facility[]> {
+    try {
+      console.log('Fetching archived listings');
+      const facilitiesRef = collection(db, FACILITIES_COLLECTION);
+      const q = query(
+        facilitiesRef,
+        where('moderationStatus', '==', 'archived'),
+        orderBy('createdAt', 'desc')
+      );
+      
+      const snapshot = await getDocs(q);
+      const facilities = snapshot.docs.map(transformFacilityData);
+      console.log('Archived facilities:', facilities.length);
+      
+      return facilities;
+    } catch (error) {
+      console.error('Error getting archived listings:', error);
+      throw error;
+    }
+  },
+
+  async approveFacility(id: string): Promise<boolean> {
+    try {
+      const facilityRef = doc(db, FACILITIES_COLLECTION, id);
+      await updateDoc(facilityRef, {
+        moderationStatus: 'approved',
+        updatedAt: serverTimestamp()
+      });
+      return true;
+    } catch (error) {
+      console.error('Error approving facility:', error);
+      throw error;
+    }
+  },
+
+  async rejectFacility(id: string): Promise<boolean> {
+    try {
+      const facilityRef = doc(db, FACILITIES_COLLECTION, id);
+      await updateDoc(facilityRef, {
+        moderationStatus: 'rejected',
+        updatedAt: serverTimestamp()
+      });
+      return true;
+    } catch (error) {
+      console.error('Error rejecting facility:', error);
+      throw error;
+    }
+  },
+
+  async featureFacility(id: string): Promise<boolean> {
+    try {
+      const facilityRef = doc(db, FACILITIES_COLLECTION, id);
+      await updateDoc(facilityRef, {
+        isFeatured: true,
+        updatedAt: serverTimestamp()
+      });
+      return true;
+    } catch (error) {
+      console.error('Error featuring facility:', error);
+      throw error;
+    }
+  },
+
+  async unfeatureFacility(id: string): Promise<boolean> {
+    try {
+      const facilityRef = doc(db, FACILITIES_COLLECTION, id);
+      await updateDoc(facilityRef, {
+        isFeatured: false,
+        updatedAt: serverTimestamp()
+      });
+      return true;
+    } catch (error) {
+      console.error('Error unfeaturing facility:', error);
+      throw error;
+    }
+  },
+
+  async archiveFacility(id: string): Promise<boolean> {
+    try {
+      const facilityRef = doc(db, FACILITIES_COLLECTION, id);
+      await updateDoc(facilityRef, {
+        moderationStatus: 'archived',
+        updatedAt: serverTimestamp()
+      });
+      return true;
+    } catch (error) {
+      console.error('Error archiving facility:', error);
+      throw error;
+    }
+  },
+
+  async restoreFacility(id: string): Promise<boolean> {
+    try {
+      const facilityRef = doc(db, FACILITIES_COLLECTION, id);
+      await updateDoc(facilityRef, {
+        moderationStatus: 'pending',
+        updatedAt: serverTimestamp()
+      });
+      return true;
+    } catch (error) {
+      console.error('Error restoring facility:', error);
+      throw error;
+    }
+  },
+
+  async deleteFacility(id: string): Promise<boolean> {
+    try {
+      const facilityRef = doc(db, FACILITIES_COLLECTION, id);
+      await deleteDoc(facilityRef);
+      return true;
+    } catch (error) {
+      console.error('Error deleting facility:', error);
+      throw error;
+    }
   }
 };
