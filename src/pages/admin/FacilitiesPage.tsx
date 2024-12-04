@@ -31,7 +31,7 @@ const getStatusColor = (status: string) => {
   }
 };
 
-export default function FacilitiesPage() {
+export default function FacilitiesPage(): JSX.Element {
   const navigate = useNavigate();
   const { user } = useAuthStore();
   const [searchTerm, setSearchTerm] = useState('');
@@ -175,10 +175,15 @@ export default function FacilitiesPage() {
   };
 
   // Filter facilities based on search and filters
-  const filteredFacilities = (showArchived ? archivedFacilities : facilities).filter(facility => {
-    const matchesSearch = 
-      facility.name.toLowerCase().includes(searchTerm.toLowerCase()) ||
-      facility.location.toLowerCase().includes(searchTerm.toLowerCase());
+  const filteredFacilities = (showArchived ? archivedFacilities : facilities).filter((facility: Facility) => {
+    const searchLower = searchTerm.toLowerCase();
+    const matchesSearch = searchTerm === '' || 
+      facility.name.toLowerCase().includes(searchLower) ||
+      facility.location.toLowerCase().includes(searchLower) ||
+      facility.email?.toLowerCase().includes(searchLower) ||
+      facility.phone?.toLowerCase().includes(searchLower) ||
+      (facility.city && facility.city.toLowerCase().includes(searchLower)) ||
+      (facility.state && facility.state.toLowerCase().includes(searchLower));
     
     const matchesStatus = statusFilter === 'all' || facility.moderationStatus === statusFilter;
     

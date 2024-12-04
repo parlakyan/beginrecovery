@@ -17,12 +17,18 @@ import { FeaturedLocation } from '../../types';
 import EditLocationModal from '../../components/EditLocationModal';
 import ConfirmationDialog from '../../components/ConfirmationDialog';
 
-export default function LocationsPage() {
+interface CityData {
+  city: string;
+  state: string;
+  count: number;
+}
+
+export default function LocationsPage(): JSX.Element {
   const navigate = useNavigate();
   const { user } = useAuthStore();
   const [searchTerm, setSearchTerm] = useState('');
   const [locations, setLocations] = useState<FeaturedLocation[]>([]);
-  const [availableCities, setAvailableCities] = useState<Array<{ city: string; state: string; count: number }>>([]);
+  const [availableCities, setAvailableCities] = useState<CityData[]>([]);
   const [loading, setLoading] = useState(true);
   const [editingLocation, setEditingLocation] = useState<FeaturedLocation | null>(null);
 
@@ -42,7 +48,7 @@ export default function LocationsPage() {
       ]);
       
       // Extract unique cities from facilities
-      const cityMap = new Map<string, { city: string; state: string; count: number }>();
+      const cityMap = new Map<string, CityData>();
       facilities.forEach(facility => {
         if (facility.city && facility.state) {
           const key = `${facility.city}, ${facility.state}`;
@@ -72,22 +78,7 @@ export default function LocationsPage() {
     fetchData();
   }, []);
 
-  // Filter locations based on search
-  const filteredLocations = locations.filter(location => {
-    const searchString = `${location.city}, ${location.state}`.toLowerCase();
-    return searchString.includes(searchTerm.toLowerCase());
-  });
-
-  // Filter available cities based on search and already featured
-  const filteredCities = availableCities.filter(city => {
-    const searchString = `${city.city}, ${city.state}`.toLowerCase();
-    const isAlreadyFeatured = locations.some(
-      loc => loc.city === city.city && loc.state === city.state
-    );
-    return !isAlreadyFeatured && searchString.includes(searchTerm.toLowerCase());
-  });
-
-  const handleAdd = async (city: { city: string; state: string; count: number }) => {
+  const handleAdd = async (city: CityData) => {
     try {
       setLoading(true);
       await locationsService.addFeaturedLocation({
@@ -149,6 +140,29 @@ export default function LocationsPage() {
       setLoading(false);
     }
   };
+
+  // Filter locations based on search
+  const filteredLocations = locations.filter(location => {
+    const searchLower = searchTerm.toLowerCase();
+    return searchTerm === '' || 
+      location.city.toLowerCase().includes(searchLower) ||
+      location.state.toLowerCase().includes(searchLower) ||
+      `${location.city}, ${location.state}`.toLowerCase().includes(searchLower);
+  });
+
+  // Filter available cities based on search and already featured
+  const filteredCities = availableCities.filter(city => {
+    const searchLower = searchTerm.toLowerCase();
+    const isAlreadyFeatured = locations.some(
+      loc => loc.city === city.city && loc.state === city.state
+    );
+    return !isAlreadyFeatured && (
+      searchTerm === '' ||
+      city.city.toLowerCase().includes(searchLower) ||
+      city.state.toLowerCase().includes(searchLower) ||
+      `${city.city}, ${city.state}`.toLowerCase().includes(searchLower)
+    );
+  });
 
   return (
     <div className="space-y-6">

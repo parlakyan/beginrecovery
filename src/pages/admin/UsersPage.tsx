@@ -16,7 +16,7 @@ import { usersService } from '../../services/users';
 import { User, UserStats } from '../../types';
 import ConfirmationDialog from '../../components/ConfirmationDialog';
 
-export default function UsersPage() {
+export default function UsersPage(): JSX.Element {
   const navigate = useNavigate();
   const { user: currentUser } = useAuthStore();
   const [searchTerm, setSearchTerm] = useState('');
@@ -25,7 +25,6 @@ export default function UsersPage() {
   const [users, setUsers] = useState<User[]>([]);
   const [userStats, setUserStats] = useState<Record<string, UserStats>>({});
   const [loading, setLoading] = useState(true);
-  const [selectedUser, setSelectedUser] = useState<User | null>(null);
 
   // Confirmation dialogs
   const [suspendDialog, setSuspendDialog] = useState<{ isOpen: boolean; userId: string | null }>({
@@ -68,11 +67,18 @@ export default function UsersPage() {
 
   // Filter users based on search and filters
   const filteredUsers = users.filter(user => {
-    const matchesSearch = user.email.toLowerCase().includes(searchTerm.toLowerCase());
+    const searchLower = searchTerm.toLowerCase();
+    const matchesSearch = searchTerm === '' || 
+      user.email.toLowerCase().includes(searchLower) ||
+      user.role.toLowerCase().includes(searchLower) ||
+      (userStats[user.id]?.status || '').toLowerCase().includes(searchLower);
+    
     const matchesRole = roleFilter === 'all' || user.role === roleFilter;
+    
     const matchesStatus = statusFilter === 'all' || 
       (statusFilter === 'active' && !user.isSuspended) ||
       (statusFilter === 'suspended' && user.isSuspended);
+
     return matchesSearch && matchesRole && matchesStatus;
   });
 
@@ -134,7 +140,7 @@ export default function UsersPage() {
             <Search className="absolute left-3 top-1/2 -translate-y-1/2 text-gray-400 w-5 h-5" />
             <input
               type="text"
-              placeholder="Search users by email..."
+              placeholder="Search users by email, role, or status..."
               className="w-full pl-10 pr-4 py-2 border rounded-lg focus:ring-2 focus:ring-blue-300 outline-none"
               value={searchTerm}
               onChange={(e) => setSearchTerm(e.target.value)}
