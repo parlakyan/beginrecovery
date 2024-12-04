@@ -1,327 +1,231 @@
 import React, { useState, useEffect } from 'react';
-import { useNavigate } from 'react-router-dom';
 import { 
-  Search, 
-  Ban,
-  RotateCcw,
-  AlertCircle,
-  Mail,
-  ExternalLink,
-  Clock,
-  ShieldCheck,
-  Building2
+  Users as UsersIcon, 
+  UserPlus, 
+  Star, 
+  Ban, 
+  CheckCircle, 
+  Clock, 
+  XCircle,
+  Building2,
+  AlertCircle
 } from 'lucide-react';
-import { useAuthStore } from '../../store/authStore';
 import { usersService } from '../../services/users';
+import { facilitiesService } from '../../services/facilities';
 import { User, UserStats } from '../../types';
-import ConfirmationDialog from '../../components/ConfirmationDialog';
 
-export default function UsersPage(): JSX.Element {
-  const navigate = useNavigate();
-  const { user: currentUser } = useAuthStore();
-  const [searchTerm, setSearchTerm] = useState('');
-  const [roleFilter, setRoleFilter] = useState('all');
-  const [statusFilter, setStatusFilter] = useState('all');
+export default function UsersPage() {
   const [users, setUsers] = useState<User[]>([]);
-  const [userStats, setUserStats] = useState<Record<string, UserStats>>({});
+  const [stats, setStats] = useState<UserStats>({});
   const [loading, setLoading] = useState(true);
 
-  // Confirmation dialogs
-  const [suspendDialog, setSuspendDialog] = useState<{ isOpen: boolean; userId: string | null }>({
-    isOpen: false,
-    userId: null
-  });
-  const [resetPasswordDialog, setResetPasswordDialog] = useState<{ isOpen: boolean; email: string | null }>({
-    isOpen: false,
-    email: null
-  });
-
-  // Fetch users and their stats
-  const fetchData = async () => {
-    try {
-      setLoading(true);
-      const allUsers = await usersService.getAllUsers();
-      setUsers(allUsers);
-
-      // Fetch stats for each user
-      const stats: Record<string, UserStats> = {};
-      await Promise.all(
-        allUsers.map(async (user) => {
-          const userStats = await usersService.getUserStats(user.id);
-          if (userStats) {
-            stats[user.id] = userStats;
-          }
-        })
-      );
-      setUserStats(stats);
-    } catch (error) {
-      console.error('Error fetching users:', error);
-    } finally {
-      setLoading(false);
-    }
-  };
-
   useEffect(() => {
-    fetchData();
+    const fetchUsers = async () => {
+      try {
+        setLoading(true);
+        const [fetchedUsers, userStats] = await Promise.all([
+          usersService.getUsers(),
+          usersService.getUserStats()
+        ]);
+        setUsers(fetchedUsers);
+        setStats(userStats);
+      } catch (error) {
+        console.error('Error fetching users:', error);
+      } finally {
+        setLoading(false);
+      }
+    };
+
+    fetchUsers();
   }, []);
 
-  // Filter users based on search and filters
-  const filteredUsers = users.filter(user => {
-    const searchLower = searchTerm.toLowerCase();
-    const matchesSearch = searchTerm === '' || 
-      user.email.toLowerCase().includes(searchLower) ||
-      user.role.toLowerCase().includes(searchLower) ||
-      (userStats[user.id]?.status || '').toLowerCase().includes(searchLower);
-    
-    const matchesRole = roleFilter === 'all' || user.role === roleFilter;
-    
-    const matchesStatus = statusFilter === 'all' || 
-      (statusFilter === 'active' && !user.isSuspended) ||
-      (statusFilter === 'suspended' && user.isSuspended);
-
-    return matchesSearch && matchesRole && matchesStatus;
-  });
-
-  const handleSuspend = async (userId: string) => {
+  const handleToggleSuspend = async (userId: string, currentStatus: boolean) => {
     try {
-      setLoading(true);
-      await usersService.suspendUser(userId);
-      await fetchData();
-      setSuspendDialog({ isOpen: false, userId: null });
+      await usersService.updateUser(userId, {
+        isSuspended: !currentStatus
+      });
+      // Refresh users list
+      const updatedUsers = await usersService.getUsers();
+      setUsers(updatedUsers);
     } catch (error) {
-      console.error('Error suspending user:', error);
-    } finally {
-      setLoading(false);
+      console.error('Error toggling user suspension:', error);
     }
   };
 
-  const handleUnsuspend = async (userId: string) => {
-    try {
-      setLoading(true);
-      await usersService.unsuspendUser(userId);
-      await fetchData();
-    } catch (error) {
-      console.error('Error unsuspending user:', error);
-    } finally {
-      setLoading(false);
+  const getStatusColor = (status: string) => {
+    switch (status) {
+      case 'active':
+        return 'text-green-600';
+      case 'suspended':
+        return 'text-red-600';
+      case 'pending':
+        return 'text-yellow-600';
+      default:
+        return 'text-gray-600';
     }
   };
 
-  const handleResetPassword = async (email: string) => {
-    try {
-      setLoading(true);
-      await usersService.resetUserPassword(email);
-      setResetPasswordDialog({ isOpen: false, email: null });
-    } catch (error) {
-      console.error('Error resetting password:', error);
-    } finally {
-      setLoading(false);
+  const getStatusIcon = (user: User) => {
+    if (user.isSuspended) {
+      return <Ban className="w-4 h-4 text-red-600" />;
     }
+    return <CheckCircle className="w-4 h-4 text-green-600" />;
   };
 
-  const formatDate = (dateString: string) => {
-    if (!dateString) return 'Never';
-    return new Date(dateString).toLocaleDateString('en-US', {
-      year: 'numeric',
-      month: 'short',
-      day: 'numeric',
-      hour: '2-digit',
-      minute: '2-digit'
-    });
-  };
+  if (loading) {
+    return (
+      <div className="flex justify-center items-center min-h-[400px]">
+        <div className="animate-spin rounded-full h-12 w-12 border-4 border-blue-600 border-t-transparent"></div>
+      </div>
+    );
+  }
 
   return (
     <div className="space-y-6">
-      {/* Header Actions */}
-      <div className="flex flex-wrap items-center justify-between gap-4">
-        {/* Search */}
-        <div className="flex-1 min-w-[240px]">
-          <div className="relative">
-            <Search className="absolute left-3 top-1/2 -translate-y-1/2 text-gray-400 w-5 h-5" />
-            <input
-              type="text"
-              placeholder="Search users by email, role, or status..."
-              className="w-full pl-10 pr-4 py-2 border rounded-lg focus:ring-2 focus:ring-blue-300 outline-none"
-              value={searchTerm}
-              onChange={(e) => setSearchTerm(e.target.value)}
-            />
+      {/* Stats Grid */}
+      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
+        {/* Total Users */}
+        <div className="bg-white p-6 rounded-xl shadow-sm border border-gray-100">
+          <div className="flex items-center justify-between mb-4">
+            <div className="bg-blue-50 p-3 rounded-lg">
+              <UsersIcon className="w-6 h-6 text-blue-600" />
+            </div>
+            <span className="text-sm font-medium text-gray-400">Total Users</span>
+          </div>
+          <div className="flex items-center justify-between">
+            <div>
+              <h3 className="text-2xl font-bold text-gray-900">{stats.totalUsers || 0}</h3>
+              <p className="text-sm text-gray-500">Active accounts</p>
+            </div>
+            <div className="flex items-center text-green-600">
+              <span className="text-sm font-medium">+{stats.newUsersThisMonth || 0} this month</span>
+            </div>
           </div>
         </div>
 
-        {/* Filters */}
-        <div className="flex gap-4">
-          <select
-            className="px-4 py-2 border rounded-lg"
-            value={roleFilter}
-            onChange={(e) => setRoleFilter(e.target.value)}
-          >
-            <option value="all">All Roles</option>
-            <option value="admin">Admin</option>
-            <option value="owner">Owner</option>
-            <option value="user">User</option>
-          </select>
+        {/* Total Listings */}
+        <div className="bg-white p-6 rounded-xl shadow-sm border border-gray-100">
+          <div className="flex items-center justify-between mb-4">
+            <div className="bg-indigo-50 p-3 rounded-lg">
+              <Building2 className="w-6 h-6 text-indigo-600" />
+            </div>
+            <span className="text-sm font-medium text-gray-400">Total Listings</span>
+          </div>
+          <div className="flex items-center justify-between">
+            <div>
+              <h3 className="text-2xl font-bold text-gray-900">{stats.totalListings || 0}</h3>
+              <p className="text-sm text-gray-500">
+                {stats.verifiedListings || 0} verified
+              </p>
+            </div>
+            <div className="flex items-center text-green-600">
+              <span className="text-sm font-medium">{Math.round(((stats.totalListings || 0) / 100) * 100)}% growth</span>
+            </div>
+          </div>
+        </div>
 
-          <select
-            className="px-4 py-2 border rounded-lg"
-            value={statusFilter}
-            onChange={(e) => setStatusFilter(e.target.value)}
-          >
-            <option value="all">All Status</option>
-            <option value="active">Active</option>
-            <option value="suspended">Suspended</option>
-          </select>
+        {/* Active Users */}
+        <div className="bg-white p-6 rounded-xl shadow-sm border border-gray-100">
+          <div className="flex items-center justify-between mb-4">
+            <div className="bg-green-50 p-3 rounded-lg">
+              <CheckCircle className="w-6 h-6 text-green-600" />
+            </div>
+            <span className="text-sm font-medium text-gray-400">Active Users</span>
+          </div>
+          <div className="flex items-center justify-between">
+            <div>
+              <h3 className="text-2xl font-bold text-gray-900">{stats.activeUsers || 0}</h3>
+              <p className="text-sm text-gray-500">Last active {stats.lastLogin || 'recently'}</p>
+            </div>
+          </div>
+        </div>
+
+        {/* User Status */}
+        <div className="bg-white p-6 rounded-xl shadow-sm border border-gray-100">
+          <div className="flex items-center justify-between mb-4">
+            <div className="bg-yellow-50 p-3 rounded-lg">
+              <AlertCircle className="w-6 h-6 text-yellow-600" />
+            </div>
+            <span className="text-sm font-medium text-gray-400">User Status</span>
+          </div>
+          <div className="flex items-center justify-between">
+            <div>
+              <h3 className="text-2xl font-bold text-gray-900">
+                {users.filter(user => !user.isSuspended).length}
+              </h3>
+              <p className="text-sm text-gray-500">
+                {users.filter(user => user.isSuspended).length} suspended
+              </p>
+            </div>
+          </div>
         </div>
       </div>
 
-      {/* Content */}
-      <div className="bg-white">
-        {loading ? (
-          <div className="flex justify-center py-8">
-            <div className="animate-spin h-8 w-8 border-4 border-blue-600 rounded-full border-t-transparent"></div>
-          </div>
-        ) : users.length === 0 ? (
-          <div className="text-center py-8">
-            <AlertCircle className="w-12 h-12 text-blue-600 mx-auto mb-4" />
-            <h2 className="text-xl font-semibold mb-2">No Users Found</h2>
-            <p className="text-gray-600">
-              No users match your search criteria.
-            </p>
-          </div>
-        ) : (
-          <div className="overflow-x-auto">
-            <table className="w-full">
-              <thead>
-                <tr className="border-b">
-                  <th className="text-left py-4 px-4 font-semibold">User</th>
-                  <th className="text-left py-4 px-4 font-semibold">Role</th>
-                  <th className="text-left py-4 px-4 font-semibold">Listings</th>
-                  <th className="text-left py-4 px-4 font-semibold">Last Login</th>
-                  <th className="text-left py-4 px-4 font-semibold">Status</th>
-                  <th className="text-left py-4 px-4 font-semibold">Actions</th>
+      {/* Users Table */}
+      <div className="bg-white rounded-xl shadow-sm border border-gray-100 overflow-hidden">
+        <div className="p-6">
+          <h2 className="text-xl font-bold text-gray-900">Users</h2>
+        </div>
+        <div className="overflow-x-auto">
+          <table className="w-full">
+            <thead>
+              <tr className="bg-gray-50 border-y border-gray-200">
+                <th className="text-left py-4 px-6 font-semibold text-gray-600">User</th>
+                <th className="text-left py-4 px-6 font-semibold text-gray-600">Role</th>
+                <th className="text-left py-4 px-6 font-semibold text-gray-600">Status</th>
+                <th className="text-left py-4 px-6 font-semibold text-gray-600">Actions</th>
+              </tr>
+            </thead>
+            <tbody>
+              {users.map((user) => (
+                <tr key={user.id} className="border-b border-gray-100 last:border-0">
+                  <td className="py-4 px-6">
+                    <div>
+                      <div className="font-medium text-gray-900">{user.email}</div>
+                      <div className="text-sm text-gray-500">Created {user.createdAt}</div>
+                    </div>
+                  </td>
+                  <td className="py-4 px-6">
+                    <span className="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-blue-100 text-blue-800">
+                      {user.role}
+                    </span>
+                  </td>
+                  <td className="py-4 px-6">
+                    <div className="flex items-center gap-2">
+                      {getStatusIcon(user)}
+                      <span className={`text-sm font-medium ${user.isSuspended ? 'text-red-600' : 'text-green-600'}`}>
+                        {user.isSuspended ? 'Suspended' : 'Active'}
+                      </span>
+                    </div>
+                  </td>
+                  <td className="py-4 px-6">
+                    <button
+                      onClick={() => handleToggleSuspend(user.id, user.isSuspended || false)}
+                      className={`inline-flex items-center px-3 py-1.5 border rounded-lg text-sm font-medium transition-colors ${
+                        user.isSuspended
+                          ? 'border-green-200 text-green-600 hover:bg-green-50'
+                          : 'border-red-200 text-red-600 hover:bg-red-50'
+                      }`}
+                    >
+                      {user.isSuspended ? (
+                        <>
+                          <CheckCircle className="w-4 h-4 mr-1.5" />
+                          Reactivate
+                        </>
+                      ) : (
+                        <>
+                          <Ban className="w-4 h-4 mr-1.5" />
+                          Suspend
+                        </>
+                      )}
+                    </button>
+                  </td>
                 </tr>
-              </thead>
-              <tbody>
-                {filteredUsers.map((user) => {
-                  const stats = userStats[user.id];
-                  return (
-                    <tr key={user.id} className="border-b hover:bg-gray-50">
-                      <td className="py-4 px-4">
-                        <div className="font-medium">{user.email}</div>
-                        <div className="text-sm text-gray-500">
-                          Joined {formatDate(user.createdAt)}
-                        </div>
-                      </td>
-                      <td className="py-4 px-4">
-                        <span className={`inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium ${
-                          user.role === 'admin' 
-                            ? 'bg-purple-100 text-purple-800'
-                            : user.role === 'owner'
-                            ? 'bg-blue-100 text-blue-800'
-                            : 'bg-gray-100 text-gray-800'
-                        }`}>
-                          {user.role}
-                        </span>
-                      </td>
-                      <td className="py-4 px-4">
-                        <div className="flex items-center gap-4">
-                          <div>
-                            <div className="font-medium">{stats?.totalListings || 0} total</div>
-                            <div className="text-sm text-gray-500">
-                              {stats?.verifiedListings || 0} verified
-                            </div>
-                          </div>
-                          {stats?.totalListings > 0 && (
-                            <a 
-                              href={`/admin/users/${user.id}/listings`}
-                              target="_blank"
-                              rel="noopener noreferrer"
-                              className="text-blue-600 hover:text-blue-700"
-                            >
-                              <ExternalLink className="w-4 h-4" />
-                            </a>
-                          )}
-                        </div>
-                      </td>
-                      <td className="py-4 px-4">
-                        <div className="flex items-center gap-2 text-gray-600">
-                          <Clock className="w-4 h-4" />
-                          {formatDate(stats?.lastLogin || '')}
-                        </div>
-                      </td>
-                      <td className="py-4 px-4">
-                        <span className={`inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium ${
-                          user.isSuspended
-                            ? 'bg-red-100 text-red-800'
-                            : 'bg-green-100 text-green-800'
-                        }`}>
-                          {user.isSuspended ? 'Suspended' : 'Active'}
-                        </span>
-                      </td>
-                      <td className="py-4 px-4">
-                        <div className="flex items-center gap-2">
-                          {user.isSuspended ? (
-                            <button
-                              onClick={() => handleUnsuspend(user.id)}
-                              className="p-1 text-green-600 hover:bg-green-50 rounded flex items-center gap-1"
-                              title="Unsuspend User"
-                            >
-                              <RotateCcw className="w-5 h-5" />
-                              <span className="text-sm">Unsuspend</span>
-                            </button>
-                          ) : (
-                            <button
-                              onClick={() => setSuspendDialog({ isOpen: true, userId: user.id })}
-                              className="p-1 text-red-600 hover:bg-red-50 rounded"
-                              title="Suspend User"
-                            >
-                              <Ban className="w-5 h-5" />
-                            </button>
-                          )}
-                          <button
-                            onClick={() => setResetPasswordDialog({ isOpen: true, email: user.email })}
-                            className="p-1 text-blue-600 hover:bg-blue-50 rounded"
-                            title="Reset Password"
-                          >
-                            <Mail className="w-5 h-5" />
-                          </button>
-                        </div>
-                      </td>
-                    </tr>
-                  );
-                })}
-              </tbody>
-            </table>
-          </div>
-        )}
+              ))}
+            </tbody>
+          </table>
+        </div>
       </div>
-
-      {/* Suspend Confirmation */}
-      <ConfirmationDialog
-        isOpen={suspendDialog.isOpen}
-        onClose={() => setSuspendDialog({ isOpen: false, userId: null })}
-        onConfirm={() => {
-          if (suspendDialog.userId) {
-            handleSuspend(suspendDialog.userId);
-          }
-        }}
-        title="Suspend User"
-        message="Are you sure you want to suspend this user? Their listings will also be suspended."
-        type="warning"
-      />
-
-      {/* Reset Password Confirmation */}
-      <ConfirmationDialog
-        isOpen={resetPasswordDialog.isOpen}
-        onClose={() => setResetPasswordDialog({ isOpen: false, email: null })}
-        onConfirm={() => {
-          if (resetPasswordDialog.email) {
-            handleResetPassword(resetPasswordDialog.email);
-          }
-        }}
-        title="Reset Password"
-        message="Are you sure you want to send a password reset email to this user?"
-        type="warning"
-      />
     </div>
   );
 }

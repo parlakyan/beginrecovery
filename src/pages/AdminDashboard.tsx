@@ -7,6 +7,8 @@ import { Tabs } from '../components/ui';
 import FacilitiesPage from './admin/FacilitiesPage';
 import LocationsPage from './admin/LocationsPage';
 import UsersPage from './admin/UsersPage';
+import LicensesPage from './admin/LicensesPage';
+import InsurancesPage from './admin/InsurancesPage';
 
 export default function AdminDashboard() {
   const [searchParams, setSearchParams] = useSearchParams();
@@ -49,6 +51,16 @@ export default function AdminDashboard() {
       id: 'users',
       label: 'Users',
       content: <UsersPage />
+    },
+    {
+      id: 'licenses',
+      label: 'Licenses',
+      content: <LicensesPage />
+    },
+    {
+      id: 'insurances',
+      label: 'Insurances',
+      content: <InsurancesPage />
     }
   ];
 
@@ -66,7 +78,7 @@ export default function AdminDashboard() {
           <div className="p-6 border-b">
             <h1 className="text-2xl font-bold">Admin Dashboard</h1>
             <p className="text-gray-600 mt-2">
-              Manage facilities, locations, and users
+              Manage facilities, locations, users, licenses, and insurances
             </p>
           </div>
 

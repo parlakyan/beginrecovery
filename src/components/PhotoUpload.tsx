@@ -1,73 +1,62 @@
-import React, { useCallback, useState, useEffect } from 'react';
-import { Upload, X, Image as ImageIcon, Loader2, AlertCircle } from 'lucide-react';
+import React, { useCallback, useState } from 'react';
+import { Upload, X, Loader2, AlertCircle } from 'lucide-react';
 import { storageService } from '../services/storage';
 
 interface PhotoUploadProps {
   facilityId: string;
-  existingPhotos?: string[];
+  existingPhotos: string[];
   onPhotosChange: (photos: string[]) => void;
-  isVerified?: boolean;
+  isVerified: boolean;
+  maxPhotos?: number;
 }
 
-/**
- * PhotoUpload component
- * Handles photo upload functionality with:
- * - Drag and drop support
- * - Preview thumbnails
- * - Upload progress
- * - 12 photo limit
- * - File type and size validation
- */
 export default function PhotoUpload({ 
-  facilityId, 
-  existingPhotos = [], 
+  facilityId,
+  existingPhotos,
   onPhotosChange,
-  isVerified = false
+  isVerified,
+  maxPhotos = 10
 }: PhotoUploadProps) {
   const [isUploading, setIsUploading] = useState(false);
   const [error, setError] = useState<string | null>(null);
-  const [photos, setPhotos] = useState<string[]>(existingPhotos);
-  const [uploadProgress, setUploadProgress] = useState<number>(0);
-
-  // Update photos when existingPhotos prop changes
-  useEffect(() => {
-    setPhotos(existingPhotos);
-  }, [existingPhotos]);
-
-  const maxPhotos = 12;
-  const remainingSlots = maxPhotos - photos.length;
+  const [uploadProgress, setUploadProgress] = useState(0);
 
   const handleDrop = useCallback(async (e: React.DragEvent<HTMLDivElement>) => {
     e.preventDefault();
     setError(null);
 
     const files = Array.from(e.dataTransfer.files);
-    if (files.length > remainingSlots) {
-      setError(`You can only add ${remainingSlots} more photo${remainingSlots === 1 ? '' : 's'}`);
+    if (maxPhotos && files.length + existingPhotos.length > maxPhotos) {
+      setError(`You can only upload up to ${maxPhotos} photos`);
       return;
     }
 
     setIsUploading(true);
-    setUploadProgress(0);
     try {
-      const results = await storageService.uploadImages(files, `facilities/${facilityId}/photos`);
-      const uploadedUrls = results
-        .filter((result): result is { url: string } => 'url' in result)
-        .map(result => result.url);
+      const results = await storageService.uploadImages(
+        files, 
+        `facilities/${facilityId}/photos`,
+        (progress) => {
+          setUploadProgress(progress);
+        }
+      );
 
-      const errors = results
-        .filter((result): result is { error: string } => 'error' in result)
-        .map(result => result.error);
+      // Check for any errors
+      const errors = results.filter((result): result is { error: string } => 
+        'error' in result
+      );
 
       if (errors.length > 0) {
-        setError(errors.join(', '));
+        setError(errors[0].error);
+        return;
       }
 
-      if (uploadedUrls.length > 0) {
-        const newPhotos = [...photos, ...uploadedUrls];
-        setPhotos(newPhotos);
-        onPhotosChange(newPhotos);
-      }
+      // Get successful uploads
+      const urls = results
+        .filter((result): result is { url: string; path: string } => 'url' in result)
+        .map(result => result.url);
+
+      onPhotosChange([...existingPhotos, ...urls]);
     } catch (err) {
       console.error('Error uploading photos:', err);
       setError('Failed to upload photos. Please try again.');
@@ -75,38 +64,43 @@ export default function PhotoUpload({
       setIsUploading(false);
       setUploadProgress(0);
     }
-  }, [facilityId, photos, remainingSlots, onPhotosChange]);
+  }, [maxPhotos, existingPhotos, onPhotosChange, facilityId]);
 
   const handleFileSelect = useCallback(async (e: React.ChangeEvent<HTMLInputElement>) => {
     setError(null);
     const files = Array.from(e.target.files || []);
     
-    if (files.length > remainingSlots) {
-      setError(`You can only add ${remainingSlots} more photo${remainingSlots === 1 ? '' : 's'}`);
+    if (maxPhotos && files.length + existingPhotos.length > maxPhotos) {
+      setError(`You can only upload up to ${maxPhotos} photos`);
       return;
     }
 
     setIsUploading(true);
-    setUploadProgress(0);
     try {
-      const results = await storageService.uploadImages(files, `facilities/${facilityId}/photos`);
-      const uploadedUrls = results
-        .filter((result): result is { url: string } => 'url' in result)
-        .map(result => result.url);
+      const results = await storageService.uploadImages(
+        files, 
+        `facilities/${facilityId}/photos`,
+        (progress) => {
+          setUploadProgress(progress);
+        }
+      );
 
-      const errors = results
-        .filter((result): result is { error: string } => 'error' in result)
-        .map(result => result.error);
+      // Check for any errors
+      const errors = results.filter((result): result is { error: string } => 
+        'error' in result
+      );
 
       if (errors.length > 0) {
-        setError(errors.join(', '));
+        setError(errors[0].error);
+        return;
       }
 
-      if (uploadedUrls.length > 0) {
-        const newPhotos = [...photos, ...uploadedUrls];
-        setPhotos(newPhotos);
-        onPhotosChange(newPhotos);
-      }
+      // Get successful uploads
+      const urls = results
+        .filter((result): result is { url: string; path: string } => 'url' in result)
+        .map(result => result.url);
+
+      onPhotosChange([...existingPhotos, ...urls]);
     } catch (err) {
       console.error('Error uploading photos:', err);
       setError('Failed to upload photos. Please try again.');
@@ -116,13 +110,7 @@ export default function PhotoUpload({
       // Reset input value to allow uploading the same file again
       e.target.value = '';
     }
-  }, [facilityId, photos, remainingSlots, onPhotosChange]);
-
-  const handleRemovePhoto = useCallback((index: number) => {
-    const newPhotos = photos.filter((_, i) => i !== index);
-    setPhotos(newPhotos);
-    onPhotosChange(newPhotos);
-  }, [photos, onPhotosChange]);
+  }, [maxPhotos, existingPhotos, onPhotosChange, facilityId]);
 
   const dragOverHandler = useCallback((e: React.DragEvent<HTMLDivElement>) => {
     e.preventDefault();
@@ -134,66 +122,56 @@ export default function PhotoUpload({
     e.currentTarget.classList.remove('border-blue-500', 'bg-blue-50');
   }, []);
 
-  // Debug logging
-  useEffect(() => {
-    console.log('PhotoUpload state:', {
-      existingPhotos,
-      currentPhotos: photos,
-      facilityId,
-      isVerified
-    });
-  }, [existingPhotos, photos, facilityId, isVerified]);
-
   return (
     <div className="space-y-4">
       {/* Upload Area */}
-      {photos.length < maxPhotos && (
-        <div
-          onDrop={handleDrop}
-          onDragOver={dragOverHandler}
-          onDragLeave={dragLeaveHandler}
-          className="border-2 border-dashed border-gray-300 rounded-lg p-6 text-center hover:border-blue-500 transition-colors"
+      <div
+        onDrop={handleDrop}
+        onDragOver={dragOverHandler}
+        onDragLeave={dragLeaveHandler}
+        className="border-2 border-dashed border-gray-300 rounded-lg p-6 text-center hover:border-blue-500 transition-colors"
+      >
+        <input
+          type="file"
+          accept="image/jpeg,image/png,image/webp"
+          onChange={handleFileSelect}
+          className="hidden"
+          id="photo-upload"
+          multiple
+          disabled={isUploading}
+        />
+        <label
+          htmlFor="photo-upload"
+          className="cursor-pointer flex flex-col items-center"
         >
-          <input
-            type="file"
-            accept="image/jpeg,image/png,image/webp"
-            multiple
-            onChange={handleFileSelect}
-            className="hidden"
-            id="photo-upload"
-            disabled={isUploading}
-          />
-          <label
-            htmlFor="photo-upload"
-            className="cursor-pointer flex flex-col items-center"
-          >
-            {isUploading ? (
-              <>
-                <Loader2 className="w-8 h-8 text-blue-500 animate-spin" />
-                <p className="mt-2 text-sm text-gray-600">Uploading...</p>
-                {uploadProgress > 0 && (
-                  <div className="w-full max-w-xs mt-2 bg-gray-200 rounded-full h-2.5">
-                    <div 
-                      className="bg-blue-600 h-2.5 rounded-full transition-all duration-300"
-                      style={{ width: `${uploadProgress}%` }}
-                    />
-                  </div>
-                )}
-              </>
-            ) : (
-              <>
-                <Upload className="w-8 h-8 text-blue-500" />
-                <p className="mt-2 text-sm text-gray-600">
-                  Drag photos here or <span className="text-blue-500">browse</span>
-                </p>
+          {isUploading ? (
+            <>
+              <Loader2 className="w-8 h-8 text-blue-500 animate-spin" />
+              <p className="mt-2 text-sm text-gray-600">Uploading...</p>
+              {uploadProgress > 0 && (
+                <div className="w-full max-w-xs mt-2 bg-gray-200 rounded-full h-2.5">
+                  <div 
+                    className="bg-blue-600 h-2.5 rounded-full transition-all duration-300"
+                    style={{ width: `${uploadProgress}%` }}
+                  />
+                </div>
+              )}
+            </>
+          ) : (
+            <>
+              <Upload className="w-8 h-8 text-blue-500" />
+              <p className="mt-2 text-sm text-gray-600">
+                Drag photos here or <span className="text-blue-500">browse</span>
+              </p>
+              {!isVerified && (
                 <p className="mt-1 text-xs text-gray-500">
-                  {remainingSlots} slot{remainingSlots === 1 ? '' : 's'} remaining
+                  Upgrade to verified to upload more than 1 photo
                 </p>
-              </>
-            )}
-          </label>
-        </div>
-      )}
+              )}
+            </>
+          )}
+        </label>
+      </div>
 
       {/* Error Message */}
       {error && (
@@ -203,37 +181,11 @@ export default function PhotoUpload({
         </div>
       )}
 
-      {/* Photo Grid */}
-      {photos.length > 0 && (
-        <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
-          {photos.map((url, index) => (
-            <div key={`${url}-${index}`} className="relative group aspect-square">
-              <img
-                src={url}
-                alt={`Facility photo ${index + 1}`}
-                className="w-full h-full object-cover rounded-lg"
-              />
-              <button
-                onClick={() => handleRemovePhoto(index)}
-                className="absolute top-2 right-2 p-1 bg-red-600 text-white rounded-full opacity-0 group-hover:opacity-100 transition-opacity"
-              >
-                <X className="w-4 h-4" />
-              </button>
-            </div>
-          ))}
-        </div>
-      )}
-
       {/* Help Text */}
       <div className="text-xs text-gray-500">
         <p>Supported formats: JPEG, PNG, WebP</p>
-        <p>Maximum file size: 5MB</p>
-        <p>Maximum photos: {maxPhotos}</p>
-        {!isVerified && (
-          <p className="text-blue-600">
-            Note: Only the first photo will be displayed for unverified listings
-          </p>
-        )}
+        <p>Maximum file size: 5MB per photo</p>
+        <p>Maximum photos: {isVerified ? maxPhotos : 1}</p>
       </div>
     </div>
   );
