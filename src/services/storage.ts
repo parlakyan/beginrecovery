@@ -1,4 +1,4 @@
-import { getStorage, ref, uploadBytesResumable, getDownloadURL } from 'firebase/storage';
+import { getStorage, ref, uploadBytesResumable, getDownloadURL, listAll, deleteObject } from 'firebase/storage';
 import { app } from '../lib/firebase';
 
 const storage = getStorage(app);
@@ -14,6 +14,13 @@ interface UploadResult {
 interface UploadError {
   url?: never;
   error: string;
+}
+
+interface MoveFilesResult {
+  movedFiles: {
+    oldUrl: string;
+    newUrl: string;
+  }[];
 }
 
 /**
@@ -44,7 +51,7 @@ export const storageService = {
    */
   async uploadImage(
     file: File, 
-    facilityId: string, 
+    path: string, 
     onProgress?: (progress: number) => void
   ): Promise<UploadResult | UploadError> {
     try {
@@ -57,7 +64,7 @@ export const storageService = {
       const timestamp = Date.now();
       const randomString = Math.random().toString(36).substring(2, 15);
       const safeFileName = file.name.replace(/[^a-zA-Z0-9.]/g, '_');
-      const filename = `facilities/${facilityId}/${timestamp}-${randomString}-${safeFileName}`;
+      const filename = `${path}/${timestamp}-${randomString}-${safeFileName}`;
       
       // Create storage reference
       const storageRef = ref(storage, filename);
@@ -108,7 +115,7 @@ export const storageService = {
    */
   async uploadImages(
     files: File[], 
-    facilityId: string,
+    path: string,
     onProgress?: (progress: number) => void
   ): Promise<(UploadResult | UploadError)[]> {
     if (files.length > MAX_PHOTOS) {
@@ -122,7 +129,7 @@ export const storageService = {
     for (const [index, file] of files.entries()) {
       const result = await this.uploadImage(
         file,
-        facilityId,
+        path,
         (progress) => {
           // Calculate overall progress
           const fileProgress = progress / files.length;
@@ -141,5 +148,57 @@ export const storageService = {
     }
 
     return results;
+  },
+
+  /**
+   * Moves files from one location to another in Firebase Storage
+   * Returns the new download URLs for the moved files
+   */
+  async moveFiles(fromPath: string, toPath: string): Promise<MoveFilesResult> {
+    try {
+      // List all files in the source directory
+      const fromRef = ref(storage, fromPath);
+      const filesList = await listAll(fromRef);
+      const movedFiles: MoveFilesResult['movedFiles'] = [];
+
+      // Move each file
+      for (const fileRef of filesList.items) {
+        try {
+          // Get the file name
+          const fileName = fileRef.name;
+          
+          // Get the download URL of the original file
+          const oldUrl = await getDownloadURL(fileRef);
+
+          // Fetch the file content
+          const response = await fetch(oldUrl);
+          const blob = await response.blob();
+
+          // Create a reference to the new location
+          const toRef = ref(storage, `${toPath}/${fileName}`);
+
+          // Upload to new location
+          await uploadBytesResumable(toRef, blob, {
+            contentType: blob.type,
+            cacheControl: 'public, max-age=31536000'
+          });
+
+          // Get the new download URL
+          const newUrl = await getDownloadURL(toRef);
+
+          // Delete the original file
+          await deleteObject(fileRef);
+
+          movedFiles.push({ oldUrl, newUrl });
+        } catch (error) {
+          console.error(`Error moving file ${fileRef.name}:`, error);
+        }
+      }
+
+      return { movedFiles };
+    } catch (error) {
+      console.error('Error moving files:', error);
+      throw error;
+    }
   }
 };

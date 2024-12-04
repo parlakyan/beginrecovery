@@ -4,6 +4,7 @@ import { useNavigate } from 'react-router-dom';
 import { Building2, Loader2 } from 'lucide-react';
 import { useAuthStore } from '../store/authStore';
 import { facilitiesService, usersService } from '../services/facilities';
+import { storageService } from '../services/storage';
 import { Facility } from '../types';
 import Header from '../components/Header';
 import Footer from '../components/Footer';
@@ -112,6 +113,51 @@ export default function CreateListing() {
       // Create facility
       const { id } = await facilitiesService.createFacility(formattedData);
 
+      // Move uploaded files from temp location to permanent location
+      let updatedPhotos = [...photos];
+      let updatedLogo = logo;
+
+      if (photos.length > 0 || logo) {
+        try {
+          // Move photos if any
+          if (photos.length > 0) {
+            const { movedFiles: movedPhotos } = await storageService.moveFiles(
+              `facilities/${tempId}/photos`,
+              `facilities/${id}/photos`
+            );
+            
+            // Update photo URLs
+            updatedPhotos = photos.map(oldUrl => {
+              const moved = movedPhotos.find(m => m.oldUrl === oldUrl);
+              return moved ? moved.newUrl : oldUrl;
+            });
+          }
+
+          // Move logo if exists
+          if (logo) {
+            const { movedFiles: movedLogo } = await storageService.moveFiles(
+              `facilities/${tempId}/logo`,
+              `facilities/${id}/logo`
+            );
+            
+            // Update logo URL
+            if (movedLogo.length > 0) {
+              updatedLogo = movedLogo[0].newUrl;
+            }
+          }
+
+          // Update facility with new URLs
+          await facilitiesService.updateFacility(id, {
+            images: updatedPhotos,
+            logo: updatedLogo
+          });
+        } catch (moveError) {
+          console.error('Error moving files:', moveError);
+          // Continue with the process even if file moving fails
+          // The files will remain in temp location but facility is still created
+        }
+      }
+
       // Update user role to owner if they're currently a regular user
       if (user && user.role === 'user') {
         await usersService.updateUserRole(user.id, 'owner');
@@ -122,14 +168,22 @@ export default function CreateListing() {
       // Store the data in sessionStorage as backup
       sessionStorage.setItem('facilityData', JSON.stringify({
         facilityId: id,
-        facility: formattedData
+        facility: {
+          ...formattedData,
+          images: updatedPhotos,
+          logo: updatedLogo
+        }
       }));
 
       // Navigate to payment with facility ID and scroll to top
       navigate('/payment', { 
         state: { 
           facilityId: id,
-          facility: formattedData
+          facility: {
+            ...formattedData,
+            images: updatedPhotos,
+            logo: updatedLogo
+          }
         },
         replace: true // Use replace to prevent back navigation to form
       });

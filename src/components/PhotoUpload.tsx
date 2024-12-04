@@ -50,7 +50,7 @@ export default function PhotoUpload({
     setIsUploading(true);
     setUploadProgress(0);
     try {
-      const results = await storageService.uploadImages(files, facilityId);
+      const results = await storageService.uploadImages(files, `facilities/${facilityId}/photos`);
       const uploadedUrls = results
         .filter((result): result is { url: string } => 'url' in result)
         .map(result => result.url);
@@ -89,7 +89,7 @@ export default function PhotoUpload({
     setIsUploading(true);
     setUploadProgress(0);
     try {
-      const results = await storageService.uploadImages(files, facilityId);
+      const results = await storageService.uploadImages(files, `facilities/${facilityId}/photos`);
       const uploadedUrls = results
         .filter((result): result is { url: string } => 'url' in result)
         .map(result => result.url);

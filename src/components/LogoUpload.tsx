@@ -44,7 +44,7 @@ export default function LogoUpload({
     setIsUploading(true);
     setUploadProgress(0);
     try {
-      const results = await storageService.uploadImages(files, `${facilityId}/logo`);
+      const results = await storageService.uploadImages(files, `facilities/${facilityId}/logo`);
       const uploadedUrl = results[0];
 
       if ('error' in uploadedUrl) {
@@ -77,7 +77,7 @@ export default function LogoUpload({
     setIsUploading(true);
     setUploadProgress(0);
     try {
-      const results = await storageService.uploadImages(files, `${facilityId}/logo`);
+      const results = await storageService.uploadImages(files, `facilities/${facilityId}/logo`);
       const uploadedUrl = results[0];
 
       if ('error' in uploadedUrl) {
