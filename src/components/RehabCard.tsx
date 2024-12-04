@@ -122,7 +122,10 @@ export default function RehabCard({ facility, onEdit, showOwnerControls = false 
   );
 
   return (
-    <div className="group bg-white rounded-2xl shadow-md hover:shadow-xl transition-all duration-300 overflow-hidden cursor-pointer border border-gray-100 flex flex-col h-full">
+    <div 
+      className="group bg-white rounded-2xl shadow-md hover:shadow-xl transition-all duration-300 overflow-hidden cursor-pointer border border-gray-100 flex flex-col h-full"
+      onClick={handleNavigation}
+    >
       <div className="relative h-[240px] flex-shrink-0">
         <ImageCarousel 
           images={facility.images} 
@@ -139,7 +142,7 @@ export default function RehabCard({ facility, onEdit, showOwnerControls = false 
         </div>
       </div>
 
-      <div className="p-6 flex flex-col flex-grow" onClick={handleNavigation}>
+      <div className="p-6 flex flex-col flex-grow">
         <div className="flex-grow">
           <h2 className="text-xl font-bold text-gray-900 mb-3 group-hover:text-blue-600 transition-colors">
             {facility.name}
@@ -169,7 +172,7 @@ export default function RehabCard({ facility, onEdit, showOwnerControls = false 
           </div>
 
           {/* Amenities */}
-          <div className="flex flex-wrap gap-2 mb-6">
+          <div className="flex flex-wrap gap-2">
             {facility.amenities.slice(0, 3).map((amenity, index) => (
               <Tag key={index} variant="primary">{amenity}</Tag>
             ))}
@@ -181,47 +184,36 @@ export default function RehabCard({ facility, onEdit, showOwnerControls = false 
           </div>
         </div>
 
-        {/* Actions at the bottom */}
-        <div className="mt-auto">
-          {/* Owner Actions - Stacked vertically */}
-          {canEdit && (
-            <div className="flex flex-col gap-2 mb-4">
+        {/* Owner Actions - Only show if editing is enabled */}
+        {canEdit && (
+          <div className="flex flex-col gap-2 mt-6">
+            <button 
+              onClick={handleEdit}
+              className="w-full bg-gray-100 text-gray-700 py-2 rounded-lg hover:bg-gray-200 transition-all duration-200 flex items-center justify-center gap-2"
+            >
+              <Edit className="w-4 h-4" />
+              Edit Facility
+            </button>
+            {isOwner && !facility.isVerified && (
               <button 
-                onClick={handleEdit}
-                className="w-full bg-gray-100 text-gray-700 py-2 rounded-lg hover:bg-gray-200 transition-all duration-200 flex items-center justify-center gap-2"
+                onClick={handleUpgrade}
+                className="w-full bg-blue-600 text-white py-2 rounded-lg hover:bg-blue-700 transition-all duration-200 flex items-center justify-center gap-2"
               >
-                <Edit className="w-4 h-4" />
-                Edit Facility
+                <CreditCard className="w-4 h-4" />
+                Upgrade to Verified
               </button>
-              {isOwner && !facility.isVerified && (
-                <button 
-                  onClick={handleUpgrade}
-                  className="w-full bg-blue-600 text-white py-2 rounded-lg hover:bg-blue-700 transition-all duration-200 flex items-center justify-center gap-2"
-                >
-                  <CreditCard className="w-4 h-4" />
-                  Upgrade to Verified
-                </button>
-              )}
-              {isOwner && facility.isVerified && facility.subscriptionId && (
-                <button 
-                  onClick={handleCancelSubscription}
-                  className="w-full bg-red-50 text-red-600 py-2 rounded-lg hover:bg-red-100 transition-all duration-200 flex items-center justify-center gap-2"
-                >
-                  <Ban className="w-4 h-4" />
-                  Cancel Subscription
-                </button>
-              )}
-            </div>
-          )}
-
-          {/* View Details Button */}
-          <button 
-            className="w-full bg-gradient-to-r from-blue-600 to-blue-700 text-white py-3 rounded-xl hover:from-blue-700 hover:to-blue-800 transition-all duration-200 flex items-center justify-center gap-2 group/button"
-          >
-            View Details
-            <ArrowRight className="w-4 h-4 group-hover/button:translate-x-1 transition-transform" />
-          </button>
-        </div>
+            )}
+            {isOwner && facility.isVerified && facility.subscriptionId && (
+              <button 
+                onClick={handleCancelSubscription}
+                className="w-full bg-red-50 text-red-600 py-2 rounded-lg hover:bg-red-100 transition-all duration-200 flex items-center justify-center gap-2"
+              >
+                <Ban className="w-4 h-4" />
+                Cancel Subscription
+              </button>
+            )}
+          </div>
+        )}
       </div>
     </div>
   );

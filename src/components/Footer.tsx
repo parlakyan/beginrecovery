@@ -94,12 +94,9 @@ export default function Footer() {
                   <li key={index}>
                     <Link 
                       to={`/search?location=${encodeURIComponent(`${location.city}, ${location.state}`)}`} 
-                      className="hover:text-blue-400 transition-colors flex items-center justify-between group"
+                      className="hover:text-blue-400 transition-colors"
                     >
-                      <span>Rehab Centers in {location.city}, {location.state}</span>
-                      <span className="text-sm text-gray-500 group-hover:text-blue-400">
-                        ({location.totalListings})
-                      </span>
+                      Rehab Centers in {location.city}, {location.state} ({location.totalListings})
                     </Link>
                   </li>
                 ))

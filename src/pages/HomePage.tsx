@@ -13,6 +13,7 @@ import CoreValues from '../components/CoreValues';
 import EditListingModal from '../components/EditListingModal';
 import FeaturedCarousel from '../components/FeaturedCarousel';
 import { useLocation } from '../hooks/useLocation';
+import { Info } from 'lucide-react';
 
 const defaultFilters = {
   treatmentTypes: [],
@@ -81,21 +82,12 @@ export default function HomePage() {
     }
   };
 
-  const handleOpenFilters = () => {
-    setIsFiltersOpen(true);
-    // Scroll to results section
-    const resultsSection = document.getElementById('results-section');
-    if (resultsSection) {
-      resultsSection.scrollIntoView({ behavior: 'smooth' });
-    }
-  };
-
   return (
     <div className="min-h-screen bg-gray-50">
       <Header />
       
       <main>
-        <HeroSection onOpenFilters={handleOpenFilters} />
+        <HeroSection />
         
         <SearchFilters 
           isOpen={isFiltersOpen}
@@ -126,12 +118,17 @@ export default function HomePage() {
                     }
                   </p>
                 </div>
-                <button 
-                  onClick={() => setIsFiltersOpen(true)}
-                  className="text-blue-600 hover:text-blue-700 font-medium"
-                >
-                  Filter Results
-                </button>
+                <div className="flex items-center gap-2">
+                  <span className="text-gray-500">Ads</span>
+                  <div className="group relative">
+                    <Info className="w-4 h-4 text-gray-400 cursor-help" />
+                    <div className="absolute right-0 mt-2 w-64 p-3 bg-white rounded-lg shadow-lg opacity-0 invisible group-hover:opacity-100 group-hover:visible transition-all duration-200 z-50">
+                      <p className="text-sm text-gray-600">
+                        We financially support the site through advertisers who pay for clearly marked placements.
+                      </p>
+                    </div>
+                  </div>
+                </div>
               </div>
               <FeaturedCarousel 
                 facilities={featuredFacilities} 
@@ -140,58 +137,6 @@ export default function HomePage() {
             </div>
           </section>
         )}
-
-        {/* Find Treatment Section */}
-        <TreatmentFinder />
-
-        {/* Recent Treatment Centers */}
-        <section id="results-section" className="py-20 bg-white">
-          <div className="container mx-auto px-4">
-            <div className="flex justify-between items-center mb-12">
-              <div className="text-center md:text-left">
-                <h2 className="text-3xl font-bold mb-2">Recent Treatment Centers</h2>
-                <p className="text-gray-600">Browse our latest rehabilitation facilities</p>
-              </div>
-              <button 
-                onClick={() => setIsFiltersOpen(true)}
-                className="text-blue-600 hover:text-blue-700 font-medium"
-              >
-                Filter Results
-              </button>
-            </div>
-            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6 max-w-6xl mx-auto">
-              {loading ? (
-                <div className="col-span-3 flex justify-center py-12">
-                  <div className="animate-spin rounded-full h-12 w-12 border-4 border-blue-600 border-t-transparent"></div>
-                </div>
-              ) : facilities.length === 0 ? (
-                <div className="col-span-3 text-center py-12">
-                  <p className="text-gray-600">No treatment centers found matching your criteria.</p>
-                  <button
-                    onClick={() => {
-                      setFilters(defaultFilters);
-                      fetchFacilities(defaultFilters);
-                    }}
-                    className="mt-4 text-blue-600 hover:text-blue-700 font-medium"
-                  >
-                    Clear Filters
-                  </button>
-                </div>
-              ) : (
-                facilities.map((facility) => (
-                  <RehabCard 
-                    key={facility.id} 
-                    facility={facility} 
-                    onEdit={setEditingFacility}
-                  />
-                ))
-              )}
-            </div>
-          </div>
-        </section>
-
-        {/* Insurance Section */}
-        <InsuranceSection />
 
         {/* Location Browser */}
         <LocationBrowser />
