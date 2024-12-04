@@ -12,6 +12,7 @@ import {
 } from 'lucide-react';
 import { useAuthStore } from '../../store/authStore';
 import { locationsService } from '../../services/locations';
+import { facilitiesService } from '../../services/facilities';
 import { FeaturedLocation } from '../../types';
 import EditLocationModal from '../../components/EditLocationModal';
 import ConfirmationDialog from '../../components/ConfirmationDialog';
@@ -35,13 +36,31 @@ export default function LocationsPage() {
   const fetchData = async () => {
     try {
       setLoading(true);
-      const [featuredLocations, cities] = await Promise.all([
+      const [featuredLocations, facilities] = await Promise.all([
         locationsService.getFeaturedLocations(),
-        locationsService.getAllCities()
+        facilitiesService.getAllListingsForAdmin()
       ]);
       
+      // Extract unique cities from facilities
+      const cityMap = new Map<string, { city: string; state: string; count: number }>();
+      facilities.forEach(facility => {
+        if (facility.city && facility.state) {
+          const key = `${facility.city}, ${facility.state}`;
+          const existing = cityMap.get(key);
+          if (existing) {
+            existing.count++;
+          } else {
+            cityMap.set(key, { 
+              city: facility.city, 
+              state: facility.state, 
+              count: 1 
+            });
+          }
+        }
+      });
+
       setLocations(featuredLocations);
-      setAvailableCities(cities);
+      setAvailableCities(Array.from(cityMap.values()));
     } catch (error) {
       console.error('Error fetching data:', error);
     } finally {
@@ -146,7 +165,7 @@ export default function LocationsPage() {
       </div>
 
       {/* Content */}
-      <div className="bg-white rounded-lg shadow">
+      <div className="bg-white">
         {loading ? (
           <div className="flex justify-center py-8">
             <div className="animate-spin h-8 w-8 border-4 border-blue-600 rounded-full border-t-transparent"></div>

@@ -15,7 +15,6 @@ import { useAuthStore } from '../../store/authStore';
 import { usersService } from '../../services/users';
 import { User, UserStats } from '../../types';
 import ConfirmationDialog from '../../components/ConfirmationDialog';
-import DropdownSelect from '../../components/ui/DropdownSelect';
 
 export default function UsersPage() {
   const navigate = useNavigate();
@@ -127,8 +126,8 @@ export default function UsersPage() {
 
   return (
     <div className="space-y-6">
-      {/* Filters */}
-      <div className="flex flex-wrap gap-4">
+      {/* Header Actions */}
+      <div className="flex flex-wrap items-center justify-between gap-4">
         {/* Search */}
         <div className="flex-1 min-w-[240px]">
           <div className="relative">
@@ -143,10 +142,10 @@ export default function UsersPage() {
           </div>
         </div>
 
-        {/* Role Filter */}
-        <div className="w-48">
+        {/* Filters */}
+        <div className="flex gap-4">
           <select
-            className="w-full px-4 py-2 border rounded-lg"
+            className="px-4 py-2 border rounded-lg"
             value={roleFilter}
             onChange={(e) => setRoleFilter(e.target.value)}
           >
@@ -155,12 +154,9 @@ export default function UsersPage() {
             <option value="owner">Owner</option>
             <option value="user">User</option>
           </select>
-        </div>
 
-        {/* Status Filter */}
-        <div className="w-48">
           <select
-            className="w-full px-4 py-2 border rounded-lg"
+            className="px-4 py-2 border rounded-lg"
             value={statusFilter}
             onChange={(e) => setStatusFilter(e.target.value)}
           >
@@ -172,7 +168,7 @@ export default function UsersPage() {
       </div>
 
       {/* Content */}
-      <div className="bg-white rounded-lg shadow">
+      <div className="bg-white">
         {loading ? (
           <div className="flex justify-center py-8">
             <div className="animate-spin h-8 w-8 border-4 border-blue-600 rounded-full border-t-transparent"></div>

@@ -11,7 +11,8 @@ import {
   ShieldCheck,
   ShieldAlert,
   Star,
-  ExternalLink
+  ExternalLink,
+  Box
 } from 'lucide-react';
 import { useAuthStore } from '../../store/authStore';
 import { facilitiesService } from '../../services/facilities';
@@ -20,6 +21,16 @@ import EditListingModal from '../../components/EditListingModal';
 import ConfirmationDialog from '../../components/ConfirmationDialog';
 import DropdownSelect from '../../components/ui/DropdownSelect';
 
+const getStatusColor = (status: string) => {
+  switch (status) {
+    case 'approved': return 'text-green-600 bg-green-50 border-green-200';
+    case 'pending': return 'text-yellow-600 bg-yellow-50 border-yellow-200';
+    case 'rejected': return 'text-red-600 bg-red-50 border-red-200';
+    case 'archived': return 'text-gray-600 bg-gray-50 border-gray-200';
+    default: return 'text-gray-600 bg-gray-50 border-gray-200';
+  }
+};
+
 export default function FacilitiesPage() {
   const navigate = useNavigate();
   const { user } = useAuthStore();
@@ -27,8 +38,10 @@ export default function FacilitiesPage() {
   const [statusFilter, setStatusFilter] = useState('all');
   const [verificationFilter, setVerificationFilter] = useState('all');
   const [facilities, setFacilities] = useState<Facility[]>([]);
+  const [archivedFacilities, setArchivedFacilities] = useState<Facility[]>([]);
   const [loading, setLoading] = useState(true);
   const [editingFacility, setEditingFacility] = useState<Facility | null>(null);
+  const [showArchived, setShowArchived] = useState(false);
 
   // Confirmation dialogs
   const [archiveDialog, setArchiveDialog] = useState<{ isOpen: boolean; facilityId: string | null }>({
@@ -41,11 +54,15 @@ export default function FacilitiesPage() {
   });
 
   // Fetch facilities
-  const fetchFacilities = async () => {
+  const fetchData = async () => {
     try {
       setLoading(true);
-      const allListings = await facilitiesService.getAllListingsForAdmin();
+      const [allListings, archived] = await Promise.all([
+        facilitiesService.getAllListingsForAdmin(),
+        facilitiesService.getArchivedListings()
+      ]);
       setFacilities(allListings);
+      setArchivedFacilities(archived);
     } catch (error) {
       console.error('Error fetching facilities:', error);
     } finally {
@@ -54,23 +71,8 @@ export default function FacilitiesPage() {
   };
 
   useEffect(() => {
-    fetchFacilities();
+    fetchData();
   }, []);
-
-  // Filter facilities based on search and filters
-  const filteredFacilities = facilities.filter(facility => {
-    const matchesSearch = 
-      facility.name.toLowerCase().includes(searchTerm.toLowerCase()) ||
-      facility.location.toLowerCase().includes(searchTerm.toLowerCase());
-    
-    const matchesStatus = statusFilter === 'all' || facility.moderationStatus === statusFilter;
-    
-    const matchesVerification = verificationFilter === 'all' || 
-      (verificationFilter === 'verified' && facility.isVerified) ||
-      (verificationFilter === 'unverified' && !facility.isVerified);
-
-    return matchesSearch && matchesStatus && matchesVerification;
-  });
 
   const handleEdit = (facility: Facility) => {
     setEditingFacility(facility);
@@ -79,11 +81,14 @@ export default function FacilitiesPage() {
   const handleSave = async (data: Partial<Facility>) => {
     if (!editingFacility) return;
     try {
+      setLoading(true);
       await facilitiesService.updateFacility(editingFacility.id, data);
-      await fetchFacilities();
+      await fetchData();
       setEditingFacility(null);
     } catch (error) {
       console.error('Error updating facility:', error);
+    } finally {
+      setLoading(false);
     }
   };
 
@@ -91,7 +96,7 @@ export default function FacilitiesPage() {
     try {
       setLoading(true);
       await facilitiesService.approveFacility(id);
-      await fetchFacilities();
+      await fetchData();
     } catch (error) {
       console.error('Error approving facility:', error);
     } finally {
@@ -103,7 +108,7 @@ export default function FacilitiesPage() {
     try {
       setLoading(true);
       await facilitiesService.rejectFacility(id);
-      await fetchFacilities();
+      await fetchData();
     } catch (error) {
       console.error('Error rejecting facility:', error);
     } finally {
@@ -119,7 +124,7 @@ export default function FacilitiesPage() {
       } else {
         await facilitiesService.verifyFacility(id);
       }
-      await fetchFacilities();
+      await fetchData();
     } catch (error) {
       console.error('Error toggling verification:', error);
     } finally {
@@ -135,7 +140,7 @@ export default function FacilitiesPage() {
       } else {
         await facilitiesService.featureFacility(id);
       }
-      await fetchFacilities();
+      await fetchData();
     } catch (error) {
       console.error('Error featuring/unfeaturing facility:', error);
     } finally {
@@ -147,7 +152,7 @@ export default function FacilitiesPage() {
     try {
       setLoading(true);
       await facilitiesService.archiveFacility(id);
-      await fetchFacilities();
+      await fetchData();
       setArchiveDialog({ isOpen: false, facilityId: null });
     } catch (error) {
       console.error('Error archiving facility:', error);
@@ -160,7 +165,7 @@ export default function FacilitiesPage() {
     try {
       setLoading(true);
       await facilitiesService.deleteFacility(id);
-      await fetchFacilities();
+      await fetchData();
       setDeleteDialog({ isOpen: false, facilityId: null });
     } catch (error) {
       console.error('Error deleting facility:', error);
@@ -169,20 +174,25 @@ export default function FacilitiesPage() {
     }
   };
 
-  const getStatusColor = (status: string) => {
-    switch (status) {
-      case 'approved': return 'text-green-600 bg-green-50 border-green-200';
-      case 'pending': return 'text-yellow-600 bg-yellow-50 border-yellow-200';
-      case 'rejected': return 'text-red-600 bg-red-50 border-red-200';
-      case 'archived': return 'text-gray-600 bg-gray-50 border-gray-200';
-      default: return 'text-gray-600 bg-gray-50 border-gray-200';
-    }
-  };
+  // Filter facilities based on search and filters
+  const filteredFacilities = (showArchived ? archivedFacilities : facilities).filter(facility => {
+    const matchesSearch = 
+      facility.name.toLowerCase().includes(searchTerm.toLowerCase()) ||
+      facility.location.toLowerCase().includes(searchTerm.toLowerCase());
+    
+    const matchesStatus = statusFilter === 'all' || facility.moderationStatus === statusFilter;
+    
+    const matchesVerification = verificationFilter === 'all' || 
+      (verificationFilter === 'verified' && facility.isVerified) ||
+      (verificationFilter === 'unverified' && !facility.isVerified);
+
+    return matchesSearch && matchesStatus && matchesVerification;
+  });
 
   return (
     <div className="space-y-6">
-      {/* Filters */}
-      <div className="flex flex-wrap gap-4">
+      {/* Header Actions */}
+      <div className="flex flex-wrap items-center justify-between gap-4">
         {/* Search */}
         <div className="flex-1 min-w-[240px]">
           <div className="relative">
@@ -197,47 +207,70 @@ export default function FacilitiesPage() {
           </div>
         </div>
 
-        {/* Status Filter */}
-        <div className="w-48">
-          <select
-            className="w-full px-4 py-2 border rounded-lg"
-            value={statusFilter}
-            onChange={(e) => setStatusFilter(e.target.value)}
-          >
-            <option value="all">All Status</option>
-            <option value="approved">Approved</option>
-            <option value="pending">Pending</option>
-            <option value="rejected">Rejected</option>
-            <option value="archived">Archived</option>
-          </select>
-        </div>
+        {/* View Toggle */}
+        <button
+          onClick={() => setShowArchived(!showArchived)}
+          className={`flex items-center gap-2 px-4 py-2 rounded-lg border ${
+            showArchived 
+              ? 'bg-gray-100 text-gray-700 hover:bg-gray-200'
+              : 'bg-white text-gray-600 hover:bg-gray-50'
+          }`}
+        >
+          {showArchived ? (
+            <>
+              <Box className="w-4 h-4" />
+              View Active Listings
+            </>
+          ) : (
+            <>
+              <Archive className="w-4 h-4" />
+              View Archived Listings
+            </>
+          )}
+        </button>
 
-        {/* Verification Filter */}
-        <div className="w-48">
-          <select
-            className="w-full px-4 py-2 border rounded-lg"
-            value={verificationFilter}
-            onChange={(e) => setVerificationFilter(e.target.value)}
-          >
-            <option value="all">All Verification</option>
-            <option value="verified">Verified</option>
-            <option value="unverified">Unverified</option>
-          </select>
-        </div>
+        {/* Filters */}
+        {!showArchived && (
+          <div className="flex gap-4">
+            <select
+              className="px-4 py-2 border rounded-lg"
+              value={statusFilter}
+              onChange={(e) => setStatusFilter(e.target.value)}
+            >
+              <option value="all">All Status</option>
+              <option value="approved">Approved</option>
+              <option value="pending">Pending</option>
+              <option value="rejected">Rejected</option>
+            </select>
+
+            <select
+              className="px-4 py-2 border rounded-lg"
+              value={verificationFilter}
+              onChange={(e) => setVerificationFilter(e.target.value)}
+            >
+              <option value="all">All Verification</option>
+              <option value="verified">Verified</option>
+              <option value="unverified">Unverified</option>
+            </select>
+          </div>
+        )}
       </div>
 
       {/* Content */}
-      <div className="bg-white rounded-lg shadow">
+      <div className="bg-white">
         {loading ? (
           <div className="flex justify-center py-8">
             <div className="animate-spin h-8 w-8 border-4 border-blue-600 rounded-full border-t-transparent"></div>
           </div>
-        ) : facilities.length === 0 ? (
+        ) : filteredFacilities.length === 0 ? (
           <div className="text-center py-8">
             <AlertCircle className="w-12 h-12 text-blue-600 mx-auto mb-4" />
             <h2 className="text-xl font-semibold mb-2">No Facilities Found</h2>
             <p className="text-gray-600">
-              No facilities match your current filters.
+              {showArchived 
+                ? 'No archived facilities match your search.'
+                : 'No facilities match your current filters.'
+              }
             </p>
           </div>
         ) : (
