@@ -1,5 +1,5 @@
 import React from 'react';
-import { Star, MapPin, Phone, ArrowRight, ShieldCheck, ShieldAlert, Clock, XCircle, AlertCircle, Edit, CreditCard, Ban } from 'lucide-react';
+import { Star, MapPin, ArrowRight, ShieldCheck, ShieldAlert, Clock, XCircle, Edit, CreditCard, Ban } from 'lucide-react';
 import { useNavigate } from 'react-router-dom';
 import { useAuthStore } from '../store/authStore';
 import ImageCarousel from './ImageCarousel';
@@ -60,7 +60,7 @@ export default function RehabCard({ facility, onEdit, showOwnerControls = false 
 
       // Update facility status
       await facilitiesService.updateFacility(facility.id, {
-        subscriptionId: undefined, // Changed from empty string to undefined
+        subscriptionId: undefined,
         isVerified: false
       });
 
@@ -149,11 +149,6 @@ export default function RehabCard({ facility, onEdit, showOwnerControls = false 
             <div className="flex items-center text-gray-600">
               <MapPin className="w-4 h-4 mr-2 flex-shrink-0" />
               <span className="text-sm">{facility.location}</span>
-            </div>
-
-            <div className="flex items-center text-gray-600">
-              <Phone className="w-4 h-4 mr-2 flex-shrink-0" />
-              <span className="text-sm">{facility.phone}</span>
             </div>
           </div>
 
