@@ -12,7 +12,7 @@ export default function AccountPage() {
   const [searchParams, setSearchParams] = useSearchParams();
   const activeTab = searchParams.get('tab') || 'listings';
   const navigate = useNavigate();
-  const { user } = useAuthStore();
+  const { user, signOut } = useAuthStore();
   const [listings, setListings] = useState<Facility[]>([]);
   const [loading, setLoading] = useState(true);
   const [editingFacility, setEditingFacility] = useState<Facility | null>(null);
@@ -75,6 +75,19 @@ export default function AccountPage() {
     } catch (error) {
       console.error('Error updating facility:', error);
     }
+  };
+
+  const handleSignOut = async () => {
+    try {
+      await signOut();
+      navigate('/');
+    } catch (error) {
+      console.error('Error signing out:', error);
+    }
+  };
+
+  const handleChangePassword = () => {
+    navigate('/reset-password');
   };
 
   if (!user) {
@@ -172,27 +185,49 @@ export default function AccountPage() {
           ) : (
             <div className="bg-white rounded-lg shadow p-6">
               <h2 className="text-xl font-semibold mb-4">Account Settings</h2>
-              <div className="space-y-4">
-                <div>
-                  <label className="block text-sm font-medium text-gray-700">Email</label>
-                  <div className="mt-1">
-                    <input
-                      type="email"
-                      value={user.email || ''}
-                      disabled
-                      className="w-full px-3 py-2 border rounded-lg bg-gray-50"
-                    />
+              <div className="space-y-6">
+                {/* Account Information */}
+                <div className="space-y-4">
+                  <div>
+                    <label className="block text-sm font-medium text-gray-700">Email</label>
+                    <div className="mt-1">
+                      <input
+                        type="email"
+                        value={user.email || ''}
+                        disabled
+                        className="w-full px-3 py-2 border rounded-lg bg-gray-50"
+                      />
+                    </div>
+                  </div>
+                  <div>
+                    <label className="block text-sm font-medium text-gray-700">Role</label>
+                    <div className="mt-1">
+                      <input
+                        type="text"
+                        value={user.role || ''}
+                        disabled
+                        className="w-full px-3 py-2 border rounded-lg bg-gray-50"
+                      />
+                    </div>
                   </div>
                 </div>
-                <div>
-                  <label className="block text-sm font-medium text-gray-700">Role</label>
-                  <div className="mt-1">
-                    <input
-                      type="text"
-                      value={user.role || ''}
-                      disabled
-                      className="w-full px-3 py-2 border rounded-lg bg-gray-50"
-                    />
+
+                {/* Account Actions */}
+                <div className="pt-6 border-t border-gray-200">
+                  <h3 className="text-lg font-medium text-gray-900 mb-4">Account Actions</h3>
+                  <div className="space-y-3">
+                    <button
+                      onClick={handleChangePassword}
+                      className="w-full bg-gray-100 text-gray-700 px-4 py-2 rounded-lg hover:bg-gray-200 transition-colors"
+                    >
+                      Change Password
+                    </button>
+                    <button
+                      onClick={handleSignOut}
+                      className="w-full bg-red-50 text-red-600 px-4 py-2 rounded-lg hover:bg-red-100 transition-colors"
+                    >
+                      Sign Out
+                    </button>
                   </div>
                 </div>
               </div>

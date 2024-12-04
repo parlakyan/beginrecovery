@@ -4,6 +4,8 @@ import {
   signInWithEmailAndPassword, 
   signOut as firebaseSignOut, 
   createUserWithEmailAndPassword,
+  sendPasswordResetEmail,
+  confirmPasswordReset,
   User as FirebaseUser 
 } from 'firebase/auth';
 import { usersService } from '../services/facilities';
@@ -27,12 +29,13 @@ interface AuthState {
   initialized: boolean;
   loading: boolean;
   error: string | null;
-  setUser: (user: FirebaseUser | null) => void;
+  setUser: (user: FirebaseUser | null) => Promise<void>;
   setError: (error: string | null) => void;
   clearError: () => void;
   signIn: (email: string, password: string) => Promise<void>;
   signUp: (email: string, password: string, role?: 'user' | 'owner' | 'admin') => Promise<void>;
   signOut: () => Promise<void>;
+  resetPassword: (email: string, token?: string, newPassword?: string) => Promise<void>;
   refreshToken: () => Promise<string | null>;
 }
 
@@ -45,11 +48,6 @@ export const useAuthStore = create<AuthState>((set, get) => ({
   /**
    * Sets user data and fetches additional info from API
    * Includes role and other custom properties
-   * 
-   * Special handling for admin@beginrecovery.com:
-   * - Ensures admin role is properly set
-   * - Creates admin document if missing
-   * - Updates role if needed
    */
   setUser: async (firebaseUser) => {
     if (!firebaseUser) {
@@ -198,6 +196,9 @@ export const useAuthStore = create<AuthState>((set, get) => ({
     }
   },
 
+  /**
+   * Signs out current user
+   */
   signOut: async () => {
     set({ loading: true, error: null });
     try {
@@ -209,6 +210,39 @@ export const useAuthStore = create<AuthState>((set, get) => ({
         error: 'An error occurred during sign out',
         loading: false 
       });
+      throw error;
+    }
+  },
+
+  /**
+   * Handles password reset flow
+   * If only email provided, sends reset email
+   * If token and new password provided, confirms reset
+   */
+  resetPassword: async (email: string, token?: string, newPassword?: string) => {
+    set({ loading: true, error: null });
+    try {
+      if (token && newPassword) {
+        // Confirm password reset
+        await confirmPasswordReset(auth, token, newPassword);
+        console.log('Password reset confirmed');
+      } else {
+        // Send reset email
+        await sendPasswordResetEmail(auth, email);
+        console.log('Password reset email sent');
+      }
+      set({ loading: false });
+    } catch (error) {
+      console.error('Password reset error:', error);
+      let errorMessage = 'An error occurred during password reset';
+      
+      if ((error as any).code === 'auth/user-not-found') {
+        errorMessage = 'No account found with this email';
+      } else if ((error as any).code === 'auth/invalid-action-code') {
+        errorMessage = 'Invalid or expired reset link';
+      }
+      
+      set({ error: errorMessage, loading: false });
       throw error;
     }
   },
