@@ -1,45 +1,24 @@
-/**
- * User Interface
- */
 export interface User {
   id: string;
-  email: string | null;
+  email: string;
   role: 'user' | 'owner' | 'admin';
   createdAt: string;
+  isSuspended?: boolean;
+  lastLogin?: string;
+  verifiedListings?: number;
 }
 
-/**
- * Coordinates Interface
- */
-export interface Coordinates {
-  lat: number;
-  lng: number;
-}
-
-/**
- * Collection Types
- */
-export type CollectionType = 
-  | 'highlights'
-  | 'treatmentTypes'
-  | 'substances'
-  | 'amenities'
-  | 'insurance'
-  | 'accreditation'
-  | 'languages';
-
-/**
- * Facility Interface
- */
 export interface Facility {
   id: string;
   name: string;
   description: string;
   location: string;
-  coordinates?: Coordinates;
+  coordinates?: {
+    lat: number;
+    lng: number;
+  };
   amenities: string[];
   images: string[];
-  logo?: string; // Facility logo URL
   status: 'pending' | 'active' | 'suspended';
   ownerId: string;
   rating: number;
@@ -47,8 +26,8 @@ export interface Facility {
   createdAt: string;
   updatedAt: string;
   subscriptionId?: string;
-  phone?: string;
-  email?: string;
+  phone: string;
+  email: string;
   tags: string[];
   highlights: string[];
   substances: string[];
@@ -59,31 +38,37 @@ export interface Facility {
   isFeatured: boolean;
   moderationStatus: 'pending' | 'approved' | 'rejected' | 'archived';
   slug: string;
+  logo?: string;
 }
 
-/**
- * Create User Data Interface
- */
-export interface CreateUserData {
-  email: string;
-  role: 'user' | 'owner' | 'admin';
+export interface FeaturedLocation {
+  id: string;
+  city: string;
+  state: string;
+  image: string;
+  totalListings: number;
+  coordinates?: {
+    lat: number;
+    lng: number;
+  };
   createdAt: string;
+  updatedAt: string;
+  order: number;
 }
 
-/**
- * Facility With Contact Interface
- */
-export interface FacilityWithContact extends Facility {
-  phone: string;
+export interface UserStats {
+  totalListings: number;
+  verifiedListings: number;
+  lastLogin: string;
+  joinDate: string;
+  status: 'active' | 'suspended';
 }
 
-/**
- * Search Filters State Interface
- */
-export interface SearchFiltersState {
-  treatmentTypes: string[];
-  amenities: string[];
-  insurance: string[];
-  rating: number | null;
-  priceRange: [number, number] | null;
-}
+export type CollectionType = 
+  | 'highlights'
+  | 'treatmentTypes'
+  | 'substances'
+  | 'amenities'
+  | 'insurance'
+  | 'accreditation'
+  | 'languages';
