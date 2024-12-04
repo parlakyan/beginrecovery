@@ -1,5 +1,5 @@
 import React, { useCallback, useState, useEffect } from 'react';
-import { Upload, X, Loader2, AlertCircle, Building2 } from 'lucide-react';
+import { Upload, X, Loader2, AlertCircle } from 'lucide-react';
 import { storageService } from '../services/storage';
 
 interface LogoUploadProps {
@@ -105,11 +105,19 @@ export default function LogoUpload({
     }
   }, [facilityId, onLogoChange]);
 
-  const handleRemoveLogo = useCallback(() => {
-    console.log('Removing logo');
-    setLogo(undefined);
-    onLogoChange(undefined);
-  }, [onLogoChange]);
+  const handleRemoveLogo = useCallback(async () => {
+    try {
+      console.log('Removing logo files from storage');
+      await storageService.deleteFiles(`facilities/${facilityId}/logo`);
+      console.log('Logo files deleted successfully');
+      
+      setLogo(undefined);
+      onLogoChange(undefined);
+    } catch (err) {
+      console.error('Error removing logo:', err);
+      setError('Failed to remove logo. Please try again.');
+    }
+  }, [facilityId, onLogoChange]);
 
   const dragOverHandler = useCallback((e: React.DragEvent<HTMLDivElement>) => {
     e.preventDefault();

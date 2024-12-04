@@ -17,7 +17,8 @@ import {
   setDoc,
   enableNetwork,
   disableNetwork,
-  Timestamp
+  Timestamp,
+  deleteField
 } from 'firebase/firestore';
 import { getAuth } from 'firebase/auth';
 import { db } from '../lib/firebase';
@@ -470,7 +471,10 @@ export const facilitiesService = {
       
       // Create a clean update object without undefined values
       const cleanData = Object.entries(data).reduce((acc, [key, value]) => {
-        if (value !== undefined) {
+        // For logo field, use deleteField() when undefined
+        if (key === 'logo' && value === undefined) {
+          acc[key] = deleteField();
+        } else if (value !== undefined) {
           acc[key] = value;
         }
         return acc;

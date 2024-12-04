@@ -200,5 +200,29 @@ export const storageService = {
       console.error('Error moving files:', error);
       throw error;
     }
+  },
+
+  /**
+   * Deletes all files in a directory
+   */
+  async deleteFiles(path: string): Promise<void> {
+    try {
+      console.log('Deleting files from path:', path);
+      const dirRef = ref(storage, path);
+      const filesList = await listAll(dirRef);
+
+      // Delete each file
+      for (const fileRef of filesList.items) {
+        try {
+          await deleteObject(fileRef);
+          console.log('Deleted file:', fileRef.fullPath);
+        } catch (error) {
+          console.error(`Error deleting file ${fileRef.name}:`, error);
+        }
+      }
+    } catch (error) {
+      console.error('Error deleting files:', error);
+      throw error;
+    }
   }
 };
