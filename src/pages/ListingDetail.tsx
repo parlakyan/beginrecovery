@@ -80,8 +80,9 @@ export default function ListingDetail() {
   const handleSave = async (data: Partial<Facility>) => {
     if (!facility) return;
     try {
-      await facilitiesService.updateFacility(facility.id, data);
-      await fetchFacility(); // Refetch facility data
+      // Use the returned facility data from updateFacility
+      const updatedFacility = await facilitiesService.updateFacility(facility.id, data);
+      setFacility(updatedFacility); // Update state with returned data
       setIsEditModalOpen(false);
     } catch (error) {
       console.error('Error updating facility:', error);

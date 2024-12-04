@@ -28,6 +28,7 @@ export default function LogoUpload({
 
   // Update logo when existingLogo prop changes
   useEffect(() => {
+    console.log('Existing logo changed:', existingLogo);
     setLogo(existingLogo);
   }, [existingLogo]);
 
@@ -44,6 +45,7 @@ export default function LogoUpload({
     setIsUploading(true);
     setUploadProgress(0);
     try {
+      console.log('Uploading logo to path:', `facilities/${facilityId}/logo`);
       const results = await storageService.uploadImages(files, `facilities/${facilityId}/logo`);
       const uploadedUrl = results[0];
 
@@ -53,6 +55,7 @@ export default function LogoUpload({
       }
 
       if ('url' in uploadedUrl) {
+        console.log('Logo uploaded successfully:', uploadedUrl.url);
         setLogo(uploadedUrl.url);
         onLogoChange(uploadedUrl.url);
       }
@@ -77,6 +80,7 @@ export default function LogoUpload({
     setIsUploading(true);
     setUploadProgress(0);
     try {
+      console.log('Uploading logo to path:', `facilities/${facilityId}/logo`);
       const results = await storageService.uploadImages(files, `facilities/${facilityId}/logo`);
       const uploadedUrl = results[0];
 
@@ -86,6 +90,7 @@ export default function LogoUpload({
       }
 
       if ('url' in uploadedUrl) {
+        console.log('Logo uploaded successfully:', uploadedUrl.url);
         setLogo(uploadedUrl.url);
         onLogoChange(uploadedUrl.url);
       }
@@ -101,6 +106,7 @@ export default function LogoUpload({
   }, [facilityId, onLogoChange]);
 
   const handleRemoveLogo = useCallback(() => {
+    console.log('Removing logo');
     setLogo(undefined);
     onLogoChange(undefined);
   }, [onLogoChange]);

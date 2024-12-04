@@ -144,7 +144,8 @@ const transformFacilityData = (doc: QueryDocumentSnapshot<DocumentData>): Facili
     isVerified: Boolean(data.isVerified),
     isFeatured: Boolean(data.isFeatured),
     moderationStatus: data.moderationStatus || 'pending',
-    slug: data.slug || generateSlug(name, location)
+    slug: data.slug || generateSlug(name, location),
+    logo: data.logo || undefined // Ensure logo is undefined if not present
   };
 };
 
@@ -432,7 +433,9 @@ export const facilitiesService = {
         return null;
       }
       
-      return transformFacilityData(docSnap as QueryDocumentSnapshot<DocumentData>);
+      const facility = transformFacilityData(docSnap as QueryDocumentSnapshot<DocumentData>);
+      console.log('Found facility:', facility);
+      return facility;
     } catch (error) {
       console.error('Error getting facility:', error);
       return null;
@@ -450,8 +453,10 @@ export const facilitiesService = {
         console.log('No facility found with slug:', slug);
         return null;
       }
-      
-      return transformFacilityData(snapshot.docs[0]);
+
+      const facility = transformFacilityData(snapshot.docs[0]);
+      console.log('Found facility with logo:', facility.logo);
+      return facility;
     } catch (error) {
       console.error('Error getting facility by slug:', error);
       return null;
@@ -460,6 +465,7 @@ export const facilitiesService = {
 
   async updateFacility(id: string, data: Partial<Facility>) {
     try {
+      console.log('Updating facility:', { id, data });
       const facilityRef = doc(db, FACILITIES_COLLECTION, id);
       
       // Create a clean update object without undefined values
@@ -489,8 +495,12 @@ export const facilitiesService = {
         }
       });
 
+      console.log('Cleaned data for update:', cleanData);
       await updateDoc(facilityRef, cleanData);
-      return true;
+      
+      // Fetch and return updated facility
+      const updatedDoc = await getDoc(facilityRef);
+      return transformFacilityData(updatedDoc as QueryDocumentSnapshot<DocumentData>);
     } catch (error) {
       console.error('Error updating facility:', error);
       throw error;
@@ -504,7 +514,10 @@ export const facilitiesService = {
         isVerified: true,
         updatedAt: serverTimestamp()
       });
-      return true;
+      
+      // Fetch and return updated facility
+      const updatedDoc = await getDoc(facilityRef);
+      return transformFacilityData(updatedDoc as QueryDocumentSnapshot<DocumentData>);
     } catch (error) {
       console.error('Error verifying facility:', error);
       throw error;
@@ -518,7 +531,10 @@ export const facilitiesService = {
         isVerified: false,
         updatedAt: serverTimestamp()
       });
-      return true;
+      
+      // Fetch and return updated facility
+      const updatedDoc = await getDoc(facilityRef);
+      return transformFacilityData(updatedDoc as QueryDocumentSnapshot<DocumentData>);
     } catch (error) {
       console.error('Error unverifying facility:', error);
       throw error;
@@ -596,144 +612,6 @@ export const facilitiesService = {
     } catch (error) {
       console.error('Error searching facilities:', error);
       return [];
-    }
-  },
-
-  async getAllListingsForAdmin(): Promise<Facility[]> {
-    try {
-      console.log('Fetching all listings for admin');
-      const facilitiesRef = collection(db, FACILITIES_COLLECTION);
-      
-      // Get all facilities without filtering by moderation status
-      const snapshot = await getDocs(facilitiesRef);
-      console.log('Total documents:', snapshot.size);
-      
-      const facilities = snapshot.docs.map(transformFacilityData);
-      console.log('Transformed facilities:', facilities.length);
-      
-      // Sort by creation date, newest first
-      facilities.sort((a, b) => new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime());
-      
-      return facilities;
-    } catch (error) {
-      console.error('Error getting admin listings:', error);
-      throw error;
-    }
-  },
-
-  async getArchivedListings(): Promise<Facility[]> {
-    try {
-      console.log('Fetching archived listings');
-      const facilitiesRef = collection(db, FACILITIES_COLLECTION);
-      const q = query(
-        facilitiesRef,
-        where('moderationStatus', '==', 'archived'),
-        orderBy('createdAt', 'desc')
-      );
-      
-      const snapshot = await getDocs(q);
-      const facilities = snapshot.docs.map(transformFacilityData);
-      console.log('Archived facilities:', facilities.length);
-      
-      return facilities;
-    } catch (error) {
-      console.error('Error getting archived listings:', error);
-      throw error;
-    }
-  },
-
-  async approveFacility(id: string): Promise<boolean> {
-    try {
-      const facilityRef = doc(db, FACILITIES_COLLECTION, id);
-      await updateDoc(facilityRef, {
-        moderationStatus: 'approved',
-        updatedAt: serverTimestamp()
-      });
-      return true;
-    } catch (error) {
-      console.error('Error approving facility:', error);
-      throw error;
-    }
-  },
-
-  async rejectFacility(id: string): Promise<boolean> {
-    try {
-      const facilityRef = doc(db, FACILITIES_COLLECTION, id);
-      await updateDoc(facilityRef, {
-        moderationStatus: 'rejected',
-        updatedAt: serverTimestamp()
-      });
-      return true;
-    } catch (error) {
-      console.error('Error rejecting facility:', error);
-      throw error;
-    }
-  },
-
-  async featureFacility(id: string): Promise<boolean> {
-    try {
-      const facilityRef = doc(db, FACILITIES_COLLECTION, id);
-      await updateDoc(facilityRef, {
-        isFeatured: true,
-        updatedAt: serverTimestamp()
-      });
-      return true;
-    } catch (error) {
-      console.error('Error featuring facility:', error);
-      throw error;
-    }
-  },
-
-  async unfeatureFacility(id: string): Promise<boolean> {
-    try {
-      const facilityRef = doc(db, FACILITIES_COLLECTION, id);
-      await updateDoc(facilityRef, {
-        isFeatured: false,
-        updatedAt: serverTimestamp()
-      });
-      return true;
-    } catch (error) {
-      console.error('Error unfeaturing facility:', error);
-      throw error;
-    }
-  },
-
-  async archiveFacility(id: string): Promise<boolean> {
-    try {
-      const facilityRef = doc(db, FACILITIES_COLLECTION, id);
-      await updateDoc(facilityRef, {
-        moderationStatus: 'archived',
-        updatedAt: serverTimestamp()
-      });
-      return true;
-    } catch (error) {
-      console.error('Error archiving facility:', error);
-      throw error;
-    }
-  },
-
-  async restoreFacility(id: string): Promise<boolean> {
-    try {
-      const facilityRef = doc(db, FACILITIES_COLLECTION, id);
-      await updateDoc(facilityRef, {
-        moderationStatus: 'pending',
-        updatedAt: serverTimestamp()
-      });
-      return true;
-    } catch (error) {
-      console.error('Error restoring facility:', error);
-      throw error;
-    }
-  },
-
-  async deleteFacility(id: string): Promise<boolean> {
-    try {
-      const facilityRef = doc(db, FACILITIES_COLLECTION, id);
-      await deleteDoc(facilityRef);
-      return true;
-    } catch (error) {
-      console.error('Error deleting facility:', error);
-      throw error;
     }
   }
 };

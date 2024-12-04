@@ -56,6 +56,8 @@ const EditListingModal = ({ facility, isOpen, onClose, onSave }: EditListingModa
   // Reset form when modal opens or facility changes
   useEffect(() => {
     if (isOpen && facility) {
+      console.log('Resetting form with facility data:', facility);
+      
       // Reset form fields
       reset({
         name: facility.name || '',
@@ -73,15 +75,18 @@ const EditListingModal = ({ facility, isOpen, onClose, onSave }: EditListingModa
         languages: facility.languages || []
       });
 
-      // Reset form data
+      // Reset form data with existing images and logo
       setFormData({
         images: facility.images || [],
-        logo: facility.logo
+        logo: facility.logo || undefined // Ensure logo is undefined if falsy
       });
+
+      console.log('Form data reset with logo:', facility.logo);
     }
   }, [facility, isOpen, reset]);
 
   const handlePhotosChange = (photos: string[]) => {
+    console.log('Photos changed:', photos);
     setFormData(prev => ({
       ...prev,
       images: photos
@@ -89,6 +94,7 @@ const EditListingModal = ({ facility, isOpen, onClose, onSave }: EditListingModa
   };
 
   const handleLogoChange = (logo: string | undefined) => {
+    console.log('Logo changed:', logo);
     setFormData(prev => ({
       ...prev,
       logo
@@ -98,6 +104,12 @@ const EditListingModal = ({ facility, isOpen, onClose, onSave }: EditListingModa
   const onSubmit = async (data: EditListingForm) => {
     try {
       setLoading(true);
+      console.log('Submitting form with data:', {
+        ...data,
+        images: formData.images,
+        logo: formData.logo
+      });
+
       await onSave({
         name: data.name,
         description: data.description,
