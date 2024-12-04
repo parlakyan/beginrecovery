@@ -18,20 +18,22 @@ export default function EditLocationModal({
 }: EditLocationModalProps) {
   if (!isOpen) return null;
 
-  const handleSave = () => {
-    // If it's a CityInfo, convert it to a FeaturedLocation
-    if (!('id' in location)) {
-      onSave({
-        city: location.city,
-        state: location.state,
-        image: '',
-        totalListings: location.totalListings,
-        coordinates: location.coordinates,
-        isFeatured: location.isFeatured
-      });
-    } else {
-      onSave(location);
-    }
+  // Convert CityInfo to FeaturedLocation format if needed
+  const locationData: Partial<FeaturedLocation> = {
+    city: location.city,
+    state: location.state,
+    image: 'image' in location ? location.image : '',
+    totalListings: location.totalListings,
+    coordinates: location.coordinates,
+    isFeatured: location.isFeatured,
+    id: 'id' in location ? location.id : undefined
+  };
+
+  const handleImageUpload = (imageUrl: string) => {
+    onSave({
+      ...locationData,
+      image: imageUrl
+    });
   };
 
   return (
@@ -66,17 +68,15 @@ export default function EditLocationModal({
               </div>
             </div>
 
-            {'image' in location && (
-              <div>
-                <label className="block text-sm font-medium text-gray-700 mb-1">
-                  Featured Image
-                </label>
-                <LocationImageUpload
-                  currentImage={location.image}
-                  onUpload={(imageUrl: string) => onSave({ ...location, image: imageUrl })}
-                />
-              </div>
-            )}
+            <div>
+              <label className="block text-sm font-medium text-gray-700 mb-1">
+                Featured Image
+              </label>
+              <LocationImageUpload
+                currentImage={locationData.image}
+                onUpload={handleImageUpload}
+              />
+            </div>
           </div>
 
           {/* Footer */}
@@ -88,7 +88,7 @@ export default function EditLocationModal({
               Cancel
             </button>
             <button
-              onClick={handleSave}
+              onClick={() => onSave(locationData)}
               className="px-4 py-2 text-sm font-medium text-white bg-blue-600 hover:bg-blue-700 rounded-lg"
             >
               Save Changes

@@ -5,7 +5,8 @@ import {
   Star,
   Edit2,
   AlertCircle,
-  MapPin
+  MapPin,
+  Image as ImageIcon
 } from 'lucide-react';
 import { useAuthStore } from '../../store/authStore';
 import { locationsService } from '../../services/locations';
@@ -69,25 +70,18 @@ export default function LocationsPage(): JSX.Element {
     return b.totalListings - a.totalListings;
   });
 
-  const handleSave = async (city: CityInfo, data: Partial<FeaturedLocation>) => {
+  const handleSave = async (data: Partial<FeaturedLocation>) => {
     try {
       setLoading(true);
-      if (city.id) {
-        await locationsService.updateFeaturedLocation(city.id, {
-          ...data,
-          city: city.city,
-          state: city.state,
-          totalListings: city.totalListings,
-          coordinates: city.coordinates
-        });
+      if (editingLocation?.id) {
+        await locationsService.updateFeaturedLocation(editingLocation.id, data);
       } else {
-        // If no id, this is a new featured location
         await locationsService.addFeaturedLocation({
-          city: city.city,
-          state: city.state,
+          city: editingLocation!.city,
+          state: editingLocation!.state,
           image: data.image || '',
-          totalListings: city.totalListings,
-          coordinates: city.coordinates,
+          totalListings: editingLocation!.totalListings,
+          coordinates: editingLocation!.coordinates,
           isFeatured: true
         });
       }
@@ -136,6 +130,7 @@ export default function LocationsPage(): JSX.Element {
                   <th className="text-left py-4 px-4 font-semibold">Location</th>
                   <th className="text-left py-4 px-4 font-semibold">Total Listings</th>
                   <th className="text-left py-4 px-4 font-semibold">Featured</th>
+                  <th className="text-left py-4 px-4 font-semibold">Image</th>
                   <th className="text-left py-4 px-4 font-semibold">Actions</th>
                 </tr>
               </thead>
@@ -164,6 +159,19 @@ export default function LocationsPage(): JSX.Element {
                       }`}>
                         {city.isFeatured ? 'Featured' : 'Not Featured'}
                       </span>
+                    </td>
+                    <td className="py-4 px-4">
+                      {city.image ? (
+                        <img 
+                          src={city.image} 
+                          alt={city.city}
+                          className="w-12 h-12 object-cover rounded"
+                        />
+                      ) : (
+                        <div className="w-12 h-12 bg-gray-100 rounded flex items-center justify-center">
+                          <ImageIcon className="w-6 h-6 text-gray-400" />
+                        </div>
+                      )}
                     </td>
                     <td className="py-4 px-4">
                       <div className="flex items-center gap-2">
@@ -203,7 +211,7 @@ export default function LocationsPage(): JSX.Element {
           location={editingLocation}
           isOpen={true}
           onClose={() => setEditingLocation(null)}
-          onSave={(data) => handleSave(editingLocation, data)}
+          onSave={handleSave}
         />
       )}
     </div>
