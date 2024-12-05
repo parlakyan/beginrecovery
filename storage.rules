@@ -4,7 +4,15 @@ service firebase.storage {
   match /b/{bucket}/o {
     // Helper functions
     function isAdmin() {
-      return request.auth != null && request.auth.token.role == 'admin';
+      return request.auth != null && 
+        (request.auth.token.role == 'admin' || 
+         request.auth.token.admin == true ||
+         request.auth.token.isAdmin == true);
+    }
+    
+    function isOwner(facilityId) {
+      return request.auth != null && 
+        (get(/databases/$(database)/documents/facilities/$(facilityId)).data.ownerId == request.auth.uid);
     }
     
     function isValidImage() {
@@ -20,14 +28,17 @@ service firebase.storage {
     // Admin folders - only admins can write
     match /licenses/{fileName} {
       allow write: if isAdmin() && isValidImage();
+      allow delete: if isAdmin();
     }
 
     match /insurances/{fileName} {
       allow write: if isAdmin() && isValidImage();
+      allow delete: if isAdmin();
     }
 
     match /locations/{fileName} {
       allow write: if isAdmin() && isValidImage();
+      allow delete: if isAdmin();
     }
 
     // Facilities folder - owners and admins can write
@@ -35,14 +46,23 @@ service firebase.storage {
       allow write: if request.auth != null 
         && isValidImage()
         && (
-          request.auth.uid == facilityId || // Owner
+          isOwner(facilityId) || // Owner
           isAdmin() // Admin
         );
+      allow delete: if request.auth != null && 
+        (isOwner(facilityId) || isAdmin());
     }
 
-    // Allow admins to delete files they have access to
-    match /{allPaths=**} {
-      allow delete: if isAdmin();
+    // Logos folder - owners and admins can write
+    match /logos/{facilityId}/{fileName} {
+      allow write: if request.auth != null 
+        && isValidImage()
+        && (
+          isOwner(facilityId) || // Owner
+          isAdmin() // Admin
+        );
+      allow delete: if request.auth != null && 
+        (isOwner(facilityId) || isAdmin());
     }
   }
 }

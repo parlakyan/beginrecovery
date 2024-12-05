@@ -23,7 +23,12 @@ export default function AdminLogoUpload({
     e.preventDefault();
     setError(undefined);
 
-    if (!user || user.role !== 'admin') {
+    if (!user) {
+      setError('You must be logged in to upload logos');
+      return;
+    }
+
+    if (user.role !== 'admin') {
       setError('Only admins can upload logos');
       return;
     }
@@ -43,16 +48,33 @@ export default function AdminLogoUpload({
       const fileName = `${timestamp}.${fileExtension}`;
       const path = `${folder}/${fileName}`;
       
+      console.log('Starting logo upload:', {
+        folder,
+        fileName,
+        userRole: user.role,
+        userId: user.id
+      });
+
       const result = await storageService.uploadImage(file, path, (progress) => {
         setUploadProgress(progress);
       });
 
       if ('error' in result) {
+        console.error('Logo upload error:', {
+          error: result.error,
+          code: result.code,
+          folder,
+          fileName
+        });
         setError(result.error);
         return;
       }
 
       if ('url' in result) {
+        console.log('Logo upload successful:', {
+          url: result.url.split('?')[0], // Log URL without query params
+          path: result.path
+        });
         onUpload(result.url);
       }
     } catch (err) {
@@ -67,7 +89,12 @@ export default function AdminLogoUpload({
   const handleFileSelect = useCallback(async (e: React.ChangeEvent<HTMLInputElement>) => {
     setError(undefined);
 
-    if (!user || user.role !== 'admin') {
+    if (!user) {
+      setError('You must be logged in to upload logos');
+      return;
+    }
+
+    if (user.role !== 'admin') {
       setError('Only admins can upload logos');
       return;
     }
@@ -88,16 +115,33 @@ export default function AdminLogoUpload({
       const fileName = `${timestamp}.${fileExtension}`;
       const path = `${folder}/${fileName}`;
 
+      console.log('Starting logo upload:', {
+        folder,
+        fileName,
+        userRole: user.role,
+        userId: user.id
+      });
+
       const result = await storageService.uploadImage(file, path, (progress) => {
         setUploadProgress(progress);
       });
 
       if ('error' in result) {
+        console.error('Logo upload error:', {
+          error: result.error,
+          code: result.code,
+          folder,
+          fileName
+        });
         setError(result.error);
         return;
       }
 
       if ('url' in result) {
+        console.log('Logo upload successful:', {
+          url: result.url.split('?')[0], // Log URL without query params
+          path: result.path
+        });
         onUpload(result.url);
       }
     } catch (err) {
@@ -115,7 +159,12 @@ export default function AdminLogoUpload({
     e.stopPropagation();
     e.preventDefault();
 
-    if (!user || user.role !== 'admin') {
+    if (!user) {
+      setError('You must be logged in to remove logos');
+      return;
+    }
+
+    if (user.role !== 'admin') {
       setError('Only admins can remove logos');
       return;
     }
@@ -125,7 +174,13 @@ export default function AdminLogoUpload({
         // Extract path from URL
         const url = new URL(currentLogo);
         const path = decodeURIComponent(url.pathname.split('/o/')[1].split('?')[0]);
+        console.log('Removing logo:', {
+          path,
+          userRole: user.role,
+          userId: user.id
+        });
         await storageService.deleteFile(path);
+        console.log('Logo removed successfully');
       }
       onUpload('');
     } catch (err) {

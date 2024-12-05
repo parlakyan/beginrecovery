@@ -1,7 +1,7 @@
 import React, { useRef, useState } from 'react';
-import { Upload, X, Image as ImageIcon } from 'lucide-react';
-import { storage } from '../lib/firebase';
-import { ref, uploadBytes, getDownloadURL, deleteObject } from 'firebase/storage';
+import { Upload, X, AlertCircle } from 'lucide-react';
+import { storageService } from '../services/storage';
+import { useAuthStore } from '../store/authStore';
 
 interface LocationImageUploadProps {
   currentImage?: string;
@@ -11,56 +11,80 @@ interface LocationImageUploadProps {
 export default function LocationImageUpload({ currentImage, onUpload }: LocationImageUploadProps) {
   const [uploading, setUploading] = useState(false);
   const [error, setError] = useState<string | null>(null);
+  const [uploadProgress, setUploadProgress] = useState(0);
   const fileInputRef = useRef<HTMLInputElement>(null);
+  const { user } = useAuthStore();
 
   const handleFileChange = async (event: React.ChangeEvent<HTMLInputElement>) => {
     const file = event.target.files?.[0];
     if (!file) return;
 
-    // Validate file type
-    if (!file.type.startsWith('image/')) {
-      setError('Please upload an image file');
-      return;
-    }
-
-    // Validate file size (max 5MB)
-    if (file.size > 5 * 1024 * 1024) {
-      setError('Image must be less than 5MB');
+    if (!user || user.role !== 'admin') {
+      setError('Only admins can upload location images');
       return;
     }
 
     try {
       setUploading(true);
       setError(null);
+      setUploadProgress(0);
 
-      // Delete old image if it exists and is in our locations folder
-      if (currentImage && currentImage.includes('locations/')) {
+      // Create a unique filename with timestamp
+      const timestamp = Date.now();
+      const fileExtension = file.name.split('.').pop()?.toLowerCase() || '';
+      const fileName = `location-${timestamp}-${Math.random().toString(36).substring(7)}.${fileExtension}`;
+      const path = `locations/${fileName}`;
+
+      console.log('Uploading location image:', {
+        path,
+        fileName,
+        fileSize: file.size,
+        fileType: file.type,
+        userRole: user.role
+      });
+
+      // Delete old image if it exists
+      if (currentImage) {
         try {
-          const oldImageRef = ref(storage, currentImage);
-          await deleteObject(oldImageRef);
+          const url = new URL(currentImage);
+          const oldPath = decodeURIComponent(url.pathname.split('/o/')[1].split('?')[0]);
+          if (oldPath.startsWith('locations/')) {
+            console.log('Deleting old location image:', oldPath);
+            await storageService.deleteFile(oldPath);
+          }
         } catch (error) {
           console.error('Error deleting old image:', error);
         }
       }
 
-      // Create a unique filename with timestamp and original extension
-      const extension = file.name.split('.').pop();
-      const filename = `locations/${Date.now()}-${Math.random().toString(36).substring(2)}.${extension}`;
-      const storageRef = ref(storage, filename);
+      // Upload new image
+      const result = await storageService.uploadImage(file, path, (progress) => {
+        setUploadProgress(progress);
+      });
 
-      // Upload the file
-      await uploadBytes(storageRef, file);
+      if ('error' in result) {
+        console.error('Location image upload error:', {
+          error: result.error,
+          code: result.code,
+          path
+        });
+        setError(result.error);
+        return;
+      }
 
-      // Get the download URL
-      const downloadUrl = await getDownloadURL(storageRef);
-
-      // Call the onUpload callback with the URL
-      onUpload(downloadUrl);
-    } catch (error: any) {
-      console.error('Error uploading image:', error);
-      setError(error.message || 'Failed to upload image. Please try again.');
+      if ('url' in result) {
+        console.log('Location image uploaded successfully:', {
+          url: result.url.split('?')[0], // Log URL without query params
+          path: result.path
+        });
+        onUpload(result.url);
+      }
+    } catch (err) {
+      console.error('Error uploading location image:', err);
+      setError('Failed to upload image. Please try again.');
     } finally {
       setUploading(false);
+      setUploadProgress(0);
       if (fileInputRef.current) {
         fileInputRef.current.value = '';
       }
@@ -70,21 +94,32 @@ export default function LocationImageUpload({ currentImage, onUpload }: Location
   const handleRemove = async () => {
     if (!currentImage) return;
 
+    if (!user || user.role !== 'admin') {
+      setError('Only admins can remove location images');
+      return;
+    }
+
     try {
       setUploading(true);
       setError(null);
 
-      // Only delete if it's in our locations folder
-      if (currentImage.includes('locations/')) {
-        const imageRef = ref(storage, currentImage);
-        await deleteObject(imageRef);
+      // Extract path from URL
+      const url = new URL(currentImage);
+      const path = decodeURIComponent(url.pathname.split('/o/')[1].split('?')[0]);
+      
+      if (path.startsWith('locations/')) {
+        console.log('Removing location image:', {
+          path,
+          userRole: user.role
+        });
+        await storageService.deleteFile(path);
+        console.log('Location image removed successfully');
       }
 
-      // Clear the image URL
       onUpload('');
-    } catch (error: any) {
-      console.error('Error removing image:', error);
-      setError(error.message || 'Failed to remove image. Please try again.');
+    } catch (err) {
+      console.error('Error removing location image:', err);
+      setError('Failed to remove image. Please try again.');
     } finally {
       setUploading(false);
     }
@@ -92,8 +127,10 @@ export default function LocationImageUpload({ currentImage, onUpload }: Location
 
   return (
     <div className="space-y-4">
+      {/* Error Message */}
       {error && (
-        <div className="text-sm text-red-600 bg-red-50 p-2 rounded">
+        <div className="flex items-center gap-2 text-red-600 text-sm bg-red-50 p-3 rounded-lg">
+          <AlertCircle className="w-4 h-4" />
           {error}
         </div>
       )}
@@ -123,7 +160,7 @@ export default function LocationImageUpload({ currentImage, onUpload }: Location
           <input
             ref={fileInputRef}
             type="file"
-            accept="image/*"
+            accept="image/jpeg,image/png,image/webp"
             onChange={handleFileChange}
             className="hidden"
           />
@@ -144,8 +181,23 @@ export default function LocationImageUpload({ currentImage, onUpload }: Location
         <div className="w-full h-48 border-2 border-gray-300 rounded-lg flex flex-col items-center justify-center gap-2">
           <div className="animate-spin rounded-full h-8 w-8 border-2 border-blue-600 border-t-transparent"></div>
           <span className="text-sm text-gray-600">Uploading...</span>
+          {uploadProgress > 0 && (
+            <div className="w-full max-w-xs mt-2 bg-gray-200 rounded-full h-2.5">
+              <div 
+                className="bg-blue-600 h-2.5 rounded-full transition-all duration-300"
+                style={{ width: `${uploadProgress}%` }}
+              />
+            </div>
+          )}
         </div>
       )}
+
+      {/* Help Text */}
+      <div className="text-xs text-gray-500">
+        <p>Supported formats: JPEG, PNG, WebP</p>
+        <p>Maximum file size: 5MB</p>
+        <p>Recommended size: 1200x800 pixels</p>
+      </div>
     </div>
   );
 }

@@ -33,13 +33,26 @@ export default function PhotoUpload({
 
     setIsUploading(true);
     try {
-      const results = await storageService.uploadImages(
-        files, 
-        `facilities/${facilityId}/photos`,
-        (progress) => {
+      const uploadPromises = files.map(async (file) => {
+        const timestamp = Date.now();
+        const fileExtension = file.name.split('.').pop()?.toLowerCase() || '';
+        const fileName = `photo-${timestamp}-${Math.random().toString(36).substring(7)}.${fileExtension}`;
+        const path = `facilities/${facilityId}/photos/${fileName}`;
+
+        console.log('Uploading photo:', {
+          facilityId,
+          path,
+          fileName,
+          fileSize: file.size,
+          fileType: file.type
+        });
+
+        return storageService.uploadImage(file, path, (progress) => {
           setUploadProgress(progress);
-        }
-      );
+        });
+      });
+
+      const results = await Promise.all(uploadPromises);
 
       // Check for any errors
       const errors = results.filter((result): result is { error: string } => 
@@ -47,6 +60,7 @@ export default function PhotoUpload({
       );
 
       if (errors.length > 0) {
+        console.error('Photo upload errors:', errors);
         setError(errors[0].error);
         return;
       }
@@ -55,6 +69,11 @@ export default function PhotoUpload({
       const urls = results
         .filter((result): result is { url: string; path: string } => 'url' in result)
         .map(result => result.url);
+
+      console.log('Photos uploaded successfully:', {
+        count: urls.length,
+        urls: urls.map(url => url.split('?')[0]) // Log URLs without query params
+      });
 
       onPhotosChange([...existingPhotos, ...urls]);
     } catch (err) {
@@ -77,13 +96,26 @@ export default function PhotoUpload({
 
     setIsUploading(true);
     try {
-      const results = await storageService.uploadImages(
-        files, 
-        `facilities/${facilityId}/photos`,
-        (progress) => {
+      const uploadPromises = files.map(async (file) => {
+        const timestamp = Date.now();
+        const fileExtension = file.name.split('.').pop()?.toLowerCase() || '';
+        const fileName = `photo-${timestamp}-${Math.random().toString(36).substring(7)}.${fileExtension}`;
+        const path = `facilities/${facilityId}/photos/${fileName}`;
+
+        console.log('Uploading photo:', {
+          facilityId,
+          path,
+          fileName,
+          fileSize: file.size,
+          fileType: file.type
+        });
+
+        return storageService.uploadImage(file, path, (progress) => {
           setUploadProgress(progress);
-        }
-      );
+        });
+      });
+
+      const results = await Promise.all(uploadPromises);
 
       // Check for any errors
       const errors = results.filter((result): result is { error: string } => 
@@ -91,6 +123,7 @@ export default function PhotoUpload({
       );
 
       if (errors.length > 0) {
+        console.error('Photo upload errors:', errors);
         setError(errors[0].error);
         return;
       }
@@ -99,6 +132,11 @@ export default function PhotoUpload({
       const urls = results
         .filter((result): result is { url: string; path: string } => 'url' in result)
         .map(result => result.url);
+
+      console.log('Photos uploaded successfully:', {
+        count: urls.length,
+        urls: urls.map(url => url.split('?')[0]) // Log URLs without query params
+      });
 
       onPhotosChange([...existingPhotos, ...urls]);
     } catch (err) {

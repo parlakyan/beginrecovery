@@ -45,19 +45,41 @@ export default function LogoUpload({
     setIsUploading(true);
     setUploadProgress(0);
     try {
-      console.log('Uploading logo to path:', `facilities/${facilityId}/logo`);
-      const results = await storageService.uploadImages(files, `facilities/${facilityId}/logo`);
-      const uploadedUrl = results[0];
+      const file = files[0];
+      const timestamp = Date.now();
+      const fileExtension = file.name.split('.').pop()?.toLowerCase() || '';
+      const fileName = `logo-${timestamp}.${fileExtension}`;
+      const path = `facilities/${facilityId}/logo/${fileName}`;
 
-      if ('error' in uploadedUrl) {
-        setError(uploadedUrl.error);
+      console.log('Uploading logo:', {
+        facilityId,
+        path,
+        fileName,
+        fileSize: file.size,
+        fileType: file.type
+      });
+
+      const result = await storageService.uploadImage(file, path, (progress) => {
+        setUploadProgress(progress);
+      });
+
+      if ('error' in result) {
+        console.error('Logo upload error:', {
+          error: result.error,
+          code: result.code,
+          path
+        });
+        setError(result.error);
         return;
       }
 
-      if ('url' in uploadedUrl) {
-        console.log('Logo uploaded successfully:', uploadedUrl.url);
-        setLogo(uploadedUrl.url);
-        onLogoChange(uploadedUrl.url);
+      if ('url' in result) {
+        console.log('Logo uploaded successfully:', {
+          url: result.url.split('?')[0], // Log URL without query params
+          path: result.path
+        });
+        setLogo(result.url);
+        onLogoChange(result.url);
       }
     } catch (err) {
       console.error('Error uploading logo:', err);
@@ -80,19 +102,41 @@ export default function LogoUpload({
     setIsUploading(true);
     setUploadProgress(0);
     try {
-      console.log('Uploading logo to path:', `facilities/${facilityId}/logo`);
-      const results = await storageService.uploadImages(files, `facilities/${facilityId}/logo`);
-      const uploadedUrl = results[0];
+      const file = files[0];
+      const timestamp = Date.now();
+      const fileExtension = file.name.split('.').pop()?.toLowerCase() || '';
+      const fileName = `logo-${timestamp}.${fileExtension}`;
+      const path = `facilities/${facilityId}/logo/${fileName}`;
 
-      if ('error' in uploadedUrl) {
-        setError(uploadedUrl.error);
+      console.log('Uploading logo:', {
+        facilityId,
+        path,
+        fileName,
+        fileSize: file.size,
+        fileType: file.type
+      });
+
+      const result = await storageService.uploadImage(file, path, (progress) => {
+        setUploadProgress(progress);
+      });
+
+      if ('error' in result) {
+        console.error('Logo upload error:', {
+          error: result.error,
+          code: result.code,
+          path
+        });
+        setError(result.error);
         return;
       }
 
-      if ('url' in uploadedUrl) {
-        console.log('Logo uploaded successfully:', uploadedUrl.url);
-        setLogo(uploadedUrl.url);
-        onLogoChange(uploadedUrl.url);
+      if ('url' in result) {
+        console.log('Logo uploaded successfully:', {
+          url: result.url.split('?')[0], // Log URL without query params
+          path: result.path
+        });
+        setLogo(result.url);
+        onLogoChange(result.url);
       }
     } catch (err) {
       console.error('Error uploading logo:', err);
@@ -106,22 +150,28 @@ export default function LogoUpload({
   }, [facilityId, onLogoChange]);
 
   const handleRemoveLogo = useCallback(async (e: React.MouseEvent) => {
-    // Stop event from bubbling up to parent elements
     e.stopPropagation();
     e.preventDefault();
 
     try {
-      console.log('Removing logo files from storage');
-      await storageService.deleteFiles(`facilities/${facilityId}/logo`);
-      console.log('Logo files deleted successfully');
-      
+      if (logo) {
+        // Extract path from URL
+        const url = new URL(logo);
+        const path = decodeURIComponent(url.pathname.split('/o/')[1].split('?')[0]);
+        console.log('Removing logo:', {
+          path,
+          facilityId
+        });
+        await storageService.deleteFile(path);
+        console.log('Logo removed successfully');
+      }
       setLogo(undefined);
       onLogoChange(undefined);
     } catch (err) {
       console.error('Error removing logo:', err);
       setError('Failed to remove logo. Please try again.');
     }
-  }, [facilityId, onLogoChange]);
+  }, [logo, onLogoChange, facilityId]);
 
   const dragOverHandler = useCallback((e: React.DragEvent<HTMLDivElement>) => {
     e.preventDefault();

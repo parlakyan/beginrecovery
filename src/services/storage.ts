@@ -3,7 +3,8 @@ import {
   uploadBytesResumable, 
   getDownloadURL, 
   deleteObject,
-  listAll
+  listAll,
+  StorageError
 } from 'firebase/storage';
 import { storage } from '../lib/firebase';
 
@@ -14,6 +15,7 @@ export interface UploadResult {
 
 export interface UploadError {
   error: string;
+  code?: string;
 }
 
 export const storageService = {
@@ -36,8 +38,17 @@ export const storageService = {
     path: string,
     onProgress?: (progress: number) => void
   ): Promise<UploadResult | UploadError> {
+    console.log('Starting image upload:', {
+      fileName: file.name,
+      fileSize: file.size,
+      fileType: file.type,
+      path,
+      timestamp: new Date().toISOString()
+    });
+
     const error = this.validateFile(file);
     if (error) {
+      console.log('File validation failed:', error);
       return { error };
     }
 
@@ -50,28 +61,62 @@ export const storageService = {
           'state_changed',
           (snapshot) => {
             const progress = (snapshot.bytesTransferred / snapshot.totalBytes) * 100;
+            console.log('Upload progress:', {
+              path,
+              progress: Math.round(progress),
+              transferred: snapshot.bytesTransferred,
+              total: snapshot.totalBytes
+            });
             if (onProgress) {
               onProgress(progress);
             }
           },
-          (error) => {
-            console.error('Upload error:', error);
-            reject({ error: 'Failed to upload file' });
+          (error: StorageError) => {
+            console.error('Upload error:', {
+              code: error.code,
+              message: error.message,
+              name: error.name,
+              path,
+              timestamp: new Date().toISOString()
+            });
+            reject({ 
+              error: this.getErrorMessage(error),
+              code: error.code
+            });
           },
           async () => {
             try {
               const url = await getDownloadURL(uploadTask.snapshot.ref);
+              console.log('Upload completed successfully:', {
+                path,
+                url: url.split('?')[0], // Log URL without query params
+                timestamp: new Date().toISOString()
+              });
               resolve({ url, path });
             } catch (error) {
-              console.error('Error getting download URL:', error);
-              reject({ error: 'Failed to get download URL' });
+              console.error('Error getting download URL:', {
+                error,
+                path,
+                timestamp: new Date().toISOString()
+              });
+              reject({ 
+                error: 'Failed to get download URL',
+                code: (error as StorageError)?.code
+              });
             }
           }
         );
       });
     } catch (error) {
-      console.error('Error starting upload:', error);
-      return { error: 'Failed to start upload' };
+      console.error('Error starting upload:', {
+        error,
+        path,
+        timestamp: new Date().toISOString()
+      });
+      return { 
+        error: 'Failed to start upload',
+        code: (error as StorageError)?.code
+      };
     }
   },
 
@@ -80,6 +125,12 @@ export const storageService = {
     path: string,
     onProgress?: (progress: number) => void
   ): Promise<(UploadResult | UploadError)[]> {
+    console.log('Starting batch image upload:', {
+      fileCount: files.length,
+      path,
+      timestamp: new Date().toISOString()
+    });
+
     return Promise.all(
       files.map((file, index) => 
         this.uploadImage(
@@ -92,9 +143,21 @@ export const storageService = {
   },
 
   async moveFiles(fromPath: string, toPath: string): Promise<void> {
+    console.log('Moving files:', {
+      fromPath,
+      toPath,
+      timestamp: new Date().toISOString()
+    });
+
     try {
       const fromRef = ref(storage, fromPath);
       const listResult = await listAll(fromRef);
+
+      console.log('Files to move:', {
+        count: listResult.items.length,
+        fromPath,
+        toPath
+      });
 
       // Move each file
       await Promise.all(listResult.items.map(async (itemRef) => {
@@ -113,37 +176,93 @@ export const storageService = {
 
         // Delete original
         await deleteObject(itemRef);
+
+        console.log('File moved successfully:', {
+          from: itemRef.fullPath,
+          to: newPath
+        });
       }));
     } catch (error) {
-      console.error('Error moving files:', error);
+      console.error('Error moving files:', {
+        error,
+        fromPath,
+        toPath,
+        timestamp: new Date().toISOString()
+      });
       throw error;
     }
   },
 
   async deleteFiles(path: string): Promise<void> {
+    console.log('Deleting files in path:', {
+      path,
+      timestamp: new Date().toISOString()
+    });
+
     try {
       const folderRef = ref(storage, path);
       const listResult = await listAll(folderRef);
 
+      console.log('Files to delete:', {
+        count: listResult.items.length,
+        path
+      });
+
       // Delete each file in the folder
       await Promise.all(
-        listResult.items.map(itemRef => deleteObject(itemRef))
+        listResult.items.map(async (itemRef) => {
+          await deleteObject(itemRef);
+          console.log('File deleted:', itemRef.fullPath);
+        })
       );
     } catch (error) {
-      console.error('Error deleting files:', error);
+      console.error('Error deleting files:', {
+        error,
+        path,
+        timestamp: new Date().toISOString()
+      });
       throw error;
     }
   },
 
   async deleteFile(path: string): Promise<void> {
+    console.log('Deleting file:', {
+      path,
+      timestamp: new Date().toISOString()
+    });
+
     try {
-      console.log('Deleting file:', path);
       const fileRef = ref(storage, path);
       await deleteObject(fileRef);
-      console.log('File deleted successfully');
+      console.log('File deleted successfully:', path);
     } catch (error) {
-      console.error('Error deleting file:', error);
+      console.error('Error deleting file:', {
+        error,
+        path,
+        timestamp: new Date().toISOString()
+      });
       throw error;
+    }
+  },
+
+  getErrorMessage(error: StorageError): string {
+    switch (error.code) {
+      case 'storage/unauthorized':
+        return 'You do not have permission to perform this action';
+      case 'storage/canceled':
+        return 'Upload was canceled';
+      case 'storage/unknown':
+        return 'An unknown error occurred';
+      case 'storage/object-not-found':
+        return 'File not found';
+      case 'storage/quota-exceeded':
+        return 'Storage quota exceeded';
+      case 'storage/invalid-checksum':
+        return 'File is corrupted';
+      case 'storage/retry-limit-exceeded':
+        return 'Upload failed too many times';
+      default:
+        return 'An error occurred during the operation';
     }
   }
 };
