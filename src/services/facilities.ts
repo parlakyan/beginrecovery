@@ -23,6 +23,7 @@ import {
 import { getAuth } from 'firebase/auth';
 import { db } from '../lib/firebase';
 import { Facility, User } from '../types';
+import { storageService } from './storage';
 
 // Collection names
 const FACILITIES_COLLECTION = 'facilities';
@@ -479,6 +480,42 @@ export const facilitiesService = {
       console.log('Updating facility:', { id, data });
       const facilityRef = doc(db, FACILITIES_COLLECTION, id);
       
+      // Get current facility data
+      const facilityDoc = await getDoc(facilityRef);
+      const currentData = facilityDoc.data();
+
+      // Handle logo removal
+      if (data.logo === undefined && currentData?.logo) {
+        try {
+          const url = new URL(currentData.logo);
+          const path = decodeURIComponent(url.pathname.split('/o/')[1].split('?')[0]);
+          if (path.startsWith('facilities/')) {
+            await storageService.deleteFile(path);
+          }
+        } catch (error) {
+          console.error('Error cleaning up old logo:', error);
+        }
+      }
+
+      // Handle photo removal
+      if (data.images && currentData?.images) {
+        const removedPhotos = currentData.images.filter((oldUrl: string) => !data.images?.includes(oldUrl));
+        if (removedPhotos.length > 0) {
+          try {
+            const paths = removedPhotos.map((url: string) => {
+              const urlObj = new URL(url);
+              return decodeURIComponent(urlObj.pathname.split('/o/')[1].split('?')[0]);
+            }).filter((path: string) => path.startsWith('facilities/'));
+            
+            if (paths.length > 0) {
+              await storageService.deleteFiles(paths);
+            }
+          } catch (error) {
+            console.error('Error cleaning up old photos:', error);
+          }
+        }
+      }
+
       // Create a clean update object without undefined values
       const cleanData = Object.entries(data).reduce((acc, [key, value]) => {
         // For logo field, use deleteField() when undefined
@@ -495,8 +532,6 @@ export const facilitiesService = {
 
       // Update slug if name or location changed
       if (data.name || data.location) {
-        const facilityDoc = await getDoc(facilityRef);
-        const currentData = facilityDoc.data();
         const name = data.name || currentData?.name;
         const location = data.location || currentData?.location;
         cleanData.slug = generateSlug(name, location);
@@ -801,7 +836,40 @@ export const facilitiesService = {
 
   async deleteFacility(id: string) {
     try {
+      // Get facility data first
       const facilityRef = doc(db, FACILITIES_COLLECTION, id);
+      const facilityDoc = await getDoc(facilityRef);
+      const facilityData = facilityDoc.data();
+
+      // Clean up storage files
+      if (facilityData) {
+        try {
+          // Clean up logo
+          if (facilityData.logo) {
+            const logoUrl = new URL(facilityData.logo);
+            const logoPath = decodeURIComponent(logoUrl.pathname.split('/o/')[1].split('?')[0]);
+            if (logoPath.startsWith('facilities/')) {
+              await storageService.deleteFile(logoPath);
+            }
+          }
+
+          // Clean up photos
+          if (facilityData.images?.length > 0) {
+            const photoPaths = facilityData.images.map((url: string) => {
+              const urlObj = new URL(url);
+              return decodeURIComponent(urlObj.pathname.split('/o/')[1].split('?')[0]);
+            }).filter((path: string) => path.startsWith('facilities/'));
+
+            if (photoPaths.length > 0) {
+              await storageService.deleteFiles(photoPaths);
+            }
+          }
+        } catch (error) {
+          console.error('Error cleaning up facility files:', error);
+        }
+      }
+
+      // Delete the facility document
       await deleteDoc(facilityRef);
     } catch (error) {
       console.error('Error deleting facility:', error);

@@ -1,6 +1,6 @@
 import React, { useCallback, useState } from 'react';
 import { Upload, X, Loader2, AlertCircle } from 'lucide-react';
-import { storageService } from '../services/storage';
+import { storageService, UploadResult, UploadError } from '../services/storage';
 import { useAuthStore } from '../store/authStore';
 
 interface PhotoUploadProps {
@@ -61,7 +61,7 @@ export default function PhotoUpload({
           userRole: user.role
         });
 
-        return storageService.uploadImage(file, path, (progress) => {
+        return storageService.uploadImage(file, path, (progress: number) => {
           setUploadProgress(progress);
         });
       });
@@ -69,7 +69,7 @@ export default function PhotoUpload({
       const results = await Promise.all(uploadPromises);
 
       // Check for any errors
-      const errors = results.filter((result): result is { error: string } => 
+      const errors = results.filter((result): result is UploadError => 
         'error' in result
       );
 
@@ -81,7 +81,7 @@ export default function PhotoUpload({
 
       // Get successful uploads
       const urls = results
-        .filter((result): result is { url: string; path: string } => 'url' in result)
+        .filter((result): result is UploadResult => 'url' in result)
         .map(result => result.url);
 
       console.log('Photos uploaded successfully:', {
@@ -137,7 +137,7 @@ export default function PhotoUpload({
           userRole: user.role
         });
 
-        return storageService.uploadImage(file, path, (progress) => {
+        return storageService.uploadImage(file, path, (progress: number) => {
           setUploadProgress(progress);
         });
       });
@@ -145,7 +145,7 @@ export default function PhotoUpload({
       const results = await Promise.all(uploadPromises);
 
       // Check for any errors
-      const errors = results.filter((result): result is { error: string } => 
+      const errors = results.filter((result): result is UploadError => 
         'error' in result
       );
 
@@ -157,7 +157,7 @@ export default function PhotoUpload({
 
       // Get successful uploads
       const urls = results
-        .filter((result): result is { url: string; path: string } => 'url' in result)
+        .filter((result): result is UploadResult => 'url' in result)
         .map(result => result.url);
 
       console.log('Photos uploaded successfully:', {

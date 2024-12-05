@@ -1,6 +1,6 @@
 import React, { useCallback, useState, useEffect } from 'react';
 import { Upload, X, Loader2, AlertCircle } from 'lucide-react';
-import { storageService } from '../services/storage';
+import { storageService, UploadResult, UploadError } from '../services/storage';
 import { useAuthStore } from '../store/authStore';
 
 interface LogoUploadProps {
@@ -67,7 +67,7 @@ export default function LogoUpload({
         userRole: user.role
       });
 
-      const result = await storageService.uploadImage(file, path, (progress) => {
+      const result = await storageService.uploadImage(file, path, (progress: number) => {
         setUploadProgress(progress);
       });
 
@@ -131,7 +131,7 @@ export default function LogoUpload({
         userRole: user.role
       });
 
-      const result = await storageService.uploadImage(file, path, (progress) => {
+      const result = await storageService.uploadImage(file, path, (progress: number) => {
         setUploadProgress(progress);
       });
 

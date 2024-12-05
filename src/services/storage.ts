@@ -4,7 +4,9 @@ import {
   getDownloadURL, 
   deleteObject,
   listAll,
-  StorageError
+  StorageError,
+  StorageReference,
+  UploadTaskSnapshot
 } from 'firebase/storage';
 import { storage } from '../lib/firebase';
 
@@ -16,6 +18,17 @@ export interface UploadResult {
 export interface UploadError {
   error: string;
   code?: string;
+}
+
+export interface MovedFile {
+  oldUrl: string;
+  newUrl: string;
+  oldPath: string;
+  newPath: string;
+}
+
+export interface MoveFilesResult {
+  movedFiles: MovedFile[];
 }
 
 export const storageService = {
@@ -53,13 +66,19 @@ export const storageService = {
     }
 
     try {
+      // If uploading to a logo folder, clean up existing files first
+      if (path.includes('/logo/')) {
+        const folderPath = path.split('/').slice(0, -1).join('/');
+        await this.cleanupFolder(folderPath);
+      }
+
       const storageRef = ref(storage, path);
       const uploadTask = uploadBytesResumable(storageRef, file);
 
       return new Promise((resolve, reject) => {
         uploadTask.on(
           'state_changed',
-          (snapshot) => {
+          (snapshot: UploadTaskSnapshot) => {
             const progress = (snapshot.bytesTransferred / snapshot.totalBytes) * 100;
             console.log('Upload progress:', {
               path,
@@ -142,7 +161,37 @@ export const storageService = {
     );
   },
 
-  async moveFiles(fromPath: string, toPath: string): Promise<void> {
+  async cleanupFolder(path: string): Promise<void> {
+    try {
+      console.log('Cleaning up folder:', path);
+      const folderRef = ref(storage, path);
+      const listResult = await listAll(folderRef);
+
+      // Delete each file in the folder
+      await Promise.all(
+        listResult.items.map(async (itemRef) => {
+          try {
+            await deleteObject(itemRef);
+            console.log('Deleted file:', itemRef.fullPath);
+          } catch (error) {
+            console.error('Error deleting file:', {
+              path: itemRef.fullPath,
+              error,
+              timestamp: new Date().toISOString()
+            });
+          }
+        })
+      );
+    } catch (error) {
+      console.error('Error cleaning up folder:', {
+        path,
+        error,
+        timestamp: new Date().toISOString()
+      });
+    }
+  },
+
+  async moveFiles(fromPath: string, toPath: string): Promise<MoveFilesResult> {
     console.log('Moving files:', {
       fromPath,
       toPath,
@@ -152,73 +201,76 @@ export const storageService = {
     try {
       const fromRef = ref(storage, fromPath);
       const listResult = await listAll(fromRef);
-
-      console.log('Files to move:', {
-        count: listResult.items.length,
-        fromPath,
-        toPath
-      });
+      const movedFiles: MovedFile[] = [];
 
       // Move each file
-      await Promise.all(listResult.items.map(async (itemRef) => {
-        const newPath = itemRef.fullPath.replace(fromPath, toPath);
-        const newRef = ref(storage, newPath);
-
-        // Download URL of the original file
-        const url = await getDownloadURL(itemRef);
-
-        // Fetch the file
-        const response = await fetch(url);
-        const blob = await response.blob();
-
-        // Upload to new location
-        await uploadBytesResumable(newRef, blob);
-
-        // Delete original
-        await deleteObject(itemRef);
-
-        console.log('File moved successfully:', {
-          from: itemRef.fullPath,
-          to: newPath
-        });
-      }));
-    } catch (error) {
-      console.error('Error moving files:', {
-        error,
-        fromPath,
-        toPath,
-        timestamp: new Date().toISOString()
-      });
-      throw error;
-    }
-  },
-
-  async deleteFiles(path: string): Promise<void> {
-    console.log('Deleting files in path:', {
-      path,
-      timestamp: new Date().toISOString()
-    });
-
-    try {
-      const folderRef = ref(storage, path);
-      const listResult = await listAll(folderRef);
-
-      console.log('Files to delete:', {
-        count: listResult.items.length,
-        path
-      });
-
-      // Delete each file in the folder
       await Promise.all(
         listResult.items.map(async (itemRef) => {
-          await deleteObject(itemRef);
-          console.log('File deleted:', itemRef.fullPath);
+          try {
+            // Get the file data
+            const url = await getDownloadURL(itemRef);
+            const response = await fetch(url);
+            const blob = await response.blob();
+
+            // Create new path
+            const fileName = itemRef.name;
+            const newPath = `${toPath}/${fileName}`;
+            const newRef = ref(storage, newPath);
+
+            // Upload to new location
+            const uploadTask = uploadBytesResumable(newRef, blob);
+            await new Promise<void>((resolve, reject) => {
+              uploadTask.on(
+                'state_changed',
+                (snapshot: UploadTaskSnapshot) => {
+                  const progress = (snapshot.bytesTransferred / snapshot.totalBytes) * 100;
+                  console.log('Move progress:', {
+                    file: fileName,
+                    progress: Math.round(progress)
+                  });
+                },
+                (error: StorageError) => reject(error),
+                () => resolve()
+              );
+            });
+
+            // Get new URL
+            const newUrl = await getDownloadURL(newRef);
+
+            // Delete original
+            await deleteObject(itemRef);
+
+            movedFiles.push({
+              oldUrl: url,
+              newUrl,
+              oldPath: itemRef.fullPath,
+              newPath: newRef.fullPath
+            });
+
+            console.log('File moved successfully:', {
+              from: itemRef.fullPath,
+              to: newRef.fullPath
+            });
+          } catch (error) {
+            console.error('Error moving file:', {
+              file: itemRef.fullPath,
+              error
+            });
+          }
         })
       );
+
+      console.log('Files moved successfully:', {
+        count: movedFiles.length,
+        files: movedFiles.map(f => ({ from: f.oldPath, to: f.newPath }))
+      });
+
+      return { movedFiles };
     } catch (error) {
-      console.error('Error deleting files:', {
+      console.error('Error moving files:', {
+        fromPath,
+        toPath,
         error,
-        path,
         timestamp: new Date().toISOString()
       });
       throw error;
@@ -226,21 +278,54 @@ export const storageService = {
   },
 
   async deleteFile(path: string): Promise<void> {
-    console.log('Deleting file:', {
-      path,
-      timestamp: new Date().toISOString()
-    });
-
     try {
-      const fileRef = ref(storage, path);
-      await deleteObject(fileRef);
-      console.log('File deleted successfully:', path);
+      console.log('Deleting file:', {
+        path,
+        timestamp: new Date().toISOString()
+      });
+
+      // If deleting from a logo folder, clean up the entire folder
+      if (path.includes('/logo/')) {
+        const folderPath = path.split('/').slice(0, -1).join('/');
+        await this.cleanupFolder(folderPath);
+      } else {
+        const fileRef = ref(storage, path);
+        await deleteObject(fileRef);
+        console.log('File deleted successfully:', path);
+      }
     } catch (error) {
       console.error('Error deleting file:', {
         error,
         path,
         timestamp: new Date().toISOString()
       });
+      throw error;
+    }
+  },
+
+  async deleteFiles(paths: string[]): Promise<void> {
+    try {
+      console.log('Deleting multiple files:', {
+        count: paths.length,
+        paths,
+        timestamp: new Date().toISOString()
+      });
+
+      await Promise.all(
+        paths.map(async (path) => {
+          try {
+            await this.deleteFile(path);
+          } catch (error) {
+            console.error('Error deleting file:', {
+              path,
+              error,
+              timestamp: new Date().toISOString()
+            });
+          }
+        })
+      );
+    } catch (error) {
+      console.error('Error in batch file deletion:', error);
       throw error;
     }
   },

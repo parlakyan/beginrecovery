@@ -1,6 +1,6 @@
 import React, { useRef, useState } from 'react';
 import { Upload, X, AlertCircle } from 'lucide-react';
-import { storageService } from '../services/storage';
+import { storageService, UploadResult, UploadError } from '../services/storage';
 import { useAuthStore } from '../store/authStore';
 
 interface LocationImageUploadProps {
@@ -11,7 +11,7 @@ interface LocationImageUploadProps {
 export default function LocationImageUpload({ currentImage, onUpload }: LocationImageUploadProps) {
   const [uploading, setUploading] = useState(false);
   const [error, setError] = useState<string | null>(null);
-  const [uploadProgress, setUploadProgress] = useState(0);
+  const [uploadProgress, setUploadProgress] = useState<number>(0);
   const fileInputRef = useRef<HTMLInputElement>(null);
   const { user } = useAuthStore();
 
@@ -43,22 +43,7 @@ export default function LocationImageUpload({ currentImage, onUpload }: Location
         userRole: user.role
       });
 
-      // Delete old image if it exists
-      if (currentImage) {
-        try {
-          const url = new URL(currentImage);
-          const oldPath = decodeURIComponent(url.pathname.split('/o/')[1].split('?')[0]);
-          if (oldPath.startsWith('locations/')) {
-            console.log('Deleting old location image:', oldPath);
-            await storageService.deleteFile(oldPath);
-          }
-        } catch (error) {
-          console.error('Error deleting old image:', error);
-        }
-      }
-
-      // Upload new image
-      const result = await storageService.uploadImage(file, path, (progress) => {
+      const result = await storageService.uploadImage(file, path, (progress: number) => {
         setUploadProgress(progress);
       });
 
@@ -106,7 +91,6 @@ export default function LocationImageUpload({ currentImage, onUpload }: Location
       // Extract path from URL
       const url = new URL(currentImage);
       const path = decodeURIComponent(url.pathname.split('/o/')[1].split('?')[0]);
-      
       if (path.startsWith('locations/')) {
         console.log('Removing location image:', {
           path,

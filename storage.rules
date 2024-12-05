@@ -42,8 +42,8 @@ service firebase.storage {
       allow delete: if isAdmin();
     }
 
-    // Facilities folder - owners and admins can write
-    match /facilities/{facilityId}/{type}/{fileName} {
+    // Facility photos - owners and admins can write
+    match /facilities/{facilityId}/photos/{fileName} {
       allow write: if request.auth != null 
         && isValidImage()
         && (isAdmin() || isOwner());
@@ -51,8 +51,8 @@ service firebase.storage {
         && (isAdmin() || isOwner());
     }
 
-    // Catch-all rule for facility files
-    match /facilities/{facilityId}/{fileName} {
+    // Facility logos - owners and admins can write
+    match /facilities/{facilityId}/logo/{fileName} {
       allow write: if request.auth != null 
         && isValidImage()
         && (isAdmin() || isOwner());
