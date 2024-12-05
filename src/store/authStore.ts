@@ -57,7 +57,8 @@ export const useAuthStore = create<AuthState>((set, get) => ({
 
     try {
       // Force token refresh to ensure latest claims
-      const token = await firebaseUser.getIdToken(true);
+      await firebaseUser.getIdToken(true);
+      const token = await firebaseUser.getIdToken();
       console.log('Getting fresh token for user data fetch');
       
       // Get user data from API with forced token refresh
@@ -91,12 +92,17 @@ export const useAuthStore = create<AuthState>((set, get) => ({
       if (firebaseUser.email === 'admin@beginrecovery.com' && customUser.role !== 'admin') {
         console.log('Forcing admin role for admin email');
         customUser.role = 'admin';
-        // Update role in database
+        // Update role in database and force token refresh
         await usersService.createUser({
           email: firebaseUser.email,
           role: 'admin',
           createdAt: userData.createdAt || new Date().toISOString()
         });
+        // Sign out and back in to refresh token with new claims
+        await firebaseSignOut(auth);
+        if (firebaseUser.email) {
+          await signInWithEmailAndPassword(auth, firebaseUser.email, 'admin-password');
+        }
       }
 
       set({ user: customUser, initialized: true, loading: false });
@@ -144,6 +150,12 @@ export const useAuthStore = create<AuthState>((set, get) => ({
       // Force token refresh and user data fetch
       await userCredential.user.reload();
       await get().refreshToken();
+      
+      // Force another sign in if admin to ensure claims are set
+      if (email === 'admin@beginrecovery.com') {
+        await firebaseSignOut(auth);
+        await signInWithEmailAndPassword(auth, email, password);
+      }
     } catch (error) {
       console.error('Sign in error:', error);
       const errorMessage = (error as any).code === 'auth/wrong-password' || (error as any).code === 'auth/user-not-found'
@@ -179,6 +191,12 @@ export const useAuthStore = create<AuthState>((set, get) => ({
       // Force token refresh and user data fetch
       await userCredential.user.reload();
       await get().refreshToken();
+      
+      // Force another sign in if admin to ensure claims are set
+      if (email === 'admin@beginrecovery.com') {
+        await firebaseSignOut(auth);
+        await signInWithEmailAndPassword(auth, email, password);
+      }
     } catch (error) {
       console.error('Registration error:', error);
       let errorMessage = 'An error occurred during registration';
@@ -262,7 +280,7 @@ export const useAuthStore = create<AuthState>((set, get) => ({
       console.log('Refreshing auth token and user data');
       // Force reload user data
       await user.reload();
-      // Get fresh token
+      // Get fresh token with force refresh
       const token = await user.getIdToken(true);
       // Fetch latest user data
       await get().setUser(user);

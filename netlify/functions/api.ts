@@ -92,6 +92,12 @@ export const handler: Handler = async (event, context) => {
           await userRef.set(newUserData);
           console.log('Created new user document:', newUserData);
 
+          // Set custom claims for admin
+          if (isAdmin) {
+            await auth.setCustomUserClaims(decodedToken.uid, { role: 'admin' });
+            console.log('Set admin custom claims for new user');
+          }
+
           return {
             statusCode: 200,
             headers,
@@ -107,7 +113,9 @@ export const handler: Handler = async (event, context) => {
           await userRef.update({
             role: 'admin'
           });
-          console.log('Updated user to admin role');
+          // Set custom claims for admin
+          await auth.setCustomUserClaims(decodedToken.uid, { role: 'admin' });
+          console.log('Updated user to admin role and set custom claims');
         }
 
         // Return user data with correct role
@@ -193,6 +201,9 @@ export const handler: Handler = async (event, context) => {
                 role: 'owner',
                 updatedAt: new Date().toISOString()
               });
+
+            // Set custom claims for owner
+            await auth.setCustomUserClaims(userId, { role: 'owner' });
 
             console.log('Updated facility and user:', {
               facilityId,
