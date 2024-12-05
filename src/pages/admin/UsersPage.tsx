@@ -13,7 +13,6 @@ import {
   Mail
 } from 'lucide-react';
 import { usersService } from '../../services/users';
-import { facilitiesService } from '../../services/facilities';
 import { User, UserStats } from '../../types';
 
 export default function UsersPage() {
@@ -65,6 +64,23 @@ export default function UsersPage() {
       alert('Failed to send password reset email');
     } finally {
       setResettingPassword(null);
+    }
+  };
+
+  const formatDate = (dateString: string | null | undefined) => {
+    if (!dateString) return 'Never';
+    try {
+      const date = new Date(dateString);
+      return date.toLocaleDateString('en-US', {
+        year: 'numeric',
+        month: 'short',
+        day: 'numeric',
+        hour: '2-digit',
+        minute: '2-digit'
+      });
+    } catch (error) {
+      console.error('Error formatting date:', error);
+      return 'Invalid date';
     }
   };
 
@@ -149,7 +165,7 @@ export default function UsersPage() {
           <div className="flex items-center justify-between">
             <div>
               <h3 className="text-2xl font-bold text-gray-900">{stats.activeUsers || 0}</h3>
-              <p className="text-sm text-gray-500">Last active {stats.lastLogin ? new Date(stats.lastLogin).toLocaleDateString() : 'recently'}</p>
+              <p className="text-sm text-gray-500">Last active {formatDate(stats.lastLogin)}</p>
             </div>
           </div>
         </div>
@@ -198,7 +214,7 @@ export default function UsersPage() {
                   <td className="py-4 px-6">
                     <div>
                       <div className="font-medium text-gray-900">{user.email}</div>
-                      <div className="text-sm text-gray-500">Created {new Date(user.createdAt).toLocaleDateString()}</div>
+                      <div className="text-sm text-gray-500">Created {formatDate(user.createdAt)}</div>
                     </div>
                   </td>
                   <td className="py-4 px-6">
@@ -218,13 +234,13 @@ export default function UsersPage() {
                     <div className="text-sm">
                       <span className="font-medium">{user.verifiedListings || 0}</span>
                       <span className="text-gray-500"> verified of </span>
-                      <span className="font-medium">{user.facilities?.length || 0}</span>
+                      <span className="font-medium">{user.totalListings || 0}</span>
                       <span className="text-gray-500"> total</span>
                     </div>
                   </td>
                   <td className="py-4 px-6">
                     <div className="text-sm text-gray-500">
-                      {user.lastLogin ? new Date(user.lastLogin).toLocaleDateString() : 'Never'}
+                      {formatDate(user.lastLogin)}
                     </div>
                   </td>
                   <td className="py-4 px-6">

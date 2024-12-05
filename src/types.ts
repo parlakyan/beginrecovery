@@ -42,8 +42,9 @@ export interface User {
   role: 'user' | 'admin' | 'owner';
   facilities?: string[];
   isSuspended?: boolean;
-  lastLogin?: string;
+  lastLogin?: string | null;
   verifiedListings?: number;
+  totalListings?: number;
   createdAt: string;
   updatedAt?: string;
 }

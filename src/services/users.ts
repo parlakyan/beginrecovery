@@ -18,13 +18,58 @@ export const usersService = {
   async getUsers(): Promise<User[]> {
     try {
       const usersRef = collection(db, 'users');
-      const snapshot = await getDocs(usersRef);
-      return snapshot.docs.map(doc => ({
-        id: doc.id,
-        ...doc.data(),
-        createdAt: doc.data().createdAt?.toDate?.()?.toISOString() || new Date().toISOString(),
-        lastLogin: doc.data().lastLogin?.toDate?.()?.toISOString() || null
-      } as User));
+      const facilitiesRef = collection(db, 'facilities');
+      
+      // Get all users
+      const usersSnapshot = await getDocs(usersRef);
+      
+      // Get all facilities
+      const facilitiesSnapshot = await getDocs(facilitiesRef);
+      
+      // Create a map of user IDs to their facility counts
+      const facilityCounts = new Map<string, { total: number, verified: number }>();
+      facilitiesSnapshot.docs.forEach(doc => {
+        const data = doc.data();
+        const ownerId = data.ownerId;
+        if (ownerId) {
+          const current = facilityCounts.get(ownerId) || { total: 0, verified: 0 };
+          current.total++;
+          if (data.isVerified) {
+            current.verified++;
+          }
+          facilityCounts.set(ownerId, current);
+        }
+      });
+
+      // Transform users with facility counts
+      return usersSnapshot.docs.map(doc => {
+        const data = doc.data();
+        const counts = facilityCounts.get(doc.id) || { total: 0, verified: 0 };
+        
+        // Handle lastLogin timestamp
+        let lastLogin = data.lastLogin;
+        if (lastLogin instanceof Timestamp) {
+          lastLogin = lastLogin.toDate().toISOString();
+        } else if (typeof lastLogin === 'string') {
+          lastLogin = new Date(lastLogin).toISOString();
+        } else {
+          lastLogin = null;
+        }
+
+        return {
+          id: doc.id,
+          email: data.email || '',
+          name: data.name || '',
+          role: data.role || 'user',
+          facilities: data.facilities || [],
+          verifiedListings: counts.verified,
+          totalListings: counts.total,
+          isSuspended: data.isSuspended || false,
+          lastLogin,
+          createdAt: data.createdAt?.toDate?.()?.toISOString() || new Date().toISOString(),
+          updatedAt: data.updatedAt?.toDate?.()?.toISOString() || new Date().toISOString()
+        } as User;
+      });
     } catch (error) {
       console.error('Error getting users:', error);
       return [];
@@ -115,17 +160,6 @@ export const usersService = {
         verifiedListings: 0,
         status: 'error'
       };
-    }
-  },
-
-  async getUserFacilities(userId: string): Promise<string[]> {
-    try {
-      const userRef = doc(db, 'users', userId);
-      const userDoc = await getDoc(userRef);
-      return userDoc.data()?.facilities || [];
-    } catch (error) {
-      console.error('Error getting user facilities:', error);
-      return [];
     }
   },
 
