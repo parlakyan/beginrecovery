@@ -84,22 +84,28 @@ const generateSlug = (name: string, location: string): string => {
     return cleanName;
   }
 
-  const parts = location.split(',');
+  const parts = location.split(',').map(part => part.trim());
+  
+  // Handle cases where location doesn't have city,state format
   if (parts.length < 2) {
-    return `${cleanName}-${location.toLowerCase().replace(/[^a-z0-9\s-]/g, '').replace(/\s+/g, '-')}`;
+    const cleanLocation = location
+      .toLowerCase()
+      .replace(/[^a-z0-9\s-]/g, '')
+      .replace(/\s+/g, '-');
+    return `${cleanName}-${cleanLocation}`;
   }
 
-  const [city, stateWithSpaces] = parts.map(part => part.trim());
-  const state = stateWithSpaces
-    .toLowerCase()
-    .replace(/[^a-z0-9\s-]/g, '')
-    .replace(/\s+/g, '-');
+  const [city, state] = parts;
   const cleanCity = city
     .toLowerCase()
     .replace(/[^a-z0-9\s-]/g, '')
     .replace(/\s+/g, '-');
+  const cleanState = state
+    .toLowerCase()
+    .replace(/[^a-z0-9\s-]/g, '')
+    .replace(/\s+/g, '-');
 
-  return `${cleanName}-${cleanCity}-${state}`;
+  return `${cleanName}-${cleanCity}-${cleanState}`;
 };
 
 /**
@@ -132,6 +138,7 @@ const transformFacilityData = (doc: QueryDocumentSnapshot<DocumentData>): Facili
     status: data.status || 'pending',
     ownerId: data.ownerId || '',
     rating: data.rating || 0,
+    reviews: data.reviews || 0,
     reviewCount: data.reviewCount || 0,
     createdAt,
     updatedAt,
@@ -265,6 +272,7 @@ export const facilitiesService = {
         ...data,
         ownerId: auth.currentUser?.uid,
         rating: 0,
+        reviews: 0,
         reviewCount: 0,
         status: 'pending',
         moderationStatus: 'pending',
