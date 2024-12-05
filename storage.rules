@@ -7,12 +7,7 @@ service firebase.storage {
       return request.auth != null && 
         (request.auth.token.role == 'admin' || 
          request.auth.token.admin == true ||
-         request.auth.token.isAdmin == true);
-    }
-    
-    function isOwner(facilityId) {
-      return request.auth != null && 
-        (get(/databases/$(database)/documents/facilities/$(facilityId)).data.ownerId == request.auth.uid);
+         request.auth.email == 'admin@beginrecovery.com');
     }
     
     function isValidImage() {
@@ -42,27 +37,12 @@ service firebase.storage {
     }
 
     // Facilities folder - owners and admins can write
-    match /facilities/{facilityId}/{fileName} {
+    match /facilities/{facilityId}/{allPaths=**} {
       allow write: if request.auth != null 
         && isValidImage()
-        && (
-          isOwner(facilityId) || // Owner
-          isAdmin() // Admin
-        );
-      allow delete: if request.auth != null && 
-        (isOwner(facilityId) || isAdmin());
-    }
-
-    // Logos folder - owners and admins can write
-    match /logos/{facilityId}/{fileName} {
-      allow write: if request.auth != null 
-        && isValidImage()
-        && (
-          isOwner(facilityId) || // Owner
-          isAdmin() // Admin
-        );
-      allow delete: if request.auth != null && 
-        (isOwner(facilityId) || isAdmin());
+        && (isAdmin() || request.auth.token.role == 'owner');
+      allow delete: if request.auth != null 
+        && (isAdmin() || request.auth.token.role == 'owner');
     }
   }
 }

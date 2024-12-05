@@ -98,24 +98,28 @@ export const useAuthStore = create<AuthState>((set, get) => ({
           role: 'admin',
           createdAt: userData.createdAt || new Date().toISOString()
         });
-        // Sign out and back in to refresh token with new claims
-        await firebaseSignOut(auth);
-        if (firebaseUser.email) {
-          await signInWithEmailAndPassword(auth, firebaseUser.email, 'admin-password');
-        }
+        // Force token refresh
+        await firebaseUser.getIdToken(true);
       }
 
       set({ user: customUser, initialized: true, loading: false });
     } catch (error) {
       console.error('Error getting user data:', error);
       // Fallback to basic user if API fails
+      const fallbackUser = {
+        ...firebaseUser,
+        id: firebaseUser.uid,
+        role: firebaseUser.email === 'admin@beginrecovery.com' ? 'admin' : 'user',
+        createdAt: new Date().toISOString()
+      } as CustomUser;
+
+      // Force token refresh for fallback user
+      if (fallbackUser.role === 'admin') {
+        await firebaseUser.getIdToken(true);
+      }
+
       set({ 
-        user: {
-          ...firebaseUser,
-          id: firebaseUser.uid,
-          role: firebaseUser.email === 'admin@beginrecovery.com' ? 'admin' : 'user',
-          createdAt: new Date().toISOString()
-        } as CustomUser,
+        user: fallbackUser,
         initialized: true,
         loading: false
       });
@@ -149,6 +153,7 @@ export const useAuthStore = create<AuthState>((set, get) => ({
 
       // Force token refresh and user data fetch
       await userCredential.user.reload();
+      await userCredential.user.getIdToken(true);
       await get().refreshToken();
       
       // Force another sign in if admin to ensure claims are set
@@ -190,6 +195,7 @@ export const useAuthStore = create<AuthState>((set, get) => ({
       
       // Force token refresh and user data fetch
       await userCredential.user.reload();
+      await userCredential.user.getIdToken(true);
       await get().refreshToken();
       
       // Force another sign in if admin to ensure claims are set
