@@ -1,6 +1,7 @@
 import React, { useCallback, useState, useEffect } from 'react';
 import { Upload, X, Loader2, AlertCircle } from 'lucide-react';
 import { storageService } from '../services/storage';
+import { useAuthStore } from '../store/authStore';
 
 interface LogoUploadProps {
   facilityId: string;
@@ -25,6 +26,7 @@ export default function LogoUpload({
   const [error, setError] = useState<string | undefined>();
   const [logo, setLogo] = useState<string | undefined>(existingLogo);
   const [uploadProgress, setUploadProgress] = useState<number>(0);
+  const { user } = useAuthStore();
 
   // Update logo when existingLogo prop changes
   useEffect(() => {
@@ -35,6 +37,11 @@ export default function LogoUpload({
   const handleDrop = useCallback(async (e: React.DragEvent<HTMLDivElement>) => {
     e.preventDefault();
     setError(undefined);
+
+    if (!user) {
+      setError('You must be logged in to upload a logo');
+      return;
+    }
 
     const files = Array.from(e.dataTransfer.files);
     if (files.length > 1) {
@@ -56,7 +63,8 @@ export default function LogoUpload({
         path,
         fileName,
         fileSize: file.size,
-        fileType: file.type
+        fileType: file.type,
+        userRole: user.role
       });
 
       const result = await storageService.uploadImage(file, path, (progress) => {
@@ -88,10 +96,16 @@ export default function LogoUpload({
       setIsUploading(false);
       setUploadProgress(0);
     }
-  }, [facilityId, onLogoChange]);
+  }, [facilityId, onLogoChange, user]);
 
   const handleFileSelect = useCallback(async (e: React.ChangeEvent<HTMLInputElement>) => {
     setError(undefined);
+
+    if (!user) {
+      setError('You must be logged in to upload a logo');
+      return;
+    }
+
     const files = Array.from(e.target.files || []);
     
     if (files.length > 1) {
@@ -113,7 +127,8 @@ export default function LogoUpload({
         path,
         fileName,
         fileSize: file.size,
-        fileType: file.type
+        fileType: file.type,
+        userRole: user.role
       });
 
       const result = await storageService.uploadImage(file, path, (progress) => {
@@ -147,11 +162,16 @@ export default function LogoUpload({
       // Reset input value to allow uploading the same file again
       e.target.value = '';
     }
-  }, [facilityId, onLogoChange]);
+  }, [facilityId, onLogoChange, user]);
 
   const handleRemoveLogo = useCallback(async (e: React.MouseEvent) => {
     e.stopPropagation();
     e.preventDefault();
+
+    if (!user) {
+      setError('You must be logged in to remove a logo');
+      return;
+    }
 
     try {
       if (logo) {
@@ -160,7 +180,8 @@ export default function LogoUpload({
         const path = decodeURIComponent(url.pathname.split('/o/')[1].split('?')[0]);
         console.log('Removing logo:', {
           path,
-          facilityId
+          facilityId,
+          userRole: user.role
         });
         await storageService.deleteFile(path);
         console.log('Logo removed successfully');
@@ -171,7 +192,7 @@ export default function LogoUpload({
       console.error('Error removing logo:', err);
       setError('Failed to remove logo. Please try again.');
     }
-  }, [logo, onLogoChange, facilityId]);
+  }, [logo, onLogoChange, facilityId, user]);
 
   const dragOverHandler = useCallback((e: React.DragEvent<HTMLDivElement>) => {
     e.preventDefault();

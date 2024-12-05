@@ -1,6 +1,7 @@
 import React, { useCallback, useState } from 'react';
 import { Upload, X, Loader2, AlertCircle } from 'lucide-react';
 import { storageService } from '../services/storage';
+import { useAuthStore } from '../store/authStore';
 
 interface PhotoUploadProps {
   facilityId: string;
@@ -20,12 +21,24 @@ export default function PhotoUpload({
   const [isUploading, setIsUploading] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [uploadProgress, setUploadProgress] = useState(0);
+  const { user } = useAuthStore();
 
   const handleDrop = useCallback(async (e: React.DragEvent<HTMLDivElement>) => {
     e.preventDefault();
     setError(null);
 
+    if (!user) {
+      setError('You must be logged in to upload photos');
+      return;
+    }
+
     const files = Array.from(e.dataTransfer.files);
+    // Allow admin to upload multiple photos regardless of verification status
+    if (!user.role.includes('admin') && !isVerified && files.length + existingPhotos.length > 1) {
+      setError(`Upgrade to verified to upload more than 1 photo`);
+      return;
+    }
+
     if (maxPhotos && files.length + existingPhotos.length > maxPhotos) {
       setError(`You can only upload up to ${maxPhotos} photos`);
       return;
@@ -44,7 +57,8 @@ export default function PhotoUpload({
           path,
           fileName,
           fileSize: file.size,
-          fileType: file.type
+          fileType: file.type,
+          userRole: user.role
         });
 
         return storageService.uploadImage(file, path, (progress) => {
@@ -83,12 +97,24 @@ export default function PhotoUpload({
       setIsUploading(false);
       setUploadProgress(0);
     }
-  }, [maxPhotos, existingPhotos, onPhotosChange, facilityId]);
+  }, [maxPhotos, existingPhotos, onPhotosChange, facilityId, isVerified, user]);
 
   const handleFileSelect = useCallback(async (e: React.ChangeEvent<HTMLInputElement>) => {
     setError(null);
+    
+    if (!user) {
+      setError('You must be logged in to upload photos');
+      return;
+    }
+
     const files = Array.from(e.target.files || []);
     
+    // Allow admin to upload multiple photos regardless of verification status
+    if (!user.role.includes('admin') && !isVerified && files.length + existingPhotos.length > 1) {
+      setError(`Upgrade to verified to upload more than 1 photo`);
+      return;
+    }
+
     if (maxPhotos && files.length + existingPhotos.length > maxPhotos) {
       setError(`You can only upload up to ${maxPhotos} photos`);
       return;
@@ -107,7 +133,8 @@ export default function PhotoUpload({
           path,
           fileName,
           fileSize: file.size,
-          fileType: file.type
+          fileType: file.type,
+          userRole: user.role
         });
 
         return storageService.uploadImage(file, path, (progress) => {
@@ -148,7 +175,7 @@ export default function PhotoUpload({
       // Reset input value to allow uploading the same file again
       e.target.value = '';
     }
-  }, [maxPhotos, existingPhotos, onPhotosChange, facilityId]);
+  }, [maxPhotos, existingPhotos, onPhotosChange, facilityId, isVerified, user]);
 
   const dragOverHandler = useCallback((e: React.DragEvent<HTMLDivElement>) => {
     e.preventDefault();
@@ -201,7 +228,7 @@ export default function PhotoUpload({
               <p className="mt-2 text-sm text-gray-600">
                 Drag photos here or <span className="text-blue-500">browse</span>
               </p>
-              {!isVerified && (
+              {!isVerified && !user?.role.includes('admin') && (
                 <p className="mt-1 text-xs text-gray-500">
                   Upgrade to verified to upload more than 1 photo
                 </p>
@@ -223,7 +250,7 @@ export default function PhotoUpload({
       <div className="text-xs text-gray-500">
         <p>Supported formats: JPEG, PNG, WebP</p>
         <p>Maximum file size: 5MB per photo</p>
-        <p>Maximum photos: {isVerified ? maxPhotos : 1}</p>
+        <p>Maximum photos: {isVerified || user?.role.includes('admin') ? maxPhotos : 1}</p>
       </div>
     </div>
   );

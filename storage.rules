@@ -9,6 +9,12 @@ service firebase.storage {
          request.auth.token.admin == true ||
          request.auth.email == 'admin@beginrecovery.com');
     }
+
+    function isOwner() {
+      return request.auth != null && 
+        (request.auth.token.role == 'owner' || 
+         request.auth.token.owner == true);
+    }
     
     function isValidImage() {
       return request.resource.size < 5 * 1024 * 1024 // 5MB max
@@ -37,12 +43,21 @@ service firebase.storage {
     }
 
     // Facilities folder - owners and admins can write
-    match /facilities/{facilityId}/{allPaths=**} {
+    match /facilities/{facilityId}/{type}/{fileName} {
       allow write: if request.auth != null 
         && isValidImage()
-        && (isAdmin() || request.auth.token.role == 'owner');
+        && (isAdmin() || isOwner());
       allow delete: if request.auth != null 
-        && (isAdmin() || request.auth.token.role == 'owner');
+        && (isAdmin() || isOwner());
+    }
+
+    // Catch-all rule for facility files
+    match /facilities/{facilityId}/{fileName} {
+      allow write: if request.auth != null 
+        && isValidImage()
+        && (isAdmin() || isOwner());
+      allow delete: if request.auth != null 
+        && (isAdmin() || isOwner());
     }
   }
 }
