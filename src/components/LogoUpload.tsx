@@ -56,8 +56,23 @@ export default function LogoUpload({
         fileName,
         fileSize: file.size,
         fileType: file.type,
-        userRole: user.role
+        userRole: user.role,
+        userId: user.id
       });
+
+      // First, try to clean up any existing logo
+      if (logo) {
+        try {
+          const oldUrl = new URL(logo);
+          const oldPath = decodeURIComponent(oldUrl.pathname.split('/o/')[1].split('?')[0]);
+          if (oldPath.startsWith('facilities/')) {
+            await storageService.deleteFile(oldPath);
+          }
+        } catch (err) {
+          console.error('Error cleaning up old logo:', err);
+          // Continue with upload even if cleanup fails
+        }
+      }
 
       const result = await storageService.uploadImage(file, path, (progress: number) => {
         setUploadProgress(progress);
@@ -88,7 +103,7 @@ export default function LogoUpload({
       setIsUploading(false);
       setUploadProgress(0);
     }
-  }, [facilityId, onLogoChange, user]);
+  }, [facilityId, onLogoChange, user, logo]);
 
   const handleFileSelect = useCallback(async (e: React.ChangeEvent<HTMLInputElement>) => {
     setError(undefined);
@@ -120,8 +135,23 @@ export default function LogoUpload({
         fileName,
         fileSize: file.size,
         fileType: file.type,
-        userRole: user.role
+        userRole: user.role,
+        userId: user.id
       });
+
+      // First, try to clean up any existing logo
+      if (logo) {
+        try {
+          const oldUrl = new URL(logo);
+          const oldPath = decodeURIComponent(oldUrl.pathname.split('/o/')[1].split('?')[0]);
+          if (oldPath.startsWith('facilities/')) {
+            await storageService.deleteFile(oldPath);
+          }
+        } catch (err) {
+          console.error('Error cleaning up old logo:', err);
+          // Continue with upload even if cleanup fails
+        }
+      }
 
       const result = await storageService.uploadImage(file, path, (progress: number) => {
         setUploadProgress(progress);
@@ -154,7 +184,7 @@ export default function LogoUpload({
       // Reset input value to allow uploading the same file again
       e.target.value = '';
     }
-  }, [facilityId, onLogoChange, user]);
+  }, [facilityId, onLogoChange, user, logo]);
 
   const handleRemoveLogo = useCallback(async (e: React.MouseEvent) => {
     e.stopPropagation();
@@ -173,7 +203,8 @@ export default function LogoUpload({
         console.log('Removing logo:', {
           path,
           facilityId,
-          userRole: user.role
+          userRole: user.role,
+          userId: user.id
         });
         await storageService.deleteFile(path);
         console.log('Logo removed successfully');

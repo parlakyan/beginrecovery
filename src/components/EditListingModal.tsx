@@ -48,7 +48,10 @@ const EditListingModal = ({ facility, isOpen, onClose, onSave }: EditListingModa
   const { user } = useAuthStore();
 
   // Check if user is owner or admin
-  const canEdit = user && (user.role === 'admin' || (user.role === 'owner' && user.id === facility.ownerId));
+  const canEdit = user && (
+    user.role === 'admin' || 
+    (user.role === 'owner' && user.id === facility.ownerId)
+  );
 
   // Watch form values for DropdownSelect components
   const highlights = watch('highlights', []);
@@ -62,7 +65,13 @@ const EditListingModal = ({ facility, isOpen, onClose, onSave }: EditListingModa
   // Reset form when modal opens or facility changes
   useEffect(() => {
     if (isOpen && facility) {
-      console.log('Resetting form with facility data:', facility);
+      console.log('Resetting form with facility data:', {
+        ...facility,
+        canEdit,
+        userRole: user?.role,
+        userId: user?.id,
+        facilityOwnerId: facility.ownerId
+      });
       
       // Reset form fields
       reset({
@@ -90,7 +99,7 @@ const EditListingModal = ({ facility, isOpen, onClose, onSave }: EditListingModa
       console.log('Form data reset with logo:', facility.logo);
       setError(null);
     }
-  }, [facility, isOpen, reset]);
+  }, [facility, isOpen, reset, user, canEdit]);
 
   const handlePhotosChange = useCallback((photos: string[]) => {
     console.log('Photos changed:', photos);

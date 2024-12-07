@@ -62,7 +62,8 @@ export default function PhotoUpload({
           fileName,
           fileSize: file.size,
           fileType: file.type,
-          userRole: user.role
+          userRole: user.role,
+          userId: user.id
         });
 
         return storageService.uploadImage(file, path, (progress: number) => {
@@ -138,7 +139,8 @@ export default function PhotoUpload({
           fileName,
           fileSize: file.size,
           fileType: file.type,
-          userRole: user.role
+          userRole: user.role,
+          userId: user.id
         });
 
         return storageService.uploadImage(file, path, (progress: number) => {
@@ -198,7 +200,8 @@ export default function PhotoUpload({
         console.log('Removing photo:', {
           path,
           facilityId,
-          userRole: user?.role
+          userRole: user?.role,
+          userId: user?.id
         });
 
         await storageService.deleteFile(path);
