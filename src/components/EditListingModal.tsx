@@ -47,7 +47,7 @@ const EditListingModal = ({ facility, isOpen, onClose, onSave }: EditListingModa
   });
   const { user } = useAuthStore();
 
-  // Check if user is owner or admin
+  // Check if user can edit this facility
   const canEdit = user && (
     user.role === 'admin' || 
     (user.role === 'owner' && user.id === facility.ownerId)

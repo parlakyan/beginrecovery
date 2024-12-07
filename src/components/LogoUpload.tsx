@@ -45,12 +45,18 @@ export default function LogoUpload({
     setUploadProgress(0);
     try {
       const file = files[0];
+
+      // Validate file
+      const validationError = storageService.validateFile(file);
+      if (validationError) {
+        setError(validationError);
+        return;
+      }
+
       const timestamp = Date.now();
       const fileExtension = file.name.split('.').pop()?.toLowerCase() || '';
       const fileName = `logo-${timestamp}.${fileExtension}`;
-      const path = facilityId.startsWith('temp-') 
-        ? `facilities/temp/${facilityId.replace('temp-', '')}/logo/${fileName}`
-        : `facilities/${facilityId}/logo/${fileName}`;
+      const path = `facilities/${facilityId}/logo/${fileName}`;
 
       console.log('Uploading logo:', {
         facilityId,
@@ -126,12 +132,18 @@ export default function LogoUpload({
     setUploadProgress(0);
     try {
       const file = files[0];
+
+      // Validate file
+      const validationError = storageService.validateFile(file);
+      if (validationError) {
+        setError(validationError);
+        return;
+      }
+
       const timestamp = Date.now();
       const fileExtension = file.name.split('.').pop()?.toLowerCase() || '';
       const fileName = `logo-${timestamp}.${fileExtension}`;
-      const path = facilityId.startsWith('temp-') 
-        ? `facilities/temp/${facilityId.replace('temp-', '')}/logo/${fileName}`
-        : `facilities/${facilityId}/logo/${fileName}`;
+      const path = `facilities/${facilityId}/logo/${fileName}`;
 
       console.log('Uploading logo:', {
         facilityId,

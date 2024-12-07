@@ -26,6 +26,7 @@ export default function PhotoUpload({
 
   // Check if user can upload multiple photos
   const canUploadMultiple = user?.role === 'admin' || isVerified;
+  const photoLimit = canUploadMultiple ? maxPhotos : 1;
 
   const handleDrop = useCallback(async (e: React.DragEvent<HTMLDivElement>) => {
     e.preventDefault();
@@ -51,12 +52,16 @@ export default function PhotoUpload({
     setIsUploading(true);
     try {
       const uploadPromises = files.map(async (file) => {
+        // Validate file
+        const validationError = storageService.validateFile(file);
+        if (validationError) {
+          throw new Error(validationError);
+        }
+
         const timestamp = Date.now();
         const fileExtension = file.name.split('.').pop()?.toLowerCase() || '';
         const fileName = `photo-${timestamp}-${Math.random().toString(36).substring(7)}.${fileExtension}`;
-        const path = facilityId.startsWith('temp-') 
-          ? `facilities/temp/${facilityId.replace('temp-', '')}/photos/${fileName}`
-          : `facilities/${facilityId}/photos/${fileName}`;
+        const path = `facilities/${facilityId}/photos/${fileName}`;
 
         console.log('Uploading photo:', {
           facilityId,
@@ -99,7 +104,7 @@ export default function PhotoUpload({
       onPhotosChange([...existingPhotos, ...urls]);
     } catch (err) {
       console.error('Error uploading photos:', err);
-      setError('Failed to upload photos. Please try again.');
+      setError(err instanceof Error ? err.message : 'Failed to upload photos. Please try again.');
     } finally {
       setIsUploading(false);
       setUploadProgress(0);
@@ -130,12 +135,16 @@ export default function PhotoUpload({
     setIsUploading(true);
     try {
       const uploadPromises = files.map(async (file) => {
+        // Validate file
+        const validationError = storageService.validateFile(file);
+        if (validationError) {
+          throw new Error(validationError);
+        }
+
         const timestamp = Date.now();
         const fileExtension = file.name.split('.').pop()?.toLowerCase() || '';
         const fileName = `photo-${timestamp}-${Math.random().toString(36).substring(7)}.${fileExtension}`;
-        const path = facilityId.startsWith('temp-') 
-          ? `facilities/temp/${facilityId.replace('temp-', '')}/photos/${fileName}`
-          : `facilities/${facilityId}/photos/${fileName}`;
+        const path = `facilities/${facilityId}/photos/${fileName}`;
 
         console.log('Uploading photo:', {
           facilityId,
@@ -178,7 +187,7 @@ export default function PhotoUpload({
       onPhotosChange([...existingPhotos, ...urls]);
     } catch (err) {
       console.error('Error uploading photos:', err);
-      setError('Failed to upload photos. Please try again.');
+      setError(err instanceof Error ? err.message : 'Failed to upload photos. Please try again.');
     } finally {
       setIsUploading(false);
       setUploadProgress(0);
@@ -324,7 +333,10 @@ export default function PhotoUpload({
       <div className="text-xs text-gray-500">
         <p>Supported formats: JPEG, PNG, WebP</p>
         <p>Maximum file size: 5MB per photo</p>
-        <p>Maximum photos: {canUploadMultiple ? maxPhotos : 1}</p>
+        <p>Maximum photos: {photoLimit}</p>
+        {!canUploadMultiple && existingPhotos.length === 0 && (
+          <p>You can upload 1 photo. Upgrade to verified to upload more.</p>
+        )}
       </div>
     </div>
   );
