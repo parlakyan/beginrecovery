@@ -49,7 +49,7 @@ export default function LogoUpload({
       const fileExtension = file.name.split('.').pop()?.toLowerCase() || '';
       const fileName = `logo-${timestamp}.${fileExtension}`;
       const path = facilityId.startsWith('temp-') 
-        ? `facilities/${facilityId}/logo/${fileName}`
+        ? `facilities/temp/${facilityId.replace('temp-', '')}/logo/${fileName}`
         : `facilities/${facilityId}/logo/${fileName}`;
 
       console.log('Uploading logo:', {
@@ -130,7 +130,7 @@ export default function LogoUpload({
       const fileExtension = file.name.split('.').pop()?.toLowerCase() || '';
       const fileName = `logo-${timestamp}.${fileExtension}`;
       const path = facilityId.startsWith('temp-') 
-        ? `facilities/${facilityId}/logo/${fileName}`
+        ? `facilities/temp/${facilityId.replace('temp-', '')}/logo/${fileName}`
         : `facilities/${facilityId}/logo/${fileName}`;
 
       console.log('Uploading logo:', {
