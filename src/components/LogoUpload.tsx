@@ -48,7 +48,9 @@ export default function LogoUpload({
       const timestamp = Date.now();
       const fileExtension = file.name.split('.').pop()?.toLowerCase() || '';
       const fileName = `logo-${timestamp}.${fileExtension}`;
-      const path = `facilities/${facilityId}/logo/${fileName}`;
+      const path = facilityId.startsWith('temp-') 
+        ? `facilities/${facilityId}/logo/${fileName}`
+        : `facilities/${facilityId}/logo/${fileName}`;
 
       console.log('Uploading logo:', {
         facilityId,
@@ -127,7 +129,9 @@ export default function LogoUpload({
       const timestamp = Date.now();
       const fileExtension = file.name.split('.').pop()?.toLowerCase() || '';
       const fileName = `logo-${timestamp}.${fileExtension}`;
-      const path = `facilities/${facilityId}/logo/${fileName}`;
+      const path = facilityId.startsWith('temp-') 
+        ? `facilities/${facilityId}/logo/${fileName}`
+        : `facilities/${facilityId}/logo/${fileName}`;
 
       console.log('Uploading logo:', {
         facilityId,

@@ -54,7 +54,9 @@ export default function PhotoUpload({
         const timestamp = Date.now();
         const fileExtension = file.name.split('.').pop()?.toLowerCase() || '';
         const fileName = `photo-${timestamp}-${Math.random().toString(36).substring(7)}.${fileExtension}`;
-        const path = `facilities/${facilityId}/photos/${fileName}`;
+        const path = facilityId.startsWith('temp-') 
+          ? `facilities/${facilityId}/photos/${fileName}`
+          : `facilities/${facilityId}/photos/${fileName}`;
 
         console.log('Uploading photo:', {
           facilityId,
@@ -131,7 +133,9 @@ export default function PhotoUpload({
         const timestamp = Date.now();
         const fileExtension = file.name.split('.').pop()?.toLowerCase() || '';
         const fileName = `photo-${timestamp}-${Math.random().toString(36).substring(7)}.${fileExtension}`;
-        const path = `facilities/${facilityId}/photos/${fileName}`;
+        const path = facilityId.startsWith('temp-') 
+          ? `facilities/${facilityId}/photos/${fileName}`
+          : `facilities/${facilityId}/photos/${fileName}`;
 
         console.log('Uploading photo:', {
           facilityId,
