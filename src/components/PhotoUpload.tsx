@@ -177,6 +177,29 @@ export default function PhotoUpload({
     }
   }, [maxPhotos, existingPhotos, onPhotosChange, facilityId, isVerified, user]);
 
+  const handleRemovePhoto = useCallback(async (photoUrl: string) => {
+    try {
+      // Extract path from URL
+      const url = new URL(photoUrl);
+      const path = decodeURIComponent(url.pathname.split('/o/')[1].split('?')[0]);
+      console.log('Removing photo:', {
+        path,
+        facilityId,
+        userRole: user?.role
+      });
+
+      await storageService.deleteFile(path);
+      console.log('Photo removed successfully');
+
+      // Update photos list
+      const updatedPhotos = existingPhotos.filter(p => p !== photoUrl);
+      onPhotosChange(updatedPhotos);
+    } catch (err) {
+      console.error('Error removing photo:', err);
+      setError('Failed to remove photo. Please try again.');
+    }
+  }, [existingPhotos, onPhotosChange, facilityId, user]);
+
   const dragOverHandler = useCallback((e: React.DragEvent<HTMLDivElement>) => {
     e.preventDefault();
     e.currentTarget.classList.add('border-blue-500', 'bg-blue-50');
@@ -237,6 +260,27 @@ export default function PhotoUpload({
           )}
         </label>
       </div>
+
+      {/* Photo Grid */}
+      {existingPhotos.length > 0 && (
+        <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 gap-4">
+          {existingPhotos.map((photo, index) => (
+            <div key={photo} className="relative group aspect-square">
+              <img
+                src={photo}
+                alt={`Facility photo ${index + 1}`}
+                className="w-full h-full object-cover rounded-lg"
+              />
+              <button
+                onClick={() => handleRemovePhoto(photo)}
+                className="absolute top-2 right-2 p-1 bg-red-600 text-white rounded-full opacity-0 group-hover:opacity-100 transition-opacity"
+              >
+                <X className="w-4 h-4" />
+              </button>
+            </div>
+          ))}
+        </div>
+      )}
 
       {/* Error Message */}
       {error && (
