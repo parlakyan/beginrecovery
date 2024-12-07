@@ -19,6 +19,7 @@ export default function PhotoUpload({
   maxPhotos = 10
 }: PhotoUploadProps) {
   const [isUploading, setIsUploading] = useState(false);
+  const [isRemoving, setIsRemoving] = useState<string | null>(null);
   const [error, setError] = useState<string | null>(null);
   const [uploadProgress, setUploadProgress] = useState(0);
   const { user } = useAuthStore();
@@ -179,24 +180,38 @@ export default function PhotoUpload({
 
   const handleRemovePhoto = useCallback(async (photoUrl: string) => {
     try {
-      // Extract path from URL
-      const url = new URL(photoUrl);
-      const path = decodeURIComponent(url.pathname.split('/o/')[1].split('?')[0]);
-      console.log('Removing photo:', {
-        path,
-        facilityId,
-        userRole: user?.role
-      });
+      setIsRemoving(photoUrl);
+      setError(null);
 
-      await storageService.deleteFile(path);
-      console.log('Photo removed successfully');
-
-      // Update photos list
+      // First update the UI to remove the photo
       const updatedPhotos = existingPhotos.filter(p => p !== photoUrl);
       onPhotosChange(updatedPhotos);
+
+      // Then try to delete from storage
+      try {
+        // Extract path from URL
+        const url = new URL(photoUrl);
+        const path = decodeURIComponent(url.pathname.split('/o/')[1].split('?')[0]);
+        console.log('Removing photo:', {
+          path,
+          facilityId,
+          userRole: user?.role
+        });
+
+        await storageService.deleteFile(path);
+        console.log('Photo removed successfully');
+      } catch (err) {
+        console.error('Error removing photo from storage:', err);
+        // Don't show error to user since the photo is already removed from UI
+        // and will be cleaned up by storage rules eventually
+      }
     } catch (err) {
       console.error('Error removing photo:', err);
       setError('Failed to remove photo. Please try again.');
+      // Restore the photo in the UI
+      onPhotosChange(existingPhotos);
+    } finally {
+      setIsRemoving(null);
     }
   }, [existingPhotos, onPhotosChange, facilityId, user]);
 
@@ -273,9 +288,14 @@ export default function PhotoUpload({
               />
               <button
                 onClick={() => handleRemovePhoto(photo)}
-                className="absolute top-2 right-2 p-1 bg-red-600 text-white rounded-full opacity-0 group-hover:opacity-100 transition-opacity"
+                disabled={isRemoving === photo}
+                className="absolute top-2 right-2 p-1 bg-red-600 text-white rounded-full opacity-0 group-hover:opacity-100 transition-opacity disabled:opacity-50"
               >
-                <X className="w-4 h-4" />
+                {isRemoving === photo ? (
+                  <Loader2 className="w-4 h-4 animate-spin" />
+                ) : (
+                  <X className="w-4 h-4" />
+                )}
               </button>
             </div>
           ))}

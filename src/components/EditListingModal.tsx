@@ -1,4 +1,4 @@
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useCallback } from 'react';
 import { useForm } from 'react-hook-form';
 import { X } from 'lucide-react';
 import { Facility } from '../types';
@@ -39,6 +39,7 @@ const phoneRegex = /^(\+\d{1,2}\s?)?\(?\d{3}\)?[\s.-]?\d{3}[\s.-]?\d{4}$/;
 const EditListingModal = ({ facility, isOpen, onClose, onSave }: EditListingModalProps) => {
   const { register, handleSubmit, formState: { errors }, setValue, watch, reset } = useForm<EditListingForm>();
   const [loading, setLoading] = useState(false);
+  const [error, setError] = useState<string | null>(null);
   const [formData, setFormData] = useState<Partial<Facility>>({
     images: [],
     logo: undefined
@@ -82,28 +83,30 @@ const EditListingModal = ({ facility, isOpen, onClose, onSave }: EditListingModa
       });
 
       console.log('Form data reset with logo:', facility.logo);
+      setError(null);
     }
   }, [facility, isOpen, reset]);
 
-  const handlePhotosChange = (photos: string[]) => {
+  const handlePhotosChange = useCallback((photos: string[]) => {
     console.log('Photos changed:', photos);
     setFormData(prev => ({
       ...prev,
       images: photos
     }));
-  };
+  }, []);
 
-  const handleLogoChange = (logo: string | undefined) => {
+  const handleLogoChange = useCallback((logo: string | undefined) => {
     console.log('Logo changed:', logo);
     setFormData(prev => ({
       ...prev,
       logo
     }));
-  };
+  }, []);
 
   const onSubmit = async (data: EditListingForm) => {
     try {
       setLoading(true);
+      setError(null);
       console.log('Submitting form with data:', {
         ...data,
         images: formData.images,
@@ -128,8 +131,9 @@ const EditListingModal = ({ facility, isOpen, onClose, onSave }: EditListingModa
         logo: formData.logo
       });
       onClose();
-    } catch (error) {
-      console.error('Error saving facility:', error);
+    } catch (err) {
+      console.error('Error saving facility:', err);
+      setError('Failed to save changes. Please try again.');
     } finally {
       setLoading(false);
     }
@@ -153,6 +157,12 @@ const EditListingModal = ({ facility, isOpen, onClose, onSave }: EditListingModa
         </div>
 
         <form onSubmit={handleSubmit(onSubmit)} className="p-6 space-y-6">
+          {error && (
+            <div className="bg-red-50 border border-red-200 text-red-600 px-4 py-3 rounded-lg">
+              {error}
+            </div>
+          )}
+
           <div>
             <label className="block text-sm font-medium text-gray-700 mb-1">
               Facility Name
