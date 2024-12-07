@@ -6,6 +6,7 @@ import PhotoUpload from './PhotoUpload';
 import LogoUpload from './LogoUpload';
 import AddressAutocomplete from './AddressAutocomplete';
 import DropdownSelect from './ui/DropdownSelect';
+import { useAuthStore } from '../store/authStore';
 
 interface EditListingModalProps {
   facility: Facility;
@@ -44,6 +45,10 @@ const EditListingModal = ({ facility, isOpen, onClose, onSave }: EditListingModa
     images: [],
     logo: undefined
   });
+  const { user } = useAuthStore();
+
+  // Check if user is owner or admin
+  const canEdit = user && (user.role === 'admin' || (user.role === 'owner' && user.id === facility.ownerId));
 
   // Watch form values for DropdownSelect components
   const highlights = watch('highlights', []);
@@ -104,6 +109,11 @@ const EditListingModal = ({ facility, isOpen, onClose, onSave }: EditListingModa
   }, []);
 
   const onSubmit = async (data: EditListingForm) => {
+    if (!canEdit) {
+      setError('You do not have permission to edit this facility');
+      return;
+    }
+
     try {
       setLoading(true);
       setError(null);
@@ -140,6 +150,25 @@ const EditListingModal = ({ facility, isOpen, onClose, onSave }: EditListingModa
   };
 
   if (!isOpen) return null;
+
+  if (!canEdit) {
+    return (
+      <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center p-4 z-50">
+        <div className="bg-white rounded-xl p-6 max-w-md w-full">
+          <h2 className="text-xl font-bold mb-4">Permission Denied</h2>
+          <p className="text-gray-600 mb-6">You do not have permission to edit this facility.</p>
+          <div className="flex justify-end">
+            <button
+              onClick={onClose}
+              className="px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700"
+            >
+              Close
+            </button>
+          </div>
+        </div>
+      </div>
+    );
+  }
 
   return (
     <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center p-4 z-50">

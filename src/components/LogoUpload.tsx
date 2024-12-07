@@ -9,14 +9,6 @@ interface LogoUploadProps {
   onLogoChange: (logo: string | undefined) => void;
 }
 
-/**
- * LogoUpload component
- * Handles facility logo upload with:
- * - Drag and drop support
- * - Preview
- * - Upload progress
- * - File type and size validation
- */
 export default function LogoUpload({ 
   facilityId, 
   existingLogo,

@@ -24,6 +24,9 @@ export default function PhotoUpload({
   const [uploadProgress, setUploadProgress] = useState(0);
   const { user } = useAuthStore();
 
+  // Check if user can upload multiple photos
+  const canUploadMultiple = user?.role === 'admin' || isVerified;
+
   const handleDrop = useCallback(async (e: React.DragEvent<HTMLDivElement>) => {
     e.preventDefault();
     setError(null);
@@ -34,8 +37,8 @@ export default function PhotoUpload({
     }
 
     const files = Array.from(e.dataTransfer.files);
-    // Allow admin to upload multiple photos regardless of verification status
-    if (!user.role.includes('admin') && !isVerified && files.length + existingPhotos.length > 1) {
+    // Check photo limit based on verification status and role
+    if (!canUploadMultiple && files.length + existingPhotos.length > 1) {
       setError(`Upgrade to verified to upload more than 1 photo`);
       return;
     }
@@ -98,7 +101,7 @@ export default function PhotoUpload({
       setIsUploading(false);
       setUploadProgress(0);
     }
-  }, [maxPhotos, existingPhotos, onPhotosChange, facilityId, isVerified, user]);
+  }, [maxPhotos, existingPhotos, onPhotosChange, facilityId, canUploadMultiple, user]);
 
   const handleFileSelect = useCallback(async (e: React.ChangeEvent<HTMLInputElement>) => {
     setError(null);
@@ -110,8 +113,8 @@ export default function PhotoUpload({
 
     const files = Array.from(e.target.files || []);
     
-    // Allow admin to upload multiple photos regardless of verification status
-    if (!user.role.includes('admin') && !isVerified && files.length + existingPhotos.length > 1) {
+    // Check photo limit based on verification status and role
+    if (!canUploadMultiple && files.length + existingPhotos.length > 1) {
       setError(`Upgrade to verified to upload more than 1 photo`);
       return;
     }
@@ -176,7 +179,7 @@ export default function PhotoUpload({
       // Reset input value to allow uploading the same file again
       e.target.value = '';
     }
-  }, [maxPhotos, existingPhotos, onPhotosChange, facilityId, isVerified, user]);
+  }, [maxPhotos, existingPhotos, onPhotosChange, facilityId, canUploadMultiple, user]);
 
   const handleRemovePhoto = useCallback(async (photoUrl: string) => {
     try {
@@ -240,7 +243,7 @@ export default function PhotoUpload({
           onChange={handleFileSelect}
           className="hidden"
           id="photo-upload"
-          multiple
+          multiple={canUploadMultiple}
           disabled={isUploading}
         />
         <label
@@ -266,7 +269,7 @@ export default function PhotoUpload({
               <p className="mt-2 text-sm text-gray-600">
                 Drag photos here or <span className="text-blue-500">browse</span>
               </p>
-              {!isVerified && !user?.role.includes('admin') && (
+              {!canUploadMultiple && (
                 <p className="mt-1 text-xs text-gray-500">
                   Upgrade to verified to upload more than 1 photo
                 </p>
@@ -314,7 +317,7 @@ export default function PhotoUpload({
       <div className="text-xs text-gray-500">
         <p>Supported formats: JPEG, PNG, WebP</p>
         <p>Maximum file size: 5MB per photo</p>
-        <p>Maximum photos: {isVerified || user?.role.includes('admin') ? maxPhotos : 1}</p>
+        <p>Maximum photos: {canUploadMultiple ? maxPhotos : 1}</p>
       </div>
     </div>
   );
