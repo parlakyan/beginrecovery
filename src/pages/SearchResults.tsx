@@ -63,15 +63,20 @@ export default function SearchResults() {
     };
   };
 
-  // Initialize filters from URL params
+  // Update filters when URL params change
   useEffect(() => {
     const location = searchParams.get('location');
-    if (location && filters.location.length === 0) {
-      setFilters(prev => ({
-        ...prev,
-        location: [location]
-      }));
-    }
+    // Always reset filters when location param changes
+    setFilters(prev => ({
+      ...prev,
+      location: location ? [location] : [],
+      // Reset other filters when location changes
+      treatmentTypes: [],
+      amenities: [],
+      insurance: [],
+      rating: null,
+      priceRange: null
+    }));
   }, [searchParams]);
 
   useEffect(() => {
