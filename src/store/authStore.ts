@@ -8,7 +8,7 @@ import {
   confirmPasswordReset,
   User as FirebaseUser 
 } from 'firebase/auth';
-import { usersService } from '../services/facilities';
+import { usersService } from '../services/users';
 
 /**
  * Custom User interface extending Firebase User
