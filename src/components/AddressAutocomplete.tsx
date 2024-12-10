@@ -71,40 +71,30 @@ export default function AddressAutocomplete({ register, setValue, error }: Addre
             try {
               const addressComponents: { [key: string]: string } = {};
               place.address_components.forEach((component: any) => {
-                if (component && component.types && Array.isArray(component.types)) {
-                  const type = component.types[0];
-                  if (type) {
-                    addressComponents[type] = component.long_name;
-                    if (type === 'administrative_area_level_1') {
-                      addressComponents.state_short = component.short_name;
-                    }
+                const type = component.types[0];
+                if (type) {
+                  addressComponents[type] = component.long_name;
+                  if (type === 'administrative_area_level_1') {
+                    // Always use the short_name (abbreviation) for state
+                    addressComponents.state_short = component.short_name;
                   }
                 }
               });
 
               // Set individual address fields
-              if (addressComponents.street_number && addressComponents.route) {
-                setValue('street', `${addressComponents.street_number} ${addressComponents.route}`);
-              }
               if (addressComponents.locality) {
                 setValue('city', addressComponents.locality);
                 console.log('Setting city:', addressComponents.locality);
               }
-              if (addressComponents.administrative_area_level_1) {
+              if (addressComponents.state_short) {
                 setValue('state', addressComponents.state_short);
                 console.log('Setting state:', addressComponents.state_short);
-              }
-              if (addressComponents.postal_code) {
-                setValue('zipCode', addressComponents.postal_code);
               }
 
               // Log the extracted components for debugging
               console.log('Extracted address components:', {
-                street: addressComponents.street_number && addressComponents.route ? 
-                  `${addressComponents.street_number} ${addressComponents.route}` : undefined,
                 city: addressComponents.locality,
-                state: addressComponents.state_short,
-                zipCode: addressComponents.postal_code
+                state: addressComponents.state_short
               });
             } catch (err) {
               console.warn('Error processing address components:', err);

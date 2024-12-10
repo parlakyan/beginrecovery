@@ -114,15 +114,18 @@ export default function ListingDetail() {
     { label: 'USA', href: '/search?q=usa' }
   ];
 
-  // Only add state if it exists (using state abbreviation)
+  // Add state if it exists (using state abbreviation)
   if (facility.state) {
+    // If state is already an abbreviation (2 letters), use it directly
+    // Otherwise, use the state value set by Google Places API
+    const stateAbbrev = facility.state.length === 2 ? facility.state : facility.state;
     breadcrumbItems.push({
-      label: facility.state.length === 2 ? facility.state : facility.state.substring(0, 2).toUpperCase(),
-      href: `/search?q=${encodeURIComponent(facility.state)}`
+      label: stateAbbrev,
+      href: `/search?q=${encodeURIComponent(stateAbbrev)}`
     });
   }
 
-  // Only add city if it exists
+  // Add city if it exists
   if (facility.city) {
     breadcrumbItems.push({
       label: facility.city,

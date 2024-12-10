@@ -155,7 +155,6 @@ const EditListingModal = ({ facility, isOpen, onClose, onSave }: EditListingModa
         description: data.description,
         location: data.location,
         coordinates: data.coordinates,
-        // Add city and state fields
         city: data.city,
         state: data.state,
         phone: data.phone,
