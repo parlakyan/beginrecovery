@@ -63,21 +63,22 @@ export default function SearchResults() {
     };
   };
 
+  // Initialize filters from URL params
+  useEffect(() => {
+    const location = searchParams.get('location');
+    if (location && filters.location.length === 0) {
+      setFilters(prev => ({
+        ...prev,
+        location: [location]
+      }));
+    }
+  }, [searchParams]);
+
   useEffect(() => {
     const fetchFacilities = async () => {
       setLoading(true);
       try {
         const query = searchParams.get('q') || '';
-        const location = searchParams.get('location') || '';
-        
-        // If location is provided in URL, replace current location filters
-        if (location && (!filters.location.includes(location) || filters.location.length > 1)) {
-          setFilters(prev => ({
-            ...prev,
-            location: [location]
-          }));
-          return; // Return early as setFilters will trigger another useEffect run
-        }
         
         const results = await facilitiesService.searchFacilities({
           query: query,
@@ -157,9 +158,9 @@ export default function SearchResults() {
           {/* Results Count */}
           <div className="mb-6">
             <h2 className="text-xl font-semibold text-gray-900">
-              {facilities.length} Treatment Centers {location ? `in ${location}` : `Found`}
+              {facilities.length} Treatment Centers {filters.location.length > 0 ? `in ${filters.location[0]}` : `Found`}
             </h2>
-            {searchQuery && !location && (
+            {searchQuery && filters.location.length === 0 && (
               <p className="text-gray-600 mt-1">
                 Search results for "{searchQuery}"
               </p>
@@ -177,8 +178,8 @@ export default function SearchResults() {
                 No Treatment Centers Found
               </h3>
               <p className="text-gray-600">
-                {location 
-                  ? `We couldn't find any treatment centers in ${location}`
+                {filters.location.length > 0 
+                  ? `We couldn't find any treatment centers in ${filters.location[0]}`
                   : 'Try adjusting your search criteria'}
               </p>
             </div>
