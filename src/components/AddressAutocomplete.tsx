@@ -88,9 +88,11 @@ export default function AddressAutocomplete({ register, setValue, error }: Addre
               }
               if (addressComponents.locality) {
                 setValue('city', addressComponents.locality);
+                console.log('Setting city:', addressComponents.locality);
               }
               if (addressComponents.administrative_area_level_1) {
                 setValue('state', addressComponents.state_short);
+                console.log('Setting state:', addressComponents.state_short);
               }
               if (addressComponents.postal_code) {
                 setValue('zipCode', addressComponents.postal_code);

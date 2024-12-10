@@ -2,6 +2,21 @@ import { QueryDocumentSnapshot, DocumentData, Timestamp } from 'firebase/firesto
 import { Facility, License } from '../../types';
 
 /**
+ * Extracts city and state from a location string
+ */
+export const extractLocationParts = (location: string): { city: string; state: string } => {
+  const parts = location.split(',').map(part => part.trim());
+  
+  // Handle cases where location doesn't have city,state format
+  if (parts.length < 2) {
+    return { city: '', state: '' };
+  }
+
+  const [city, state] = parts;
+  return { city, state };
+};
+
+/**
  * Generates URL-friendly slug from facility name and location
  */
 export const generateSlug = (name: string, location: string): string => {
@@ -14,18 +29,8 @@ export const generateSlug = (name: string, location: string): string => {
     return cleanName;
   }
 
-  const parts = location.split(',').map(part => part.trim());
+  const { city, state } = extractLocationParts(location);
   
-  // Handle cases where location doesn't have city,state format
-  if (parts.length < 2) {
-    const cleanLocation = location
-      .toLowerCase()
-      .replace(/[^a-z0-9\s-]/g, '')
-      .replace(/\s+/g, '-');
-    return `${cleanName}-${cleanLocation}`;
-  }
-
-  const [city, state] = parts;
   const cleanCity = city
     .toLowerCase()
     .replace(/[^a-z0-9\s-]/g, '')
@@ -56,6 +61,11 @@ export const transformFacilityData = (doc: QueryDocumentSnapshot<DocumentData>):
   
   const name = data.name || '';
   const location = data.location || '';
+  
+  // Extract city and state from location if not provided
+  const locationParts = extractLocationParts(location);
+  const city = data.city || locationParts.city || '';
+  const state = data.state || locationParts.state || '';
   
   const createdAt = data.createdAt instanceof Timestamp 
     ? data.createdAt.toDate().toISOString()
@@ -89,8 +99,8 @@ export const transformFacilityData = (doc: QueryDocumentSnapshot<DocumentData>):
     name,
     description: data.description || '',
     location,
-    city: data.city,
-    state: data.state,
+    city,
+    state,
     coordinates: data.coordinates,
     amenities: data.amenities || [],
     images: data.images || [],

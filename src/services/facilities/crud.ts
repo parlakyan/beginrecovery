@@ -18,7 +18,7 @@ import { db, auth } from '../../lib/firebase';
 import { storageService } from '../storage';
 import { Facility } from '../../types';
 import { FACILITIES_COLLECTION, BATCH_SIZE } from './types';
-import { transformFacilityData, generateSlug } from './utils';
+import { transformFacilityData, generateSlug, extractLocationParts } from './utils';
 
 /**
  * Core CRUD operations for facilities
@@ -27,8 +27,16 @@ export const facilitiesCrud = {
   async createFacility(data: Partial<Facility>) {
     try {
       const facilitiesRef = collection(db, FACILITIES_COLLECTION);
+      
+      // Extract city and state from location if not provided
+      const { city, state } = !data.city || !data.state 
+        ? extractLocationParts(data.location || '')
+        : { city: data.city, state: data.state };
+
       const facilityData = {
         ...data,
+        city,
+        state,
         ownerId: auth.currentUser?.uid,
         rating: 0,
         reviews: 0,
@@ -199,6 +207,13 @@ export const facilitiesCrud = {
         const name = data.name || currentData?.name;
         const location = data.location || currentData?.location;
         cleanData.slug = generateSlug(name, location);
+
+        // Update city and state if location changed
+        if (data.location) {
+          const { city, state } = extractLocationParts(data.location);
+          cleanData.city = city;
+          cleanData.state = state;
+        }
       }
 
       await updateDoc(facilityRef, cleanData);

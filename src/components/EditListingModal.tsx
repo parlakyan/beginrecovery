@@ -24,6 +24,8 @@ interface EditListingForm {
     lat: number;
     lng: number;
   };
+  city: string;
+  state: string;
   phone: string;
   email: string;
   highlights: string[];
@@ -92,6 +94,8 @@ const EditListingModal = ({ facility, isOpen, onClose, onSave }: EditListingModa
         description: facility.description || '',
         location: facility.location || '',
         coordinates: facility.coordinates,
+        city: facility.city || '',
+        state: facility.state || '',
         phone: facility.phone || '',
         email: facility.email || '',
         highlights: facility.highlights || [],
@@ -151,6 +155,9 @@ const EditListingModal = ({ facility, isOpen, onClose, onSave }: EditListingModa
         description: data.description,
         location: data.location,
         coordinates: data.coordinates,
+        // Add city and state fields
+        city: data.city,
+        state: data.state,
         phone: data.phone,
         email: data.email,
         highlights: data.highlights,
