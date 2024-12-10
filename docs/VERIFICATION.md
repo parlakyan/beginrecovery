@@ -54,11 +54,69 @@ Basic features available to free listings:
 
 ## Implementation Details
 
+### Service Architecture
+The verification system is implemented through modular services:
+
+#### Facilities Service (`src/services/facilities/`)
+- `verification.ts`: Handles verification status
+  - Status updates
+  - Feature toggling
+  - Subscription management
+- `moderation.ts`: Manages moderation workflow
+  - Status changes
+  - Admin controls
+  - Content review
+- `crud.ts`: Basic facility operations
+  - Data updates
+  - Status preservation
+  - Field management
+
+#### Licenses Service (`src/services/licenses.ts`)
+- License management for verified facilities
+- Integration with facility verification
+- Admin controls for license types
+- Logo management for licenses
+
+#### Insurance Service (`src/services/insurances.ts`)
+- Insurance provider management
+- Integration with facility profiles
+- Admin controls for providers
+- Logo management for providers
+
 ### Verification Status
 - Stored in facility document as `isVerified` boolean
 - Updated via Stripe webhook on successful payment
 - Preserved during moderation status changes
-- Controls logo visibility and management
+- Controls:
+  - Logo visibility
+  - License display
+  - Insurance display
+  - Premium features
+
+### License Management
+- Available only to verified facilities
+- Managed through dedicated licenses service
+- Admin can add/edit/remove license types
+- Facility owners can select applicable licenses
+- Displayed in Certifications section
+- Includes:
+  - License name
+  - Description
+  - Logo
+  - Verification status
+
+### Insurance Management
+- Available to all facilities
+- Enhanced display for verified listings
+- Managed through dedicated insurance service
+- Admin can add/edit/remove providers
+- Facility owners can select accepted insurance
+- Includes:
+  - Provider name
+  - Description
+  - Logo
+  - Verification status
+
 
 ### Logo Management
 - Stored in Firebase Storage under facility ID
@@ -171,6 +229,12 @@ Basic features available to free listings:
 10. Test address validation
 11. Test map display
 12. Test coordinates accuracy
+13. Test license selection and display
+14. Test insurance provider selection
+15. Test license logo management
+16. Test insurance logo management
+17. Test license admin controls
+18. Test insurance admin controls
 
 ### Component Testing
 1. RehabCard display modes
@@ -184,10 +248,23 @@ Basic features available to free listings:
 9. Address autocomplete
 10. Map rendering
 11. Error handling
+12. License selection interface
+13. Insurance selection interface
+14. CertificationsSection display
+15. License logo handling
+16. Insurance logo handling
 
 ## Security
 
 ### Access Control
+[Previous content remains, plus:]
+- License management restrictions
+- Insurance management restrictions
+- Logo access control
+- Admin-only controls
+
+[Rest of the previous content remains the same...]
+
 - Public read access
 - Owner write access
 - Admin full control
@@ -261,7 +338,6 @@ Basic features available to free listings:
 8. Confirm coordinates
 9. Check storage paths
 10. Verify file cleanup
-
 ## Future Improvements
 1. Granular feature control
 2. Multiple tier support
@@ -273,3 +349,8 @@ Basic features available to free listings:
 8. Better map interactions
 9. Enhanced logo management
 10. Automated image optimization
+11. Enhanced license verification
+12. Automated license validation
+13. Insurance verification API
+14. Provider network integration
+15. Real-time status updates

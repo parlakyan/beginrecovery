@@ -164,7 +164,20 @@ npm run build
     - `EditListingModal/`: Facility editing modal
     - `LogoUpload/`: Logo management component
   - `pages/`: Page components
-  - `services/`: Service modules (Firebase, Storage, etc.)
+  - `services/`: Service modules
+    - `facilities/`: Modular facility services
+      - `types.ts`: Core facility types
+      - `utils.ts`: Data transformation utilities
+      - `crud.ts`: CRUD operations
+      - `search.ts`: Search functionality
+      - `moderation.ts`: Moderation operations
+      - `verification.ts`: Verification handling
+      - `index.ts`: Service exports
+    - `users.ts`: User management service
+    - `licenses.ts`: License management service
+    - `insurances.ts`: Insurance provider service
+    - `network.ts`: Network state management
+    - `storage.ts`: File storage service
   - `hooks/`: Custom React hooks
   - `types/`: TypeScript type definitions
   - `utils/`: Utility functions
@@ -172,6 +185,45 @@ npm run build
 - `netlify/`: Serverless functions
 - `prisma/`: Database schema
 - `docs/`: Project documentation
+  - `COMPONENTS.md`: Component documentation
+  - `SERVICES.md`: Services architecture documentation
+  - `VERIFICATION.md`: Verification system
+  - `STORAGE.md`: Storage system
+  - `DESIGN_SYSTEM.md`: Design guidelines
+
+## Services Architecture
+The project uses a modular service architecture detailed in `docs/SERVICES.md`. Key features:
+
+### Facilities Service
+- Modular structure for better organization
+- Separate concerns (CRUD, search, moderation)
+- Integration with licenses and insurance
+- Verification status management
+
+### Users Service
+- User management and authentication
+- Role-based access control
+- Profile management
+- Statistics tracking
+
+### Licenses Service
+- License/certification management
+- Integration with facility verification
+- Logo management
+- Admin controls
+
+### Insurance Service
+- Insurance provider management
+- Integration with facility profiles
+- Logo management
+- Admin controls
+
+### Network Service
+- Online/offline state management
+- Connection handling
+- Firestore network control
+
+[Rest of the README content remains the same...]
 
 ## Key Features
 
