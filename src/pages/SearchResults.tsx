@@ -70,12 +70,13 @@ export default function SearchResults() {
         const query = searchParams.get('q') || '';
         const location = searchParams.get('location') || '';
         
-        // If location is provided in URL, add it to filters
-        if (location && !filters.location.includes(location)) {
+        // If location is provided in URL, replace current location filters
+        if (location && (!filters.location.includes(location) || filters.location.length > 1)) {
           setFilters(prev => ({
             ...prev,
-            location: [...prev.location, location]
+            location: [location]
           }));
+          return; // Return early as setFilters will trigger another useEffect run
         }
         
         const results = await facilitiesService.searchFacilities({
@@ -101,7 +102,7 @@ export default function SearchResults() {
 
   const { filterOptions, optionCounts } = getFilterOptions(facilities);
 
-  const handleFilterChange = (type: keyof SearchFiltersState, value: string) => {
+  const handleFilterChange = (type: keyof SearchFiltersState, value: string, clearOthers = false) => {
     setFilters((prev: SearchFiltersState) => {
       if (type === 'rating') {
         const ratingValue = parseInt(value);
@@ -113,6 +114,16 @@ export default function SearchResults() {
       }
       
       const current = prev[type] as string[];
+      
+      // If clearOthers is true, replace the current selection instead of toggling
+      if (clearOthers) {
+        return {
+          ...prev,
+          [type]: [value]
+        };
+      }
+      
+      // Otherwise, toggle the selection
       const updated = current.includes(value)
         ? current.filter(v => v !== value)
         : [...current, value];

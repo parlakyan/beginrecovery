@@ -14,7 +14,7 @@ interface FilterBarProps {
     treatmentTypes: { [key: string]: number };
     amenities: { [key: string]: number };
   };
-  onFilterChange: (type: keyof SearchFiltersState, value: string) => void;
+  onFilterChange: (type: keyof SearchFiltersState, value: string, clearOthers?: boolean) => void;
 }
 
 export default function FilterBar({ filters, filterOptions, optionCounts, onFilterChange }: FilterBarProps) {
@@ -46,6 +46,17 @@ export default function FilterBar({ filters, filterOptions, optionCounts, onFilt
     return () => document.removeEventListener('mousedown', handleClickOutside);
   }, []);
 
+  const handleClearSelection = (type: keyof SearchFiltersState) => {
+    // Clear the search query
+    handleSearchChange(type, '');
+    // Clear all selected items of this type
+    const current = filters[type] as string[];
+    current.forEach(value => {
+      onFilterChange(type, value);
+    });
+    setActiveDropdown(null);
+  };
+
   const renderDropdown = (
     type: 'location' | 'treatmentTypes' | 'amenities',
     title: string,
@@ -75,6 +86,11 @@ export default function FilterBar({ filters, filterOptions, optionCounts, onFilt
           }`}
         >
           <span>{title}</span>
+          {(filters[filterType] as string[]).length > 0 && (
+            <span className="bg-blue-100 text-blue-800 text-xs font-medium px-2 py-0.5 rounded-full">
+              {(filters[filterType] as string[]).length}
+            </span>
+          )}
           <ChevronDown className="w-4 h-4" />
         </button>
         {activeDropdown === type && (
@@ -110,15 +126,14 @@ export default function FilterBar({ filters, filterOptions, optionCounts, onFilt
             </div>
 
             {/* Clear button */}
-            <button
-              onClick={() => {
-                handleSearchChange(type, '');
-                setActiveDropdown(null);
-              }}
-              className="mt-3 text-sm text-blue-600 hover:text-blue-700 font-medium"
-            >
-              Clear Selection
-            </button>
+            {(filters[filterType] as string[]).length > 0 && (
+              <button
+                onClick={() => handleClearSelection(filterType)}
+                className="mt-3 text-sm text-blue-600 hover:text-blue-700 font-medium"
+              >
+                Clear Selection
+              </button>
+            )}
           </div>
         )}
       </div>
