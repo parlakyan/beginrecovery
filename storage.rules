@@ -10,7 +10,7 @@ service firebase.storage {
     function isOwner() {
       return request.auth != null && request.auth.token.role == 'owner';
     }
-    
+
     function isValidImage() {
       return request.resource.size < 5 * 1024 * 1024 // 5MB max
         && request.resource.contentType.matches('image/.*'); // Only images
