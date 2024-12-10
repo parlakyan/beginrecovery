@@ -30,9 +30,28 @@ Located in `src/services/facilities/`, split into modular components:
 - Verification status management
 - License and insurance integration
 - Photo and logo management
+- Automated migrations
+  - Slug generation for existing facilities
+  - Data structure updates
 
+#### Migration System
+The facilities service includes an automated migration system to handle data structure updates:
+
+##### Slug Migration
+Ensures all facilities have URL-friendly slugs:
 ```typescript
-// Example usage
+// Run slug migration
+await facilitiesService.migrateExistingSlugs();
+```
+
+This will:
+1. Find all facilities without slugs
+2. Generate slugs from facility names and locations
+3. Update the facilities with new slugs
+4. Handle duplicate slugs by appending unique identifiers
+
+#### Example Usage
+```typescript
 import { facilitiesService } from '../services/facilities';
 
 // Create facility
@@ -57,6 +76,9 @@ const filteredResults = await facilitiesService.searchFacilities({
   insurance: ['Medicare', 'Blue Cross'],
   rating: 4
 });
+
+// Run migrations if needed
+await facilitiesService.migrateExistingSlugs();
 ```
 
 #### Search Parameters
@@ -71,7 +93,6 @@ interface SearchParams {
 }
 ```
 
-
 ### Users Service
 Located in `src/services/users.ts`, handles user management:
 
@@ -83,7 +104,6 @@ Located in `src/services/users.ts`, handles user management:
 - User statistics
 
 ```typescript
-// Example usage
 import { usersService } from '../services/users';
 
 // Create user
@@ -107,7 +127,6 @@ Located in `src/services/licenses.ts`, manages facility certifications:
 - Logo management
 
 ```typescript
-// Example usage
 import { licensesService } from '../services/licenses';
 
 // Get all licenses
@@ -131,7 +150,6 @@ Located in `src/services/insurances.ts`, manages insurance providers:
 - Admin management interface
 
 ```typescript
-// Example usage
 import { insurancesService } from '../services/insurances';
 
 // Get all insurance providers
@@ -154,7 +172,6 @@ Located in `src/services/network.ts`, handles online/offline functionality:
 - Firestore enablement/disablement
 
 ```typescript
-// Example usage
 import { networkService } from '../services/network';
 
 // Handle offline mode
@@ -163,6 +180,7 @@ await networkService.goOffline();
 // Restore online functionality
 await networkService.goOnline();
 ```
+
 ## Service Interactions
 
 ### Search Flow
@@ -180,7 +198,6 @@ graph TD
     G --> H
     H --> I[Sort Results]
 ```
-
 
 ### Facility Creation Flow
 ```mermaid
@@ -205,8 +222,6 @@ graph TD
     B --> F[Show Staff Section]
 ```
 
-## Best Practices
-
 ### Search Implementation
 1. Filter Management
    - Clear filter interfaces
@@ -225,39 +240,7 @@ graph TD
    - Proper indexing
    - Result caching
    - Query optimization
-
-
-### Service Design
-1. Modularity
-   - Separate concerns
-   - Clear interfaces
-   - Minimal dependencies
-
-2. Error Handling
-   - Consistent error types
-   - Proper error propagation
-   - User-friendly messages
-   - Logging
-
-3. Type Safety
-   - TypeScript interfaces
-   - Runtime validation
-   - Proper type conversions
-
-### Data Management
-1. Firestore Integration
-   - Proper timestamp handling
-   - Batch operations
-   - Transaction safety
-   - Data validation
-
-2. Storage
-   - File organization
-   - Cleanup procedures
-   - Access control
-   - URL management
 ## Testing
-
 
 ### Unit Tests
 ```typescript
@@ -269,6 +252,18 @@ describe('facilitiesService', () => {
   it('handles verification status changes', async () => {
     // Test verification flow
   });
+
+  it('migrates existing slugs correctly', async () => {
+    await facilitiesService.migrateExistingSlugs();
+    const facilities = await facilitiesService.getFacilities();
+    expect(facilities.facilities.every(f => f.slug)).toBe(true);
+  });
+
+  it('handles duplicate slugs during migration', async () => {
+    const facilities = await facilitiesService.getFacilities();
+    const slugs = new Set(facilities.facilities.map(f => f.slug));
+    expect(slugs.size).toBe(facilities.facilities.length);
+  });
 });
 
 describe('licensesService', () => {
@@ -277,6 +272,7 @@ describe('licensesService', () => {
   });
 });
 ```
+
 ### Search Tests
 ```typescript
 describe('facilitiesService.search', () => {
@@ -314,6 +310,49 @@ describe('Service Interactions', () => {
   });
 });
 ```
+
+## Best Practices
+
+### Service Design
+1. Modularity
+   - Separate concerns
+   - Clear interfaces
+   - Minimal dependencies
+
+2. Error Handling
+   - Consistent error types
+   - Proper error propagation
+   - User-friendly messages
+   - Logging
+
+3. Type Safety
+   - TypeScript interfaces
+   - Runtime validation
+   - Proper type conversions
+
+### Data Management
+1. Firestore Integration
+   - Proper timestamp handling
+   - Batch operations
+   - Transaction safety
+   - Data validation
+
+2. Storage
+   - File organization
+   - Cleanup procedures
+   - Access control
+   - URL management
+
+### Migration Handling
+1. Data Integrity
+   - Backup before migration
+   - Validate results
+   - Handle errors gracefully
+
+2. Performance
+   - Batch updates
+   - Progress tracking
+   - Resumable operations
 
 ## Future Improvements
 1. Enhanced caching
