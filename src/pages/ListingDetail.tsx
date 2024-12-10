@@ -106,9 +106,9 @@ export default function ListingDetail() {
 
   const breadcrumbItems = [
     { label: 'All Centers', href: '/search' },
-    { label: 'United States', href: '/search?country=us' },
-    { label: facility.state, href: `/search?state=${facility.state}` },
-    { label: facility.city, href: `/search?city=${facility.city}` },
+    { label: 'United States', href: '/search?q=united%20states' },
+    { label: facility.state, href: `/search?q=${encodeURIComponent(facility.state)}` },
+    { label: facility.city, href: `/search?q=${encodeURIComponent(facility.city)}` },
     { label: facility.name }
   ];
 
@@ -116,8 +116,8 @@ export default function ListingDetail() {
     <div className="min-h-screen bg-gray-50 flex flex-col">
       <Header />
       
-      {/* Breadcrumb Navigation */}
-      <div className="bg-white border-b border-gray-200">
+      {/* Sticky Breadcrumb Navigation */}
+      <div className="sticky top-0 bg-white border-b border-gray-200 z-10 shadow-sm">
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-4">
           <Breadcrumb items={breadcrumbItems} />
         </div>
