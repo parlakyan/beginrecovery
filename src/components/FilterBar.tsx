@@ -46,16 +46,6 @@ export default function FilterBar({ filters, filterOptions, optionCounts, onFilt
     return () => document.removeEventListener('mousedown', handleClickOutside);
   }, []);
 
-  const formatLocation = (location: string) => {
-    // Extract just the city and state from the full address
-    const parts = location.split(',');
-    if (parts.length >= 2) {
-      // Return "City, State" format
-      return `${parts[0].trim()}, ${parts[1].trim()}`;
-    }
-    return location;
-  };
-
   const renderDropdown = (
     type: 'location' | 'treatmentTypes' | 'amenities',
     title: string,
@@ -65,13 +55,12 @@ export default function FilterBar({ filters, filterOptions, optionCounts, onFilt
     const sortedOptions = Array.from(options)
       .map(option => ({ 
         value: option,
-        displayValue: type === 'location' ? formatLocation(option) : option,
         count: counts[option] || 0 
       }))
       .sort((a, b) => b.count - a.count);
 
     const filteredOptions = sortedOptions.filter(option =>
-      option.displayValue.toLowerCase().includes(searchQueries[type].toLowerCase())
+      option.value.toLowerCase().includes(searchQueries[type].toLowerCase())
     );
 
     const filterType: keyof SearchFiltersState = type === 'location' ? 'treatmentTypes' : type;
@@ -103,7 +92,7 @@ export default function FilterBar({ filters, filterOptions, optionCounts, onFilt
 
             {/* Options list */}
             <div className="space-y-2 max-h-64 overflow-y-auto">
-              {filteredOptions.map(({ value, displayValue, count }) => (
+              {filteredOptions.map(({ value, count }) => (
                 <label key={value} className="flex items-center justify-between hover:bg-gray-50 p-2 rounded-lg cursor-pointer">
                   <div className="flex items-center gap-2">
                     <input
@@ -112,7 +101,7 @@ export default function FilterBar({ filters, filterOptions, optionCounts, onFilt
                       onChange={() => onFilterChange(filterType, value)}
                       className="rounded text-blue-600 focus:ring-blue-500"
                     />
-                    <span className="text-sm text-gray-700">{displayValue}</span>
+                    <span className="text-sm text-gray-700">{value}</span>
                   </div>
                   <span className="text-xs text-gray-500">({count})</span>
                 </label>
