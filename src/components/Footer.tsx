@@ -2,17 +2,8 @@ import React, { useState, useEffect } from 'react';
 import { Link, useNavigate } from 'react-router-dom';
 import { Building2, MapPin, Tags, Phone } from 'lucide-react';
 import { locationsService } from '../services/locations';
-
-const popularCenters = [
-  'Serenity Recovery Center',
-  'New Horizons Wellness',
-  'Pacific View Recovery',
-  'Desert Hope Treatment',
-  'Oceanfront Healing',
-  'Mountain Serenity Rehab',
-  'Valley Recovery Solutions',
-  'Sunrise Treatment Center'
-];
+import { facilitiesService } from '../services/facilities';
+import { Facility } from '../types';
 
 const specializations = [
   'Eating Disorder Treatment',
@@ -32,15 +23,21 @@ const specializations = [
 export default function Footer() {
   const navigate = useNavigate();
   const [topLocations, setTopLocations] = useState<{ city: string; state: string; totalListings: number }[]>([]);
+  const [featuredFacilities, setFeaturedFacilities] = useState<Facility[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
 
   useEffect(() => {
-    const fetchTopLocations = async () => {
+    const fetchData = async () => {
       try {
         setLoading(true);
         setError(null);
-        const locations = await locationsService.getTopLocations(10);
+        
+        // Fetch both locations and featured facilities in parallel
+        const [locations, featured] = await Promise.all([
+          locationsService.getTopLocations(10),
+          facilitiesService.getFeaturedFacilities()
+        ]);
         
         // Only show locations that have at least one listing
         const validLocations = locations.filter(loc => loc.totalListings > 0);
@@ -50,15 +47,17 @@ export default function Footer() {
         }
         
         setTopLocations(validLocations);
+        // Take only first 10 featured facilities
+        setFeaturedFacilities(featured.slice(0, 10));
       } catch (error) {
-        console.error('Error fetching top locations:', error);
-        setError('Failed to load locations');
+        console.error('Error fetching data:', error);
+        setError('Failed to load data');
       } finally {
         setLoading(false);
       }
     };
 
-    fetchTopLocations();
+    fetchData();
   }, []);
 
   const handleListCenter = () => {
@@ -111,13 +110,29 @@ export default function Footer() {
               <h3 className="text-lg font-semibold text-white">Top Treatment Centers</h3>
             </div>
             <ul className="space-y-3">
-              {popularCenters.map((center, index) => (
-                <li key={index}>
-                  <Link to={`/search?center=${encodeURIComponent(center)}`} className="hover:text-blue-400 transition-colors">
-                    {center}
-                  </Link>
-                </li>
-              ))}
+              {loading ? (
+                // Loading skeleton
+                Array(8).fill(0).map((_, index) => (
+                  <li key={index} className="animate-pulse">
+                    <div className="h-4 bg-gray-700 rounded w-3/4"></div>
+                  </li>
+                ))
+              ) : error ? (
+                <li className="text-gray-400">{error}</li>
+              ) : featuredFacilities.length === 0 ? (
+                <li className="text-gray-400">No treatment centers available</li>
+              ) : (
+                featuredFacilities.map((facility) => (
+                  <li key={facility.id}>
+                    <Link 
+                      to={`/facility/${facility.slug}`} 
+                      className="hover:text-blue-400 transition-colors"
+                    >
+                      {facility.name}
+                    </Link>
+                  </li>
+                ))
+              )}
             </ul>
           </div>
 
