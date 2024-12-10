@@ -125,7 +125,7 @@ export default function Footer() {
                 featuredFacilities.map((facility) => (
                   <li key={facility.id}>
                     <Link 
-                      to={`/facility/${facility.slug}`} 
+                      to={`/${facility.slug}`} 
                       className="hover:text-blue-400 transition-colors"
                     >
                       {facility.name}
