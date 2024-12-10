@@ -105,24 +105,41 @@ export const handler: Handler = async (event, context) => {
           };
         }
 
-        // For existing users, check if they should be admin
-        const isAdmin = decodedToken.email === 'admin@beginrecovery.com' || userData?.role === 'admin';
+        // For existing users, check and update custom claims based on role
+        let userRole = userData?.role || 'user';
+        const currentClaims = (await auth.getUser(decodedToken.uid)).customClaims || {};
         
-        // Update role if needed
-        if (isAdmin && userData?.role !== 'admin') {
-          await userRef.update({
-            role: 'admin'
+        // Special handling for admin
+        const isAdmin = decodedToken.email === 'admin@beginrecovery.com';
+        if (isAdmin && userRole !== 'admin') {
+          await userRef.update({ role: 'admin' });
+          userRole = 'admin';
+        }
+
+        // If stored role doesn't match claims, update claims
+        if (userRole !== currentClaims.role) {
+          await auth.setCustomUserClaims(decodedToken.uid, { role: userRole });
+          console.log('Updated custom claims to match stored role:', {
+            userId: decodedToken.uid,
+            role: userRole,
+            previousClaims: currentClaims
           });
-          // Set custom claims for admin
+        }
+
+        // Special handling for admin
+       /* const isAdmin = decodedToken.email === 'admin@beginrecovery.com';
+        if (isAdmin && currentRole !== 'admin') {
+          await userRef.update({ role: 'admin' });
           await auth.setCustomUserClaims(decodedToken.uid, { role: 'admin' });
           console.log('Updated user to admin role and set custom claims');
-        }
+          currentRole = 'admin';
+        }*/
 
         // Return user data with correct role
         const responseData = {
           id: decodedToken.uid,
           email: decodedToken.email,
-          role: isAdmin ? 'admin' : (userData?.role || 'user'),
+          role: userRole,
           createdAt: userData?.createdAt || new Date().toISOString()
         };
 
