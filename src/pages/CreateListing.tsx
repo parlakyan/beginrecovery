@@ -23,6 +23,8 @@ interface CreateListingForm {
     lat: number;
     lng: number;
   };
+  city: string;
+  state: string;
   phone: string;
   email: string;
   highlights: string[];
@@ -48,54 +50,57 @@ export default function CreateListing() {
       insurance: [],
       accreditation: [],
       languages: [],
-      licenses: []
+      licenses: [],
+      city: '',
+      state: ''
     }
   });
-  const [loading, setLoading] = React.useState(false);
-  const [error, setError] = React.useState<string | null>(null);
-  const [photos, setPhotos] = React.useState<string[]>([]);
-  const [logo, setLogo] = React.useState<string | undefined>(undefined);
-  const [availableLicenses, setAvailableLicenses] = React.useState<License[]>([]);
-  const { user, refreshToken } = useAuthStore();
-  const navigate = useNavigate();
 
-  // Watch form values for DropdownSelect components
-  const highlights = watch('highlights');
-  const treatmentTypes = watch('treatmentTypes');
-  const substances = watch('substances');
-  const amenities = watch('amenities');
-  const insurance = watch('insurance');
-  const accreditation = watch('accreditation');
-  const languages = watch('languages');
-  const selectedLicenses = watch('licenses');
+const [loading, setLoading] = React.useState(false);
+const [error, setError] = React.useState<string | null>(null);
+const [photos, setPhotos] = React.useState<string[]>([]);
+const [logo, setLogo] = React.useState<string | undefined>(undefined);
+const [availableLicenses, setAvailableLicenses] = React.useState<License[]>([]);
+const { user, refreshToken } = useAuthStore();
+const navigate = useNavigate();
 
-  // Generate a temporary ID for photo uploads
-  const tempId = React.useMemo(() => 'temp-' + Date.now(), []);
+// Watch form values for DropdownSelect components
+const highlights = watch('highlights');
+const treatmentTypes = watch('treatmentTypes');
+const substances = watch('substances');
+const amenities = watch('amenities');
+const insurance = watch('insurance');
+const accreditation = watch('accreditation');
+const languages = watch('languages');
+const selectedLicenses = watch('licenses');
 
-  // Fetch available licenses
-  React.useEffect(() => {
-    const fetchLicenses = async () => {
-      const licenses = await licensesService.getLicenses();
-      setAvailableLicenses(licenses);
-    };
-    fetchLicenses();
-  }, []);
+// Generate a temporary ID for photo uploads
+const tempId = React.useMemo(() => 'temp-' + Date.now(), []);
 
-  // Redirect non-logged-in users to register
-  React.useEffect(() => {
-    if (!user) {
-      navigate('/register', { 
-        state: { 
-          returnUrl: '/create-listing'
-        }
-      });
-    }
-  }, [user, navigate]);
+// Fetch available licenses
+React.useEffect(() => {
+  const fetchLicenses = async () => {
+    const licenses = await licensesService.getLicenses();
+    setAvailableLicenses(licenses);
+  };
+  fetchLicenses();
+}, []);
 
-  // Scroll to top on mount
-  React.useEffect(() => {
-    window.scrollTo(0, 0);
-  }, []);
+// Redirect non-logged-in users to register
+React.useEffect(() => {
+  if (!user) {
+    navigate('/register', { 
+      state: { 
+        returnUrl: '/create-listing'
+      }
+    });
+  }
+}, [user, navigate]);
+
+// Scroll to top on mount
+React.useEffect(() => {
+  window.scrollTo(0, 0);
+}, []);
 
   const onSubmit = async (data: CreateListingForm) => {
     setLoading(true);
@@ -111,6 +116,8 @@ export default function CreateListing() {
         description: data.description,
         location: data.location,
         coordinates: data.coordinates,
+        city: data.city,
+        state: data.state,
         phone: data.phone,
         email: data.email,
         highlights: data.highlights,
