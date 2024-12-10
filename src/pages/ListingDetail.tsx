@@ -114,10 +114,10 @@ export default function ListingDetail() {
     { label: 'USA', href: '/search?q=usa' }
   ];
 
-  // Only add state if it exists
+  // Only add state if it exists (using state abbreviation)
   if (facility.state) {
     breadcrumbItems.push({
-      label: facility.state,
+      label: facility.state.length === 2 ? facility.state : facility.state.substring(0, 2).toUpperCase(),
       href: `/search?q=${encodeURIComponent(facility.state)}`
     });
   }
