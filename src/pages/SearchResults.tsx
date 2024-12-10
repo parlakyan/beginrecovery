@@ -26,20 +26,21 @@ export default function SearchResults() {
 
   // Extract unique values and counts from facilities
   const getFilterOptions = (facilities: Facility[]) => {
-    const cities = new Set<string>();
+    const locations = new Set<string>();
     const treatmentTypes = new Set<string>();
     const amenities = new Set<string>();
     const counts = {
-      cities: {} as { [key: string]: number },
+      locations: {} as { [key: string]: number },
       treatmentTypes: {} as { [key: string]: number },
       amenities: {} as { [key: string]: number }
     };
 
     facilities.forEach((facility) => {
-      // City counts
+      // Location counts (using city)
       if (facility.city) {
-        cities.add(facility.city);
-        counts.cities[facility.city] = (counts.cities[facility.city] || 0) + 1;
+        const cityLocation = facility.city;
+        locations.add(cityLocation);
+        counts.locations[cityLocation] = (counts.locations[cityLocation] || 0) + 1;
       }
 
       // Treatment type counts
@@ -56,16 +57,8 @@ export default function SearchResults() {
     });
 
     return {
-      filterOptions: { 
-        locations: cities, // Changed from locations to cities
-        treatmentTypes,
-        amenities
-      },
-      optionCounts: {
-        locations: counts.cities, // Changed from locations to cities
-        treatmentTypes: counts.treatmentTypes,
-        amenities: counts.amenities
-      }
+      filterOptions: { locations, treatmentTypes, amenities },
+      optionCounts: counts
     };
   };
 
