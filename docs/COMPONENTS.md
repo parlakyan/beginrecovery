@@ -53,6 +53,79 @@ const tabs = [
 />
 ```
 
+### FilterBar
+Handles search filters for facilities.
+
+#### Features
+- Location filtering by city and state
+- Treatment type filtering
+- Amenities filtering
+- Rating filtering
+- Search within filters
+- Clear selection functionality
+- Filter counts display
+
+#### Props
+```typescript
+interface FilterBarProps {
+  filters: SearchFiltersState;
+  filterOptions: {
+    locations: Set<string>;
+    treatmentTypes: Set<string>;
+    amenities: Set<string>;
+  };
+  optionCounts: {
+    locations: { [key: string]: number };
+    treatmentTypes: { [key: string]: number };
+    amenities: { [key: string]: number };
+  };
+  onFilterChange: (type: keyof SearchFiltersState, value: string, clearOthers?: boolean) => void;
+}
+```
+
+#### Usage
+```tsx
+<FilterBar
+  filters={filters}
+  filterOptions={filterOptions}
+  optionCounts={optionCounts}
+  onFilterChange={handleFilterChange}
+/>
+```
+
+### SearchResults
+Main component for displaying and filtering facilities.
+
+#### Features
+- URL-based search
+- Multiple filter types
+- Location-based filtering
+- Dynamic result updates
+- Loading states
+- Empty state handling
+- Filter persistence
+
+#### State Management
+```typescript
+interface SearchFiltersState {
+  location: string[];
+  treatmentTypes: string[];
+  amenities: string[];
+  insurance: string[];
+  rating: number | null;
+  priceRange: number | null;
+}
+```
+
+#### Usage
+```tsx
+// URL-based search
+/search?location=Los%20Angeles%2C%20CA
+
+// Filter-based search
+<SearchResults />
+```
+
 ### LogoUpload
 Handles facility logo upload and management.
 
@@ -194,6 +267,22 @@ interface ContactBoxProps {
 
 ## Component Interactions
 
+### Search Flow
+```mermaid
+graph TD
+    A[SearchResults] --> B[FilterBar]
+    A --> C[RehabCard]
+    B --> D[Location Filter]
+    B --> E[Treatment Types]
+    B --> F[Amenities]
+    B --> G[Rating]
+    D --> H[Search Service]
+    E --> H
+    F --> H
+    G --> H
+    H --> C
+```
+
 ### Listing Flow
 ```mermaid
 graph TD
@@ -262,7 +351,23 @@ graph TD
    - Share common logic
    - Maintain flexibility
 
+### Search and Filtering
+1. URL Integration
+   - Support URL-based search
+   - Maintain filter state
+   - Handle browser navigation
+
+2. Filter Management
+   - Clear filter options
+   - Multiple filter types
+   - Filter counts
+   - Search within filters
+
 3. Performance
+   - Optimize filter updates
+   - Debounce searches
+   - Cache results
+   - Handle loading states
    - Optimize renders
    - Lazy loading
    - Memoization
@@ -319,6 +424,33 @@ describe('LogoUpload', () => {
   it('handles logo removal correctly', async () => {
     render(<LogoUpload facilityId="123" existingLogo="logo.jpg" />);
     // Test removal flow
+  });
+});
+```
+
+### Search Component Tests
+```typescript
+describe('FilterBar', () => {
+  it('handles location filtering', () => {
+    render(<FilterBar {...mockProps} />);
+    // Test location filter
+  });
+
+  it('clears filters correctly', () => {
+    render(<FilterBar {...mockProps} />);
+    // Test clear functionality
+  });
+});
+
+describe('SearchResults', () => {
+  it('handles URL-based search', () => {
+    render(<SearchResults />);
+    // Test URL parameters
+  });
+
+  it('updates results on filter change', () => {
+    render(<SearchResults />);
+    // Test filter updates
   });
 });
 ```
@@ -385,3 +517,8 @@ useEffect(() => {
 8. Better loading states
 9. More test coverage
 10. Documentation updates
+11. Enhanced search capabilities
+12. Filter persistence
+13. Search history
+14. Related results
+15. Filter analytics

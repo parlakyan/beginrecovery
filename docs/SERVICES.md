@@ -20,6 +20,12 @@ Located in `src/services/facilities/`, split into modular components:
 #### Key Features
 - Facility CRUD operations
 - Search and filtering
+  - Location-based search (city, state)
+  - Treatment type filtering
+  - Amenities filtering
+  - Rating filtering
+  - Insurance filtering
+  - Combined search capabilities
 - Moderation workflow
 - Verification status management
 - License and insurance integration
@@ -32,15 +38,39 @@ import { facilitiesService } from '../services/facilities';
 // Create facility
 const { id } = await facilitiesService.createFacility(data);
 
-// Search facilities
+// Search facilities with location
 const results = await facilitiesService.searchFacilities({
   query: searchText,
+  location: ['Los Angeles, CA'],  // City, State format
   treatmentTypes,
   amenities,
   insurance,
   rating
 });
+
+// Search with multiple filters
+const filteredResults = await facilitiesService.searchFacilities({
+  query: '',
+  location: ['Phoenix, AZ', 'Tucson, AZ'],
+  treatmentTypes: ['Inpatient', 'Outpatient'],
+  amenities: ['Pool', 'Gym'],
+  insurance: ['Medicare', 'Blue Cross'],
+  rating: 4
+});
 ```
+
+#### Search Parameters
+```typescript
+interface SearchParams {
+  query: string;           // General search text
+  location?: string[];     // Array of "City, State" strings
+  treatmentTypes: string[];
+  amenities: string[];
+  insurance: string[];
+  rating: number | null;
+}
+```
+
 
 ### Users Service
 Located in `src/services/users.ts`, handles user management:
@@ -133,8 +163,24 @@ await networkService.goOffline();
 // Restore online functionality
 await networkService.goOnline();
 ```
-
 ## Service Interactions
+
+### Search Flow
+```mermaid
+graph TD
+    A[Search Input] --> B[Parse Parameters]
+    B --> C[Apply Filters]
+    C --> D[Location Filter]
+    C --> E[Treatment Types]
+    C --> F[Amenities]
+    C --> G[Rating]
+    D --> H[Results]
+    E --> H
+    F --> H
+    G --> H
+    H --> I[Sort Results]
+```
+
 
 ### Facility Creation Flow
 ```mermaid
@@ -160,6 +206,26 @@ graph TD
 ```
 
 ## Best Practices
+
+### Search Implementation
+1. Filter Management
+   - Clear filter interfaces
+   - Efficient filtering
+   - Proper type handling
+   - Case-insensitive matching
+
+2. Location Handling
+   - City, State format
+   - Case-insensitive matching
+   - Multiple location support
+   - Proper string parsing
+
+3. Performance
+   - Efficient filtering
+   - Proper indexing
+   - Result caching
+   - Query optimization
+
 
 ### Service Design
 1. Modularity
@@ -190,8 +256,8 @@ graph TD
    - Cleanup procedures
    - Access control
    - URL management
-
 ## Testing
+
 
 ### Unit Tests
 ```typescript
@@ -208,6 +274,30 @@ describe('facilitiesService', () => {
 describe('licensesService', () => {
   it('manages licenses correctly', async () => {
     // Test license management
+  });
+});
+```
+### Search Tests
+```typescript
+describe('facilitiesService.search', () => {
+  it('filters by location correctly', async () => {
+    const results = await facilitiesService.searchFacilities({
+      query: '',
+      location: ['Phoenix, AZ']
+    });
+    expect(results.every(f => 
+      f.city.toLowerCase() === 'phoenix' && 
+      f.state.toLowerCase() === 'az'
+    )).toBe(true);
+  });
+
+  it('combines multiple filters', async () => {
+    const results = await facilitiesService.searchFacilities({
+      location: ['Los Angeles, CA'],
+      treatmentTypes: ['Inpatient'],
+      rating: 4
+    });
+    // Test combined filters
   });
 });
 ```
@@ -236,3 +326,23 @@ describe('Service Interactions', () => {
 8. Enhanced security
 9. Better error handling
 10. Documentation updates
+11. Enhanced search capabilities
+    - Fuzzy matching
+    - Relevance scoring
+    - Search suggestions
+12. Location improvements
+    - Radius search
+    - Map integration
+    - Location autocomplete
+13. Filter enhancements
+    - Saved filters
+    - Filter combinations
+    - Custom filters
+14. Performance optimization
+    - Query caching
+    - Partial results
+    - Progressive loading
+15. Analytics integration
+    - Search patterns
+    - Popular locations
+    - Filter usage
