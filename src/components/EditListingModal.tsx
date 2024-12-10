@@ -1,13 +1,14 @@
 import { useState, useEffect, useCallback } from 'react';
 import { useForm } from 'react-hook-form';
 import { X } from 'lucide-react';
-import { Facility, License } from '../types';
+import { Facility, License, Insurance } from '../types';
 import PhotoUpload from './PhotoUpload';
 import LogoUpload from './LogoUpload';
 import AddressAutocomplete from './AddressAutocomplete';
 import DropdownSelect from './ui/DropdownSelect';
 import { useAuthStore } from '../store/authStore';
 import { licensesService } from '../services/licenses';
+import { insurancesService } from '../services/insurances';
 
 interface EditListingModalProps {
   facility: Facility;
@@ -33,6 +34,7 @@ interface EditListingForm {
   substances: string[];
   amenities: string[];
   insurance: string[];
+  insurances: Insurance[];  // Added this line
   accreditation: string[];
   languages: string[];
   licenses: License[];
@@ -50,6 +52,7 @@ const EditListingModal = ({ facility, isOpen, onClose, onSave }: EditListingModa
     logo: undefined
   });
   const [availableLicenses, setAvailableLicenses] = useState<License[]>([]);
+  const [availableInsurances, setAvailableInsurances] = useState<Insurance[]>([]);
   const { user } = useAuthStore();
 
   // Check if user can edit this facility
@@ -58,13 +61,17 @@ const EditListingModal = ({ facility, isOpen, onClose, onSave }: EditListingModa
     (user.role === 'owner' && user.id === facility.ownerId)
   );
 
-  // Fetch available licenses
+  // Fetch available licenses and insurances
   useEffect(() => {
-    const fetchLicenses = async () => {
-      const licenses = await licensesService.getLicenses();
+    const fetchData = async () => {
+      const [licenses, insurances] = await Promise.all([
+        licensesService.getLicenses(),
+        insurancesService.getInsurances()
+      ]);
       setAvailableLicenses(licenses);
+      setAvailableInsurances(insurances);
     };
-    fetchLicenses();
+    fetchData();
   }, []);
 
   // Watch form values for DropdownSelect components
@@ -76,6 +83,8 @@ const EditListingModal = ({ facility, isOpen, onClose, onSave }: EditListingModa
   const accreditation = watch('accreditation', []);
   const languages = watch('languages', []);
   const selectedLicenses = watch('licenses', []);
+  const selectedInsurances = watch('insurances', []);
+
 
   // Reset form when modal opens or facility changes
   useEffect(() => {
@@ -103,6 +112,7 @@ const EditListingModal = ({ facility, isOpen, onClose, onSave }: EditListingModa
         substances: facility.substances || [],
         amenities: facility.amenities || [],
         insurance: facility.insurance || [],
+        insurances: facility.insurances || [],  // Added this line
         accreditation: facility.accreditation || [],
         languages: facility.languages || [],
         licenses: facility.licenses || []
@@ -164,6 +174,7 @@ const EditListingModal = ({ facility, isOpen, onClose, onSave }: EditListingModa
         substances: data.substances,
         amenities: data.amenities,
         insurance: data.insurance,
+        insurances: data.insurances,  // Added this line
         accreditation: data.accreditation,
         languages: data.languages,
         licenses: data.licenses,
@@ -359,6 +370,21 @@ const EditListingModal = ({ facility, isOpen, onClose, onSave }: EditListingModa
               value={insurance}
               onChange={(values) => setValue('insurance', values)}
               error={errors.insurance?.message}
+            />
+
+            <DropdownSelect
+              label="Insurance Providers"
+              type="insurances"
+              value={selectedInsurances.map(i => i.id)}
+              onChange={(values) => {
+                const selected = availableInsurances.filter(i => values.includes(i.id));
+                setValue('insurances', selected);
+              }}
+              options={availableInsurances.map(insurance => ({
+                value: insurance.id,
+                label: insurance.name
+              }))}
+              error={errors.insurances?.message}
             />
 
             <DropdownSelect

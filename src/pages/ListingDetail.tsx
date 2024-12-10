@@ -12,6 +12,7 @@ import ReviewsSection from '../components/ReviewsSection';
 import MapSection from '../components/MapSection';
 import StaffSection from '../components/StaffSection';
 import CertificationsSection from '../components/CertificationsSection';
+import InsurancesSection from '../components/InsurancesSection';
 import { Button, Tag, Breadcrumb } from '../components/ui';
 import EditListingModal from '../components/EditListingModal';
 
@@ -266,40 +267,45 @@ export default function ListingDetail() {
                 <CertificationsSection licenses={facility.licenses} />
               )}
 
-              {/* Reviews Section */}
-              <ReviewsSection facility={facility} />
+              {/* Insurances Section - Only for verified facilities with insurances */}
+              {facility.isVerified && facility.insurances && facility.insurances.length > 0 && (
+                <InsurancesSection insurances={facility.insurances} />
+              )}
 
-              {/* Staff Section - Only for verified facilities */}
-              {facility.isVerified && <StaffSection />}
+   {/* Reviews Section */}
+   <ReviewsSection facility={facility} />
 
-              {/* Map Section */}
-              <MapSection 
-                coordinates={facility.coordinates} 
-                address={facility.location}
-              />
-            </div>
+{/* Staff Section - Only for verified facilities */}
+{facility.isVerified && <StaffSection />}
 
-            {/* Contact Box - Sticky */}
-            <div className="lg:col-span-1">
-              <div className="sticky top-24" style={{ zIndex: 1 }}>
-                <ContactBox facility={facility} />
-              </div>
-            </div>
-          </div>
-        </div>
-      </main>
+{/* Map Section */}
+<MapSection 
+  coordinates={facility.coordinates} 
+  address={facility.location}
+/>
+</div>
 
-      {/* Edit Modal */}
-      {isEditModalOpen && (
-        <EditListingModal
-          facility={facility}
-          isOpen={isEditModalOpen}
-          onClose={() => setIsEditModalOpen(false)}
-          onSave={handleSave}
-        />
-      )}
+{/* Contact Box - Sticky */}
+<div className="lg:col-span-1">
+<div className="sticky top-24" style={{ zIndex: 1 }}>
+  <ContactBox facility={facility} />
+</div>
+</div>
+</div>
+</div>
+</main>
 
-      <Footer />
-    </div>
-  );
+{/* Edit Modal */}
+{isEditModalOpen && (
+<EditListingModal
+facility={facility}
+isOpen={isEditModalOpen}
+onClose={() => setIsEditModalOpen(false)}
+onSave={handleSave}
+/>
+)}
+
+<Footer />
+</div>
+);
 }

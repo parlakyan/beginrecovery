@@ -1,5 +1,5 @@
 import { QueryDocumentSnapshot, DocumentData, Timestamp } from 'firebase/firestore';
-import { Facility, License } from '../../types';
+import { Facility, License, Insurance } from '../../types';
 
 /**
  * Generates URL-friendly slug from facility name and location
@@ -31,9 +31,18 @@ interface RawLicense {
   updatedAt?: Timestamp | string;
 }
 
+interface RawInsurance {
+  id?: string;
+  name?: string;
+  description?: string;
+  logo?: string;
+  createdAt?: Timestamp | string;
+  updatedAt?: Timestamp | string;
+}
+
 /**
  * Transforms Firestore document to Facility type
- * Handles license data transformation and verification status
+ * Handles license and insurance data transformation and verification status
  */
 export const transformFacilityData = (doc: QueryDocumentSnapshot<DocumentData>): Facility => {
   const data = doc.data();
@@ -70,6 +79,25 @@ export const transformFacilityData = (doc: QueryDocumentSnapshot<DocumentData>):
     return null;
   }).filter(Boolean) as License[];
 
+  // Transform insurances data to ensure it matches the Insurance type
+  const insurances = (data.insurances || []).map((insurance: RawInsurance) => {
+    if (typeof insurance === 'object' && insurance !== null) {
+      return {
+        id: insurance.id || '',
+        name: insurance.name || '',
+        description: insurance.description || '',
+        logo: insurance.logo || '',
+        createdAt: insurance.createdAt instanceof Timestamp 
+          ? insurance.createdAt.toDate().toISOString()
+          : (insurance.createdAt || new Date().toISOString()),
+        updatedAt: insurance.updatedAt instanceof Timestamp
+          ? insurance.updatedAt.toDate().toISOString()
+          : (insurance.updatedAt || new Date().toISOString())
+      } as Insurance;
+    }
+    return null;
+  }).filter(Boolean) as Insurance[];
+
   return {
     id: doc.id,
     name,
@@ -94,6 +122,7 @@ export const transformFacilityData = (doc: QueryDocumentSnapshot<DocumentData>):
     highlights: data.highlights || [],
     substances: data.substances || [],
     insurance: data.insurance || [],
+    insurances,  // Added this line
     accreditation: data.accreditation || [],
     languages: data.languages || [],
     licenses,

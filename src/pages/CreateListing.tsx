@@ -6,8 +6,9 @@ import { useAuthStore } from '../store/authStore';
 import { facilitiesService } from '../services/facilities';
 import { usersService } from '../services/users';
 import { licensesService } from '../services/licenses';
+import { insurancesService } from '../services/insurances';
 import { storageService } from '../services/storage';
-import { Facility, License } from '../types';
+import { Facility, License, Insurance } from '../types';
 import Header from '../components/Header';
 import Footer from '../components/Footer';
 import PhotoUpload from '../components/PhotoUpload';
@@ -32,6 +33,7 @@ interface CreateListingForm {
   substances: string[];
   amenities: string[];
   insurance: string[];
+  insurances: Insurance[];
   accreditation: string[];
   languages: string[];
   licenses: License[];
@@ -48,6 +50,7 @@ export default function CreateListing() {
       substances: [],
       amenities: [],
       insurance: [],
+      insurances: [],  // Added this line
       accreditation: [],
       languages: [],
       licenses: [],
@@ -61,6 +64,7 @@ const [error, setError] = React.useState<string | null>(null);
 const [photos, setPhotos] = React.useState<string[]>([]);
 const [logo, setLogo] = React.useState<string | undefined>(undefined);
 const [availableLicenses, setAvailableLicenses] = React.useState<License[]>([]);
+const [availableInsurances, setAvailableInsurances] = React.useState<Insurance[]>([]);
 const { user, refreshToken } = useAuthStore();
 const navigate = useNavigate();
 
@@ -73,17 +77,22 @@ const insurance = watch('insurance');
 const accreditation = watch('accreditation');
 const languages = watch('languages');
 const selectedLicenses = watch('licenses');
+const selectedInsurances = watch('insurances');
 
 // Generate a temporary ID for photo uploads
 const tempId = React.useMemo(() => 'temp-' + Date.now(), []);
 
-// Fetch available licenses
+// Fetch available licenses and insurances
 React.useEffect(() => {
-  const fetchLicenses = async () => {
-    const licenses = await licensesService.getLicenses();
+  const fetchData = async () => {
+    const [licenses, insurances] = await Promise.all([
+      licensesService.getLicenses(),
+      insurancesService.getInsurances()
+    ]);
     setAvailableLicenses(licenses);
+    setAvailableInsurances(insurances);
   };
-  fetchLicenses();
+  fetchData();
 }, []);
 
 // Redirect non-logged-in users to register
@@ -125,6 +134,7 @@ React.useEffect(() => {
         substances: data.substances,
         amenities: data.amenities,
         insurance: data.insurance,
+        insurances: data.insurances,  // Added this line
         accreditation: data.accreditation,
         languages: data.languages,
         licenses: data.licenses,
@@ -398,6 +408,21 @@ React.useEffect(() => {
                   value={insurance}
                   onChange={(values) => setValue('insurance', values)}
                   error={errors.insurance?.message}
+                />
+
+                <DropdownSelect
+                  label="Insurance Providers"
+                  type="insurances"
+                  value={selectedInsurances.map(i => i.id)}
+                  onChange={(values) => {
+                    const selected = availableInsurances.filter(i => values.includes(i.id));
+                    setValue('insurances', selected);
+                  }}
+                  options={availableInsurances.map(insurance => ({
+                    value: insurance.id,
+                    label: insurance.name
+                  }))}
+                  error={errors.insurances?.message}
                 />
 
                 <DropdownSelect

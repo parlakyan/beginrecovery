@@ -21,6 +21,7 @@ export interface Facility {
   highlights: string[];
   substances: string[];
   insurance: string[];
+  insurances?: Insurance[];  // Added this line for insurance objects
   accreditation: string[];
   languages: string[];
   licenses?: License[];
