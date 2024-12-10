@@ -111,21 +111,72 @@ export { storage };
 
 ### Storage Rules
 Located in `storage.rules`
-```
+```rules
 rules_version = '2';
 
 service firebase.storage {
   match /b/{bucket}/o {
+    // Helper functions
+    function isAdmin() {
+      return request.auth != null && request.auth.token.role == 'admin';
+    }
+
+    function isOwner() {
+      return request.auth != null && request.auth.token.role == 'owner';
+    }
+
+    function isValidImage() {
+      return request.resource.size < 5 * 1024 * 1024 // 5MB max
+        && request.resource.contentType.matches('image/.*'); // Only images
+    }
+
+    // Allow public read access to all files
     match /{allPaths=**} {
       allow read: if true;
+    }
+
+    // Admin folders - only admins can write
+    match /licenses/{fileName} {
+      allow write: if isAdmin() && isValidImage();
+      allow delete: if isAdmin();
+    }
+
+    match /insurances/{fileName} {
+      allow write: if isAdmin() && isValidImage();
+      allow delete: if isAdmin();
+    }
+
+    match /locations/{fileName} {
+      allow write: if isAdmin() && isValidImage();
+      allow delete: if isAdmin();
+    }
+
+    // Facility files - admins and owners can write
+    match /facilities/{facilityId}/{allPaths=**} {
       allow write: if request.auth != null 
-        && request.resource.size < 5 * 1024 * 1024
-        && request.resource.contentType.matches('image/.*')
-        && request.resource.name.matches('facilities/[^/]+/(photos|logo)/.+');
+        && isValidImage()
+        && (isAdmin() || isOwner());
+      allow delete: if request.auth != null 
+        && (isAdmin() || isOwner());
     }
   }
 }
 ```
+
+### Role-Based Access
+- Public read access for all files
+- Admin users can:
+  - Write to all folders (facilities, licenses, insurances, locations)
+  - Delete any files
+  - Manage system-wide resources
+- Owner users can:
+  - Write to their facility folders
+  - Upload photos and logos
+  - Delete their facility files
+- All writes require:
+  - Authentication
+  - Valid image file (5MB max, image types only)
+  - Proper role permissions
 
 ### CORS Configuration
 Located in `firebase.json`

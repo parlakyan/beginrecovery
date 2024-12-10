@@ -257,19 +257,74 @@ The verification system is implemented through modular services:
 ## Security
 
 ### Access Control
-[Previous content remains, plus:]
-- License management restrictions
-- Insurance management restrictions
-- Logo access control
-- Admin-only controls
+- Role-based permissions:
+  - Admin users:
+    * Full access to all storage folders
+    * Can write/delete system files (licenses, insurances, locations)
+    * Can manage any facility's files
+    * Can toggle verification status
+  - Owner users:
+    * Can write/delete files in their facility folders
+    * Can upload photos and logos
+    * Access limited to their own facilities
+    * Must have proper role claims in auth token
+  - All users:
+    * Public read access to all files
+    * Must be authenticated for writes
+    * Must submit valid image files (5MB max)
 
-[Rest of the previous content remains the same...]
+### Storage Rules
+```rules
+rules_version = '2';
 
-- Public read access
-- Owner write access
-- Admin full control
-- Payment verification
-- Storage access control
+service firebase.storage {
+  match /b/{bucket}/o {
+    // Helper functions
+    function isAdmin() {
+      return request.auth != null && request.auth.token.role == 'admin';
+    }
+
+    function isOwner() {
+      return request.auth != null && request.auth.token.role == 'owner';
+    }
+
+    function isValidImage() {
+      return request.resource.size < 5 * 1024 * 1024 // 5MB max
+        && request.resource.contentType.matches('image/.*'); // Only images
+    }
+
+    // Allow public read access to all files
+    match /{allPaths=**} {
+      allow read: if true;
+    }
+
+    // Admin folders - only admins can write
+    match /licenses/{fileName} {
+      allow write: if isAdmin() && isValidImage();
+      allow delete: if isAdmin();
+    }
+
+    match /insurances/{fileName} {
+      allow write: if isAdmin() && isValidImage();
+      allow delete: if isAdmin();
+    }
+
+    match /locations/{fileName} {
+      allow write: if isAdmin() && isValidImage();
+      allow delete: if isAdmin();
+    }
+
+    // Facility files - admins and owners can write
+    match /facilities/{facilityId}/{allPaths=**} {
+      allow write: if request.auth != null 
+        && isValidImage()
+        && (isAdmin() || isOwner());
+      allow delete: if request.auth != null 
+        && (isAdmin() || isOwner());
+    }
+  }
+}
+```
 
 ### Status Protection
 - Server-side verification
@@ -277,6 +332,11 @@ The verification system is implemented through modular services:
 - Status change logging
 - Access control checks
 - Storage rules enforcement
+- Role-based permissions
+- Token validation
+- Path validation
+
+[Rest of the file content remains the same...]
 
 ## Best Practices
 

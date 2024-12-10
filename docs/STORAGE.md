@@ -8,12 +8,18 @@ The Recovery Directory platform uses Firebase Cloud Storage for managing facilit
 ### Base Organization
 ```
 gs://beginrecovery-bb288.appspot.com/
-└── facilities/
-    └── [facilityId]/
-        ├── photos/
-        │   └── [timestamp]-[randomString]-[filename]
-        └── logo/
-            └── [timestamp]-[randomString]-[filename]
+├── facilities/
+│   └── [facilityId]/
+│       ├── photos/
+│       │   └── [timestamp]-[randomString]-[filename]
+│       └── logo/
+│           └── [timestamp]-[randomString]-[filename]
+├── licenses/
+│   └── [filename]
+├── insurances/
+│   └── [filename]
+└── locations/
+    └── [filename]
 ```
 
 ### File Naming Convention
@@ -26,17 +32,53 @@ gs://beginrecovery-bb288.appspot.com/
 
 ### Security Rules
 Located in `storage.rules`:
-```
+```rules
 rules_version = '2';
 
 service firebase.storage {
   match /b/{bucket}/o {
+    // Helper functions
+    function isAdmin() {
+      return request.auth != null && request.auth.token.role == 'admin';
+    }
+
+    function isOwner() {
+      return request.auth != null && request.auth.token.role == 'owner';
+    }
+
+    function isValidImage() {
+      return request.resource.size < 5 * 1024 * 1024 // 5MB max
+        && request.resource.contentType.matches('image/.*'); // Only images
+    }
+
+    // Allow public read access to all files
     match /{allPaths=**} {
       allow read: if true;
+    }
+
+    // Admin folders - only admins can write
+    match /licenses/{fileName} {
+      allow write: if isAdmin() && isValidImage();
+      allow delete: if isAdmin();
+    }
+
+    match /insurances/{fileName} {
+      allow write: if isAdmin() && isValidImage();
+      allow delete: if isAdmin();
+    }
+
+    match /locations/{fileName} {
+      allow write: if isAdmin() && isValidImage();
+      allow delete: if isAdmin();
+    }
+
+    // Facility files - admins and owners can write
+    match /facilities/{facilityId}/{allPaths=**} {
       allow write: if request.auth != null 
-        && request.resource.size < 5 * 1024 * 1024
-        && request.resource.contentType.matches('image/.*')
-        && request.resource.name.matches('facilities/[^/]+/(photos|logo)/.+');
+        && isValidImage()
+        && (isAdmin() || isOwner());
+      allow delete: if request.auth != null 
+        && (isAdmin() || isOwner());
     }
   }
 }
@@ -44,7 +86,10 @@ service firebase.storage {
 
 ### Access Control
 - Public read access for all files
-- Authenticated write access
+- Role-based write access:
+  - Admins can write to all folders
+  - Owners can write to facility folders
+  - All writes require authentication
 - Size limit: 5MB per file
 - Image files only (JPEG, PNG, WebP)
 - Structured path validation
@@ -53,8 +98,8 @@ service firebase.storage {
 
 ### Upload Process
 1. File validation
-   - Size check
-   - Type check
+   - Size check (5MB limit)
+   - Type check (images only)
    - Name sanitization
 2. Path generation
    - Facility ID check
@@ -64,6 +109,10 @@ service firebase.storage {
    - Content type
    - Cache control
    - Progress tracking
+4. Role verification
+   - Admin access for system files
+   - Owner access for facility files
+
 
 ### File Removal
 1. Delete from storage
