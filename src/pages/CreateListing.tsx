@@ -3,9 +3,11 @@ import { useForm } from 'react-hook-form';
 import { useNavigate } from 'react-router-dom';
 import { Building2, Loader2 } from 'lucide-react';
 import { useAuthStore } from '../store/authStore';
-import { facilitiesService, usersService } from '../services/facilities';
+import { facilitiesService } from '../services/facilities';
+import { usersService } from '../services/users';
+import { licensesService } from '../services/licenses';
 import { storageService } from '../services/storage';
-import { Facility } from '../types';
+import { Facility, License } from '../types';
 import Header from '../components/Header';
 import Footer from '../components/Footer';
 import PhotoUpload from '../components/PhotoUpload';
@@ -30,6 +32,7 @@ interface CreateListingForm {
   insurance: string[];
   accreditation: string[];
   languages: string[];
+  licenses: License[];
 }
 
 const phoneRegex = /^(\+\d{1,2}\s?)?\(?\d{3}\)?[\s.-]?\d{3}[\s.-]?\d{4}$/;
@@ -44,13 +47,15 @@ export default function CreateListing() {
       amenities: [],
       insurance: [],
       accreditation: [],
-      languages: []
+      languages: [],
+      licenses: []
     }
   });
   const [loading, setLoading] = React.useState(false);
   const [error, setError] = React.useState<string | null>(null);
   const [photos, setPhotos] = React.useState<string[]>([]);
   const [logo, setLogo] = React.useState<string | undefined>(undefined);
+  const [availableLicenses, setAvailableLicenses] = React.useState<License[]>([]);
   const { user, refreshToken } = useAuthStore();
   const navigate = useNavigate();
 
@@ -62,9 +67,19 @@ export default function CreateListing() {
   const insurance = watch('insurance');
   const accreditation = watch('accreditation');
   const languages = watch('languages');
+  const selectedLicenses = watch('licenses');
 
   // Generate a temporary ID for photo uploads
   const tempId = React.useMemo(() => 'temp-' + Date.now(), []);
+
+  // Fetch available licenses
+  React.useEffect(() => {
+    const fetchLicenses = async () => {
+      const licenses = await licensesService.getLicenses();
+      setAvailableLicenses(licenses);
+    };
+    fetchLicenses();
+  }, []);
 
   // Redirect non-logged-in users to register
   React.useEffect(() => {
@@ -105,6 +120,7 @@ export default function CreateListing() {
         insurance: data.insurance,
         accreditation: data.accreditation,
         languages: data.languages,
+        licenses: data.licenses,
         images: photos,
         logo,
         moderationStatus: 'pending' as const
@@ -391,6 +407,21 @@ export default function CreateListing() {
                   value={languages}
                   onChange={(values) => setValue('languages', values)}
                   error={errors.languages?.message}
+                />
+
+                <DropdownSelect
+                  label="Certifications & Licenses"
+                  type="licenses"
+                  value={selectedLicenses.map(l => l.id)}
+                  onChange={(values) => {
+                    const selected = availableLicenses.filter(l => values.includes(l.id));
+                    setValue('licenses', selected);
+                  }}
+                  options={availableLicenses.map(license => ({
+                    value: license.id,
+                    label: license.name
+                  }))}
+                  error={errors.licenses?.message}
                 />
               </div>
 

@@ -1,12 +1,13 @@
 import { useState, useEffect, useCallback } from 'react';
 import { useForm } from 'react-hook-form';
 import { X } from 'lucide-react';
-import { Facility } from '../types';
+import { Facility, License } from '../types';
 import PhotoUpload from './PhotoUpload';
 import LogoUpload from './LogoUpload';
 import AddressAutocomplete from './AddressAutocomplete';
 import DropdownSelect from './ui/DropdownSelect';
 import { useAuthStore } from '../store/authStore';
+import { licensesService } from '../services/licenses';
 
 interface EditListingModalProps {
   facility: Facility;
@@ -32,6 +33,7 @@ interface EditListingForm {
   insurance: string[];
   accreditation: string[];
   languages: string[];
+  licenses: License[];
 }
 
 const emailRegex = /^[A-Z0-9._%+-]+@[A-Z0-9.-]+\.[A-Z]{2,}$/i;
@@ -45,6 +47,7 @@ const EditListingModal = ({ facility, isOpen, onClose, onSave }: EditListingModa
     images: [],
     logo: undefined
   });
+  const [availableLicenses, setAvailableLicenses] = useState<License[]>([]);
   const { user } = useAuthStore();
 
   // Check if user can edit this facility
@@ -52,6 +55,15 @@ const EditListingModal = ({ facility, isOpen, onClose, onSave }: EditListingModa
     user.role === 'admin' || 
     (user.role === 'owner' && user.id === facility.ownerId)
   );
+
+  // Fetch available licenses
+  useEffect(() => {
+    const fetchLicenses = async () => {
+      const licenses = await licensesService.getLicenses();
+      setAvailableLicenses(licenses);
+    };
+    fetchLicenses();
+  }, []);
 
   // Watch form values for DropdownSelect components
   const highlights = watch('highlights', []);
@@ -61,6 +73,7 @@ const EditListingModal = ({ facility, isOpen, onClose, onSave }: EditListingModa
   const insurance = watch('insurance', []);
   const accreditation = watch('accreditation', []);
   const languages = watch('languages', []);
+  const selectedLicenses = watch('licenses', []);
 
   // Reset form when modal opens or facility changes
   useEffect(() => {
@@ -87,7 +100,8 @@ const EditListingModal = ({ facility, isOpen, onClose, onSave }: EditListingModa
         amenities: facility.amenities || [],
         insurance: facility.insurance || [],
         accreditation: facility.accreditation || [],
-        languages: facility.languages || []
+        languages: facility.languages || [],
+        licenses: facility.licenses || []
       });
 
       // Reset form data with existing images and logo
@@ -146,6 +160,7 @@ const EditListingModal = ({ facility, isOpen, onClose, onSave }: EditListingModa
         insurance: data.insurance,
         accreditation: data.accreditation,
         languages: data.languages,
+        licenses: data.licenses,
         images: formData.images,
         logo: formData.logo
       });
@@ -354,6 +369,21 @@ const EditListingModal = ({ facility, isOpen, onClose, onSave }: EditListingModa
               value={languages}
               onChange={(values) => setValue('languages', values)}
               error={errors.languages?.message}
+            />
+
+            <DropdownSelect
+              label="Certifications & Licenses"
+              type="licenses"
+              value={selectedLicenses.map(l => l.id)}
+              onChange={(values) => {
+                const selected = availableLicenses.filter(l => values.includes(l.id));
+                setValue('licenses', selected);
+              }}
+              options={availableLicenses.map(license => ({
+                value: license.id,
+                label: license.name
+              }))}
+              error={errors.licenses?.message}
             />
           </div>
 

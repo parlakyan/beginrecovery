@@ -23,6 +23,7 @@ export interface Facility {
   insurance: string[];
   accreditation: string[];
   languages: string[];
+  licenses?: License[];
   rating: number;
   reviews: number;
   reviewCount: number;

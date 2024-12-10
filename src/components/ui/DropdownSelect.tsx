@@ -3,12 +3,18 @@ import { ChevronDown, Search, X } from 'lucide-react';
 import { optionsService } from '../../services/options';
 import { CollectionType } from '../../types';
 
+interface Option {
+  value: string;
+  label: string;
+}
+
 interface DropdownSelectProps {
   label: string;
   type: CollectionType;
   value: string[];
   onChange: (values: string[]) => void;
   error?: string;
+  options?: Option[];
 }
 
 export default function DropdownSelect({
@@ -16,20 +22,27 @@ export default function DropdownSelect({
   type,
   value,
   onChange,
-  error
+  error,
+  options: customOptions
 }: DropdownSelectProps) {
   const [isOpen, setIsOpen] = useState(false);
-  const [options, setOptions] = useState<string[]>([]);
+  const [options, setOptions] = useState<Option[]>([]);
   const [loading, setLoading] = useState(true);
   const [searchQuery, setSearchQuery] = useState('');
   const dropdownRef = React.useRef<HTMLDivElement>(null);
 
-  // Fetch options from database
+  // Fetch options from database if no custom options provided
   useEffect(() => {
     const fetchOptions = async () => {
       try {
+        if (customOptions) {
+          setOptions(customOptions);
+          setLoading(false);
+          return;
+        }
+
         const fetchedOptions = await optionsService.getOptions(type);
-        setOptions(fetchedOptions);
+        setOptions(fetchedOptions.map(opt => ({ value: opt, label: opt })));
       } catch (error) {
         console.error('Error fetching options:', error);
       } finally {
@@ -38,7 +51,7 @@ export default function DropdownSelect({
     };
 
     fetchOptions();
-  }, [type]);
+  }, [type, customOptions]);
 
   // Handle click outside to close dropdown
   useEffect(() => {
@@ -54,14 +67,21 @@ export default function DropdownSelect({
 
   // Filter options based on search query
   const filteredOptions = options.filter(option =>
-    option.toLowerCase().includes(searchQuery.toLowerCase())
+    option.label.toLowerCase().includes(searchQuery.toLowerCase())
   );
 
-  const toggleOption = (option: string) => {
-    const newValue = value.includes(option)
-      ? value.filter(v => v !== option)
-      : [...value, option];
+  const toggleOption = (optionValue: string) => {
+    const newValue = value.includes(optionValue)
+      ? value.filter(v => v !== optionValue)
+      : [...value, optionValue];
     onChange(newValue);
+  };
+
+  const getSelectedLabels = () => {
+    return value.map(v => {
+      const option = options.find(opt => opt.value === v);
+      return option ? option.label : v;
+    });
   };
 
   const clearSelection = () => {
@@ -90,15 +110,15 @@ export default function DropdownSelect({
       {/* Selected Values */}
       {value.length > 0 && (
         <div className="mt-2 flex flex-wrap gap-2">
-          {value.map((item) => (
+          {getSelectedLabels().map((label, index) => (
             <span
-              key={item}
+              key={value[index]}
               className="inline-flex items-center px-3 py-1 rounded-full text-sm bg-blue-50 text-blue-700"
             >
-              {item}
+              {label}
               <button
                 type="button"
-                onClick={() => toggleOption(item)}
+                onClick={() => toggleOption(value[index])}
                 className="ml-2 hover:text-blue-800"
               >
                 <X className="w-4 h-4" />
@@ -138,14 +158,14 @@ export default function DropdownSelect({
             ) : (
               <div className="p-2 space-y-1">
                 {filteredOptions.map((option) => (
-                  <label key={option} className="flex items-center p-2 hover:bg-gray-50 rounded-lg cursor-pointer">
+                  <label key={option.value} className="flex items-center p-2 hover:bg-gray-50 rounded-lg cursor-pointer">
                     <input
                       type="checkbox"
-                      checked={value.includes(option)}
-                      onChange={() => toggleOption(option)}
+                      checked={value.includes(option.value)}
+                      onChange={() => toggleOption(option.value)}
                       className="rounded border-gray-300 text-blue-600 focus:ring-blue-500"
                     />
-                    <span className="ml-2">{option}</span>
+                    <span className="ml-2">{option.label}</span>
                   </label>
                 ))}
               </div>

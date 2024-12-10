@@ -122,7 +122,7 @@ export default function ListingDetail() {
       <Header />
       
       {/* Sticky Breadcrumb Navigation - positioned below header */}
-      <div className="sticky top-[64px] bg-white border-b border-gray-200 z-10 shadow-sm">
+      <div className="sticky top-[65px] bg-white border-b border-gray-200 z-10 shadow-sm">
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-4">
           <Breadcrumb items={breadcrumbItems} />
         </div>
@@ -242,8 +242,10 @@ export default function ListingDetail() {
                 </div>
               </div>
 
-              {/* Certifications Section - Only for verified facilities */}
-              {facility.isVerified && <CertificationsSection />}
+              {/* Certifications Section - Only for verified facilities with licenses */}
+              {facility.isVerified && facility.licenses && facility.licenses.length > 0 && (
+                <CertificationsSection licenses={facility.licenses} />
+              )}
 
               {/* Reviews Section */}
               <ReviewsSection facility={facility} />

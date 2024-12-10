@@ -1,172 +1,91 @@
-import { 
-  collection, 
-  getDocs, 
-  doc, 
-  updateDoc,
-  query,
-  where,
-  serverTimestamp,
+import {
+  doc,
   getDoc,
-  Timestamp
+  setDoc,
+  updateDoc
 } from 'firebase/firestore';
-import { auth } from '../lib/firebase';
-import { sendPasswordResetEmail } from 'firebase/auth';
-import { db } from '../lib/firebase';
-import { User, UserStats } from '../types';
+import { db, auth } from '../lib/firebase';
+import { User } from '../types';
 
+const USERS_COLLECTION = 'users';
+
+/**
+ * Input type for user creation
+ */
+interface CreateUserInput {
+  email: string;
+  role: 'user' | 'owner' | 'admin';
+  createdAt: string;
+}
+
+/**
+ * User management service
+ */
 export const usersService = {
-  async getUsers(): Promise<User[]> {
+  async createUser(userData: CreateUserInput) {
+    if (!auth.currentUser) throw new Error('No authenticated user');
+    
     try {
-      const usersRef = collection(db, 'users');
-      const facilitiesRef = collection(db, 'facilities');
+      console.log('Creating new user:', userData);
+      const userRef = doc(db, USERS_COLLECTION, auth.currentUser.uid);
       
-      // Get all users
-      const snapshot = await getDocs(usersRef);
+      const userDoc = await getDoc(userRef);
+      if (userDoc.exists()) {
+        console.log('User already exists, returning existing data');
+        return userDoc.data() as User;
+      }
+
+      const newUserData: User = {
+        id: auth.currentUser.uid,
+        email: userData.email,
+        role: userData.role,
+        createdAt: userData.createdAt
+      };
+
+      await setDoc(userRef, newUserData);
+      console.log('User created successfully');
       
-      // Get all facilities
-      const facilitiesSnapshot = await getDocs(facilitiesRef);
-      const facilitiesByOwner = facilitiesSnapshot.docs.reduce((acc, doc) => {
-        const data = doc.data();
-        const ownerId = data.ownerId;
-        if (!acc[ownerId]) {
-          acc[ownerId] = {
-            total: 0,
-            verified: 0
-          };
-        }
-        acc[ownerId].total += 1;
-        if (data.isVerified) {
-          acc[ownerId].verified += 1;
-        }
-        return acc;
-      }, {} as Record<string, { total: number; verified: number }>);
-
-      return snapshot.docs.map(doc => {
-        const facilityStats = facilitiesByOwner[doc.id] || { total: 0, verified: 0 };
-        return {
-          id: doc.id,
-          ...doc.data(),
-          createdAt: doc.data().createdAt?.toDate?.()?.toISOString() || new Date().toISOString(),
-          lastLogin: doc.data().lastLogin?.toDate?.()?.toISOString() || null,
-          facilities: new Array(facilityStats.total).fill(''), // Array of facility IDs with correct length
-          verifiedListings: facilityStats.verified
-        } as User;
-      });
+      return newUserData;
     } catch (error) {
-      console.error('Error getting users:', error);
-      return [];
-    }
-  },
-
-  async updateUser(userId: string, data: Partial<User>): Promise<void> {
-    try {
-      const userRef = doc(db, 'users', userId);
-      await updateDoc(userRef, {
-        ...data,
-        updatedAt: serverTimestamp()
-      });
-    } catch (error) {
-      console.error('Error updating user:', error);
+      console.error('Error creating user:', error);
       throw error;
     }
   },
 
-  async resetUserPassword(email: string): Promise<void> {
+  async getUserById(userId: string): Promise<User | null> {
     try {
-      await sendPasswordResetEmail(auth, email);
-    } catch (error) {
-      console.error('Error resetting password:', error);
-      throw error;
-    }
-  },
-
-  async getUserStats(): Promise<UserStats> {
-    try {
-      const usersRef = collection(db, 'users');
-      const facilitiesRef = collection(db, 'facilities');
-
-      // Get all users
-      const usersSnapshot = await getDocs(usersRef);
-      const totalUsers = usersSnapshot.size;
-
-      // Get new users this month
-      const thisMonth = new Date();
-      thisMonth.setDate(1); // First day of current month
-      const newUsersThisMonth = usersSnapshot.docs.filter(doc => {
-        const createdAt = doc.data().createdAt;
-        if (createdAt instanceof Timestamp) {
-          return createdAt.toDate() >= thisMonth;
-        }
-        return false;
-      }).length;
-
-      // Get active users (logged in within last 30 days)
-      const thirtyDaysAgo = new Date();
-      thirtyDaysAgo.setDate(thirtyDaysAgo.getDate() - 30);
-      const activeUsers = usersSnapshot.docs.filter(doc => {
-        const lastLogin = doc.data().lastLogin;
-        if (lastLogin instanceof Timestamp) {
-          return lastLogin.toDate() >= thirtyDaysAgo;
-        }
-        return false;
-      }).length;
-
-      // Get facilities stats
-      const facilitiesSnapshot = await getDocs(facilitiesRef);
-      const totalListings = facilitiesSnapshot.size;
-      const verifiedListings = facilitiesSnapshot.docs.filter(doc => doc.data().isVerified).length;
-
-      // Get most recent login
-      const lastLogin = usersSnapshot.docs
-        .map(doc => doc.data().lastLogin)
-        .filter((login): login is Timestamp => login instanceof Timestamp)
-        .sort((a, b) => b.toDate().getTime() - a.toDate().getTime())[0]
-        ?.toDate()?.toISOString();
-
-      return {
-        totalUsers,
-        newUsersThisMonth,
-        activeUsers,
-        totalListings,
-        verifiedListings,
-        lastLogin,
-        status: 'active'
+      console.log('Fetching user by ID:', userId);
+      const userDoc = await getDoc(doc(db, USERS_COLLECTION, userId));
+      if (!userDoc.exists()) {
+        console.log('No user found with ID:', userId);
+        return null;
+      }
+      
+      const data = userDoc.data();
+      const user: User = {
+        id: userDoc.id,
+        email: data.email || 'anonymous@user.com',
+        role: data.role || 'user',
+        createdAt: data.createdAt?.toDate?.()?.toISOString() || new Date().toISOString()
       };
+      console.log('Found user:', user);
+      return user;
     } catch (error) {
-      console.error('Error getting user stats:', error);
-      return {
-        totalUsers: 0,
-        newUsersThisMonth: 0,
-        activeUsers: 0,
-        totalListings: 0,
-        verifiedListings: 0,
-        status: 'error'
-      };
+      console.error('Error getting user:', error);
+      return null;
     }
   },
 
-  async getUserFacilities(userId: string): Promise<string[]> {
+  async updateUserRole(userId: string, role: 'user' | 'owner' | 'admin'): Promise<boolean> {
     try {
-      // Query facilities collection for facilities owned by this user
-      const facilitiesRef = collection(db, 'facilities');
-      const q = query(facilitiesRef, where('ownerId', '==', userId));
-      const snapshot = await getDocs(q);
-      return snapshot.docs.map(doc => doc.id);
+      console.log('Updating user role:', { userId, role });
+      const userRef = doc(db, USERS_COLLECTION, userId);
+      await updateDoc(userRef, { role });
+      console.log('User role updated successfully');
+      return true;
     } catch (error) {
-      console.error('Error getting user facilities:', error);
-      return [];
-    }
-  },
-
-  async updateLastLogin(userId: string): Promise<void> {
-    try {
-      const userRef = doc(db, 'users', userId);
-      await updateDoc(userRef, {
-        lastLogin: serverTimestamp()
-      });
-    } catch (error) {
-      console.error('Error updating last login:', error);
-      throw error;
+      console.error('Error updating user role:', error);
+      return false;
     }
   }
 };
