@@ -53,6 +53,30 @@ const tabs = [
 />
 ```
 
+### InsurancesSection
+Displays insurance providers for verified facilities.
+
+#### Features
+- Insurance provider logos
+- Provider information display
+- Verification status check
+- Responsive grid layout
+- Loading states
+
+#### Props
+```typescript
+interface InsurancesSectionProps {
+  insurances: Insurance[];
+}
+```
+
+#### Usage
+```tsx
+{facility.isVerified && facility.insurances && facility.insurances.length > 0 && (
+  <InsurancesSection insurances={facility.insurances} />
+)}
+```
+
 ### FilterBar
 Handles search filters for facilities.
 
@@ -401,6 +425,28 @@ graph TD
 
 ### Unit Tests
 ```typescript
+describe('InsurancesSection', () => {
+  it('renders insurance providers correctly', () => {
+    render(<InsurancesSection insurances={mockInsurances} />);
+    expect(screen.getByText(mockInsurances[0].name)).toBeInTheDocument();
+  });
+
+  it('handles empty insurances array', () => {
+    render(<InsurancesSection insurances={[]} />);
+    expect(screen.queryByRole('section')).not.toBeInTheDocument();
+  });
+
+  it('displays provider logos when available', () => {
+    render(<InsurancesSection insurances={mockInsurances} />);
+    expect(screen.getByAltText(mockInsurances[0].name)).toBeInTheDocument();
+  });
+
+  it('shows verification status correctly', () => {
+    render(<InsurancesSection insurances={mockInsurances} />);
+    expect(screen.getByText('Insurance Providers')).toBeInTheDocument();
+  });
+});
+
 describe('Tabs', () => {
   it('renders tabs correctly', () => {
     render(<Tabs tabs={mockTabs} activeTab="tab1" onTabChange={jest.fn()} />);
@@ -415,21 +461,6 @@ describe('Tabs', () => {
   });
 });
 
-describe('LogoUpload', () => {
-  it('handles logo upload successfully', async () => {
-    render(<LogoUpload facilityId="123" />);
-    // Test upload flow
-  });
-
-  it('handles logo removal correctly', async () => {
-    render(<LogoUpload facilityId="123" existingLogo="logo.jpg" />);
-    // Test removal flow
-  });
-});
-```
-
-### Search Component Tests
-```typescript
 describe('FilterBar', () => {
   it('handles location filtering', () => {
     render(<FilterBar {...mockProps} />);
