@@ -5,3 +5,4 @@ export { default as MultiSelect } from './MultiSelect';
 export { default as Tabs } from './Tabs';
 export type { Tab } from './Tabs';
 export { default as Breadcrumb } from './Breadcrumb';
+export type { BreadcrumbItem, BreadcrumbProps } from './Breadcrumb';
