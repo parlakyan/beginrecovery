@@ -36,11 +36,10 @@ export default function SearchResults() {
     };
 
     facilities.forEach((facility) => {
-      // Location counts (using city)
-      if (facility.city) {
-        const cityLocation = facility.city;
-        locations.add(cityLocation);
-        counts.locations[cityLocation] = (counts.locations[cityLocation] || 0) + 1;
+      // Location counts
+      if (facility.location) {
+        locations.add(facility.location);
+        counts.locations[facility.location] = (counts.locations[facility.location] || 0) + 1;
       }
 
       // Treatment type counts
@@ -80,13 +79,7 @@ export default function SearchResults() {
           rating: filters.rating === 0 ? null : filters.rating // Convert 0 to null for rating
         });
 
-        // If location is provided, filter results to match the exact city
-        const filteredResults = location 
-          ? results.filter(facility => 
-              facility.city.toLowerCase() === location.toLowerCase())
-          : results;
-
-        setFacilities(filteredResults);
+        setFacilities(results);
       } catch (error) {
         console.error('Error fetching facilities:', error);
         setFacilities([]);

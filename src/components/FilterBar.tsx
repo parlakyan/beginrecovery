@@ -46,24 +46,15 @@ export default function FilterBar({ filters, filterOptions, optionCounts, onFilt
     return () => document.removeEventListener('mousedown', handleClickOutside);
   }, []);
 
-  // Get unique cities from locations
-  const getCities = () => {
-    const cities = new Set<string>();
-    const cityCounts: { [key: string]: number } = {};
-
-    Array.from(filterOptions.locations).forEach(location => {
-      const parts = location.split(',');
-      if (parts.length >= 2) {
-        const city = parts[0].trim();
-        cities.add(city);
-        cityCounts[city] = (cityCounts[city] || 0) + (optionCounts.locations[location] || 0);
-      }
-    });
-
-    return { cities, cityCounts };
+  const formatLocation = (location: string) => {
+    // Extract just the city and state from the full address
+    const parts = location.split(',');
+    if (parts.length >= 2) {
+      // Return "City, State" format
+      return `${parts[0].trim()}, ${parts[1].trim()}`;
+    }
+    return location;
   };
-
-  const { cities, cityCounts } = getCities();
 
   const renderDropdown = (
     type: 'location' | 'treatmentTypes' | 'amenities',
@@ -71,16 +62,16 @@ export default function FilterBar({ filters, filterOptions, optionCounts, onFilt
     options: Set<string>,
     counts: { [key: string]: number }
   ) => {
-    // Use cities for location dropdown, otherwise use original options
-    const useOptions = type === 'location' ? cities : options;
-    const useCounts = type === 'location' ? cityCounts : counts;
-
-    const sortedOptions = Array.from(useOptions)
-      .map(option => ({ value: option, count: useCounts[option] || 0 }))
+    const sortedOptions = Array.from(options)
+      .map(option => ({ 
+        value: option,
+        displayValue: type === 'location' ? formatLocation(option) : option,
+        count: counts[option] || 0 
+      }))
       .sort((a, b) => b.count - a.count);
 
     const filteredOptions = sortedOptions.filter(option =>
-      option.value.toLowerCase().includes(searchQueries[type].toLowerCase())
+      option.displayValue.toLowerCase().includes(searchQueries[type].toLowerCase())
     );
 
     const filterType: keyof SearchFiltersState = type === 'location' ? 'treatmentTypes' : type;
@@ -112,7 +103,7 @@ export default function FilterBar({ filters, filterOptions, optionCounts, onFilt
 
             {/* Options list */}
             <div className="space-y-2 max-h-64 overflow-y-auto">
-              {filteredOptions.map(({ value, count }) => (
+              {filteredOptions.map(({ value, displayValue, count }) => (
                 <label key={value} className="flex items-center justify-between hover:bg-gray-50 p-2 rounded-lg cursor-pointer">
                   <div className="flex items-center gap-2">
                     <input
@@ -121,7 +112,7 @@ export default function FilterBar({ filters, filterOptions, optionCounts, onFilt
                       onChange={() => onFilterChange(filterType, value)}
                       className="rounded text-blue-600 focus:ring-blue-500"
                     />
-                    <span className="text-sm text-gray-700">{value}</span>
+                    <span className="text-sm text-gray-700">{displayValue}</span>
                   </div>
                   <span className="text-xs text-gray-500">({count})</span>
                 </label>
