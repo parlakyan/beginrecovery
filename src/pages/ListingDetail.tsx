@@ -12,7 +12,7 @@ import ReviewsSection from '../components/ReviewsSection';
 import MapSection from '../components/MapSection';
 import StaffSection from '../components/StaffSection';
 import CertificationsSection from '../components/CertificationsSection';
-import { Button, Tag } from '../components/ui';
+import { Button, Tag, Breadcrumb } from '../components/ui';
 import EditListingModal from '../components/EditListingModal';
 
 export default function ListingDetail() {
@@ -104,9 +104,24 @@ export default function ListingDetail() {
     return null;
   }
 
+  const breadcrumbItems = [
+    { label: 'All Centers', href: '/search' },
+    { label: 'United States', href: '/search?country=us' },
+    { label: facility.state, href: `/search?state=${facility.state}` },
+    { label: facility.city, href: `/search?city=${facility.city}` },
+    { label: facility.name }
+  ];
+
   return (
     <div className="min-h-screen bg-gray-50 flex flex-col">
       <Header />
+      
+      {/* Breadcrumb Navigation */}
+      <div className="bg-white border-b border-gray-200">
+        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-4">
+          <Breadcrumb items={breadcrumbItems} />
+        </div>
+      </div>
       
       <main className="flex-grow pb-20">
         {/* Hero Section with Image Carousel */}

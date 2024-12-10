@@ -4,3 +4,4 @@ export { default as DropdownSelect } from './DropdownSelect';
 export { default as MultiSelect } from './MultiSelect';
 export { default as Tabs } from './Tabs';
 export type { Tab } from './Tabs';
+export { default as Breadcrumb } from './Breadcrumb';
