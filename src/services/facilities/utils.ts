@@ -1,5 +1,7 @@
-import { QueryDocumentSnapshot, DocumentData, Timestamp } from 'firebase/firestore';
+import { QueryDocumentSnapshot, DocumentData, Timestamp, collection, getDocs, updateDoc, doc } from 'firebase/firestore';
+import { db } from '../../lib/firebase';
 import { Facility, License, Insurance } from '../../types';
+import { FACILITIES_COLLECTION } from './types';
 
 /**
  * Generates URL-friendly slug from facility name and location
@@ -20,6 +22,35 @@ export const generateSlug = (name: string, location: string): string => {
     .replace(/\s+/g, '-');
 
   return `${cleanName}-${cleanLocation}`;
+};
+
+/**
+ * Migrate existing facilities to include slugs
+ */
+export const migrateExistingSlugs = async () => {
+  try {
+    const facilitiesRef = collection(db, FACILITIES_COLLECTION);
+    const snapshot = await getDocs(facilitiesRef);
+    
+    const updates = snapshot.docs.map(async (docSnap) => {
+      const data = docSnap.data();
+      if (!data.slug) {
+        const name = data.name || '';
+        const location = data.location || '';
+        const slug = generateSlug(name, location);
+        
+        const facilityRef = doc(db, FACILITIES_COLLECTION, docSnap.id);
+        return updateDoc(facilityRef, { slug });
+      }
+      return Promise.resolve();
+    });
+
+    await Promise.all(updates);
+    console.log('Slug migration completed successfully');
+  } catch (error) {
+    console.error('Error migrating slugs:', error);
+    throw error;
+  }
 };
 
 interface RawLicense {
@@ -122,7 +153,7 @@ export const transformFacilityData = (doc: QueryDocumentSnapshot<DocumentData>):
     highlights: data.highlights || [],
     substances: data.substances || [],
     insurance: data.insurance || [],
-    insurances,  // Added this line
+    insurances,
     accreditation: data.accreditation || [],
     languages: data.languages || [],
     licenses,

@@ -16,6 +16,16 @@ export interface SearchParams {
   rating: number | null;
 }
 
+export interface FacilitiesResponse {
+  facilities: Facility[];
+  lastVisible: QueryDocumentSnapshot<DocumentData> | null;
+  hasMore: boolean;
+}
+
+export interface CreateFacilityResponse {
+  id: string;
+}
+
 export const FACILITIES_COLLECTION = 'facilities';
 export const USERS_COLLECTION = 'users';
 export const BATCH_SIZE = 10;
