@@ -1,6 +1,6 @@
 import { useEffect, useState, useCallback } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
-import { Edit2, ShieldCheck, ShieldAlert, Clock, MapPin, Star } from 'lucide-react';
+import { Edit2, ShieldCheck, ShieldAlert, Clock, MapPin, Star, Phone } from 'lucide-react';
 import { facilitiesService } from '../services/facilities';
 import { useAuthStore } from '../store/authStore';
 import { Facility } from '../types';
@@ -80,8 +80,13 @@ export default function ListingDetail() {
   const handleSave = async (data: Partial<Facility>) => {
     if (!facility) return;
     try {
-      await facilitiesService.updateFacility(facility.id, data);
-      await fetchFacility(); // Refetch facility data
+      const updatedFacility = await facilitiesService.updateFacility(facility.id, data);
+      if (updatedFacility && updatedFacility.slug !== slug) {
+        // If the slug has changed, navigate to the new URL
+        navigate(`/${updatedFacility.slug}`, { replace: true });
+      } else {
+        await fetchFacility(); // Refetch facility data
+      }
       setIsEditModalOpen(false);
     } catch (error) {
       console.error('Error updating facility:', error);
@@ -106,7 +111,7 @@ export default function ListingDetail() {
 
   const breadcrumbItems = [
     { label: 'All Centers', href: '/search' },
-    { label: 'United States', href: '/search?q=united%20states' },
+    { label: 'USA', href: '/search?q=usa' },
     { label: facility.state, href: `/search?q=${encodeURIComponent(facility.state)}` },
     { label: facility.city, href: `/search?q=${encodeURIComponent(facility.city)}` },
     { label: facility.name }
@@ -116,8 +121,8 @@ export default function ListingDetail() {
     <div className="min-h-screen bg-gray-50 flex flex-col">
       <Header />
       
-      {/* Sticky Breadcrumb Navigation */}
-      <div className="sticky top-0 bg-white border-b border-gray-200 z-10 shadow-sm">
+      {/* Sticky Breadcrumb Navigation - positioned below header */}
+      <div className="sticky top-[64px] bg-white border-b border-gray-200 z-10 shadow-sm">
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-4">
           <Breadcrumb items={breadcrumbItems} />
         </div>
@@ -184,8 +189,8 @@ export default function ListingDetail() {
                   <div className="flex-1">
                     <h1 className="text-3xl font-bold text-gray-900 mb-4">{facility.name}</h1>
                     
-                    {/* Location and Hours */}
-                    <div className="flex flex-row gap-6 mb-6">
+                    {/* Location, Hours, and Phone */}
+                    <div className="flex flex-col md:flex-row gap-6 mb-6">
                       <div className="flex items-center text-gray-600">
                         <MapPin className="w-5 h-5 mr-2 flex-shrink-0" />
                         <span>{facility.location}</span>
@@ -194,6 +199,12 @@ export default function ListingDetail() {
                         <Clock className="w-5 h-5 mr-2 flex-shrink-0" />
                         <span>Open 24/7</span>
                       </div>
+                      {facility.phone && (
+                        <div className="flex items-center text-gray-600">
+                          <Phone className="w-5 h-5 mr-2 flex-shrink-0" />
+                          <span>{facility.phone}</span>
+                        </div>
+                      )}
                     </div>
 
                     {/* Description */}
