@@ -1,5 +1,5 @@
 import React, { useState } from 'react';
-import { ChevronDown, Search } from 'lucide-react';
+import { ChevronDown, Search, X } from 'lucide-react';
 import { SearchFiltersState } from '../types';
 
 interface FilterBarProps {
@@ -46,14 +46,37 @@ export default function FilterBar({ filters, filterOptions, optionCounts, onFilt
     return () => document.removeEventListener('mousedown', handleClickOutside);
   }, []);
 
+  // Get unique cities from locations
+  const getCities = () => {
+    const cities = new Set<string>();
+    const cityCounts: { [key: string]: number } = {};
+
+    Array.from(filterOptions.locations).forEach(location => {
+      const parts = location.split(',');
+      if (parts.length >= 2) {
+        const city = parts[0].trim();
+        cities.add(city);
+        cityCounts[city] = (cityCounts[city] || 0) + (optionCounts.locations[location] || 0);
+      }
+    });
+
+    return { cities, cityCounts };
+  };
+
+  const { cities, cityCounts } = getCities();
+
   const renderDropdown = (
     type: 'location' | 'treatmentTypes' | 'amenities',
     title: string,
     options: Set<string>,
     counts: { [key: string]: number }
   ) => {
-    const sortedOptions = Array.from(options)
-      .map(option => ({ value: option, count: counts[option] || 0 }))
+    // Use cities for location dropdown, otherwise use original options
+    const useOptions = type === 'location' ? cities : options;
+    const useCounts = type === 'location' ? cityCounts : counts;
+
+    const sortedOptions = Array.from(useOptions)
+      .map(option => ({ value: option, count: useCounts[option] || 0 }))
       .sort((a, b) => b.count - a.count);
 
     const filteredOptions = sortedOptions.filter(option =>
@@ -137,6 +160,16 @@ export default function FilterBar({ filters, filterOptions, optionCounts, onFilt
             }`}
           >
             <span>Rating</span>
+            {filters.rating !== null && (
+              <X 
+                className="w-4 h-4 text-gray-400 hover:text-gray-600" 
+                onClick={(e) => {
+                  e.stopPropagation();
+                  onFilterChange('rating', '0');
+                  setActiveDropdown(null);
+                }}
+              />
+            )}
             <ChevronDown className="w-4 h-4" />
           </button>
           {activeDropdown === 'rating' && (
@@ -158,6 +191,15 @@ export default function FilterBar({ filters, filterOptions, optionCounts, onFilt
                     {rating}+ Stars
                   </button>
                 ))}
+                <button
+                  onClick={() => {
+                    onFilterChange('rating', '0');
+                    setActiveDropdown(null);
+                  }}
+                  className="w-full text-left px-3 py-2 rounded-lg text-gray-600 hover:bg-gray-50"
+                >
+                  Any Rating
+                </button>
               </div>
             </div>
           )}

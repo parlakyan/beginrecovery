@@ -26,20 +26,20 @@ export default function SearchResults() {
 
   // Extract unique values and counts from facilities
   const getFilterOptions = (facilities: Facility[]) => {
-    const locations = new Set<string>();
+    const cities = new Set<string>();
     const treatmentTypes = new Set<string>();
     const amenities = new Set<string>();
     const counts = {
-      locations: {} as { [key: string]: number },
+      cities: {} as { [key: string]: number },
       treatmentTypes: {} as { [key: string]: number },
       amenities: {} as { [key: string]: number }
     };
 
     facilities.forEach((facility) => {
-      // Location counts
-      if (facility.location) {
-        locations.add(facility.location);
-        counts.locations[facility.location] = (counts.locations[facility.location] || 0) + 1;
+      // City counts
+      if (facility.city) {
+        cities.add(facility.city);
+        counts.cities[facility.city] = (counts.cities[facility.city] || 0) + 1;
       }
 
       // Treatment type counts
@@ -56,8 +56,16 @@ export default function SearchResults() {
     });
 
     return {
-      filterOptions: { locations, treatmentTypes, amenities },
-      optionCounts: counts
+      filterOptions: { 
+        locations: cities, // Changed from locations to cities
+        treatmentTypes,
+        amenities
+      },
+      optionCounts: {
+        locations: counts.cities, // Changed from locations to cities
+        treatmentTypes: counts.treatmentTypes,
+        amenities: counts.amenities
+      }
     };
   };
 
@@ -76,15 +84,13 @@ export default function SearchResults() {
           treatmentTypes: filters.treatmentTypes,
           amenities: filters.amenities,
           insurance: filters.insurance,
-          rating: filters.rating
+          rating: filters.rating === 0 ? null : filters.rating // Convert 0 to null for rating
         });
 
-        // If location is provided, filter results to match the exact city/state
+        // If location is provided, filter results to match the exact city
         const filteredResults = location 
-          ? results.filter(facility => {
-              const facilityLocation = `${facility.city}, ${facility.state}`;
-              return facilityLocation.toLowerCase() === location.toLowerCase();
-            })
+          ? results.filter(facility => 
+              facility.city.toLowerCase() === location.toLowerCase())
           : results;
 
         setFacilities(filteredResults);
@@ -104,7 +110,12 @@ export default function SearchResults() {
   const handleFilterChange = (type: keyof SearchFiltersState, value: string) => {
     setFilters((prev: SearchFiltersState) => {
       if (type === 'rating') {
-        return { ...prev, rating: parseInt(value) };
+        const ratingValue = parseInt(value);
+        // If rating is 0 or matches current rating, clear it
+        return { 
+          ...prev, 
+          rating: ratingValue === 0 || ratingValue === prev.rating ? null : ratingValue 
+        };
       }
       
       const current = prev[type] as string[];
