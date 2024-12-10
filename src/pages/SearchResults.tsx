@@ -12,6 +12,7 @@ export default function SearchResults() {
   const [facilities, setFacilities] = useState<Facility[]>([]);
   const [loading, setLoading] = useState(true);
   const [filters, setFilters] = useState<SearchFiltersState>({
+    location: [],
     treatmentTypes: [],
     amenities: [],
     insurance: [],
@@ -69,28 +70,24 @@ export default function SearchResults() {
         const query = searchParams.get('q') || '';
         const location = searchParams.get('location') || '';
         
-        // If location is provided, use it as the search query
-        const searchQuery = location || query;
+        // If location is provided in URL, add it to filters
+        if (location && !filters.location.includes(location)) {
+          setFilters(prev => ({
+            ...prev,
+            location: [...prev.location, location]
+          }));
+        }
         
         const results = await facilitiesService.searchFacilities({
-          query: searchQuery,
+          query: query,
+          location: filters.location,
           treatmentTypes: filters.treatmentTypes,
           amenities: filters.amenities,
           insurance: filters.insurance,
           rating: filters.rating === 0 ? null : filters.rating
         });
 
-        // If location is provided, filter results to match the exact city and state
-        const filteredResults = location 
-          ? results.filter(facility => {
-              const facilityLocation = `${facility.city}, ${facility.state}`;
-              // Check both formats: "City, State" and just "City"
-              return facilityLocation.toLowerCase() === location.toLowerCase() ||
-                     facility.city.toLowerCase() === location.toLowerCase();
-            })
-          : results;
-
-        setFacilities(filteredResults);
+        setFacilities(results);
       } catch (error) {
         console.error('Error fetching facilities:', error);
         setFacilities([]);

@@ -19,6 +19,7 @@ import { SearchParams } from './types';
 export const facilitiesSearch = {
   async searchFacilities({
     query: searchQuery,
+    location,
     treatmentTypes,
     amenities,
     insurance,
@@ -27,6 +28,7 @@ export const facilitiesSearch = {
     try {
       console.log('Searching facilities:', {
         query: searchQuery,
+        location,
         treatmentTypes,
         amenities,
         insurance,
@@ -67,6 +69,13 @@ export const facilitiesSearch = {
           field && field.toString().toLowerCase().includes(searchText)
         );
 
+        // Location filter
+        const matchesLocation = !location?.length || location.some(loc => {
+          const [city, state] = loc.split(',').map(part => part.trim());
+          return facility.city.toLowerCase() === city.toLowerCase() &&
+                 facility.state.toLowerCase() === state.toLowerCase();
+        });
+
         // Treatment types
         const matchesTreatment = treatmentTypes.length === 0 ||
           treatmentTypes.some(type => facility.tags.includes(type));
@@ -83,6 +92,7 @@ export const facilitiesSearch = {
         const matchesRating = !rating || facility.rating >= rating;
 
         return matchesQuery && 
+               matchesLocation &&
                matchesTreatment && 
                matchesAmenities && 
                matchesInsurance && 

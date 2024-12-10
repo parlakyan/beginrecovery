@@ -63,7 +63,8 @@ export default function FilterBar({ filters, filterOptions, optionCounts, onFilt
       option.value.toLowerCase().includes(searchQueries[type].toLowerCase())
     );
 
-    const filterType: keyof SearchFiltersState = type === 'location' ? 'treatmentTypes' : type;
+    // Use the actual type for filtering
+    const filterType = type;
 
     return (
       <div className="relative filter-dropdown">

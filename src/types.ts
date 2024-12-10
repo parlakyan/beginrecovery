@@ -90,6 +90,7 @@ export interface CityInfo {
 }
 
 export interface SearchFiltersState {
+  location: string[];
   treatmentTypes: string[];
   amenities: string[];
   insurance: string[];
