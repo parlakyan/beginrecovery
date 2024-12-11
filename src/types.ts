@@ -16,16 +16,13 @@ export interface Facility {
   website?: string;
   images: string[];
   logo?: string;
-  tags: string[];  // Keep as string[] for backward compatibility
-  treatmentTypes?: TreatmentType[];  // New field for managed treatment types
+  treatmentTypes: TreatmentType[];
   amenities: string[];
   highlights: string[];
   substances: string[];
   conditions?: Condition[];
   therapies?: Therapy[];
-  insurance: string[];
   insurances?: Insurance[];
-  accreditation: string[];
   languages: string[];
   licenses?: License[];
   rating: number;
@@ -38,6 +35,16 @@ export interface Facility {
   status?: string;
   createdAt: string;
   updatedAt: string;
+  // Searchable fields
+  searchableLocation?: string[];
+  treatmentTypeIds?: string[];
+  conditionIds?: string[];
+  therapyIds?: string[];
+  substanceIds?: string[];
+  amenityIds?: string[];
+  insuranceIds?: string[];
+  languageIds?: string[];
+  licenseIds?: string[];
 }
 
 export interface User {
@@ -97,10 +104,12 @@ export interface SearchFiltersState {
   location: string[];
   treatmentTypes: string[];
   amenities: string[];
-  insurance: string[];
   conditions: string[];
   substances: string[];
   therapies: string[];
+  insurances: string[];
+  languages: string[];
+  licenses: string[];
   rating: number | null;
   priceRange: number | null;
 }
@@ -156,6 +165,23 @@ export interface TreatmentType {
   id: string;
   name: string;
   description: string;
+  createdAt: string;
+  updatedAt: string;
+}
+
+export interface Amenity {
+  id: string;
+  name: string;
+  description: string;
+  createdAt: string;
+  updatedAt: string;
+}
+
+export interface Language {
+  id: string;
+  name: string;
+  description: string;
+  logo: string;
   createdAt: string;
   updatedAt: string;
 }

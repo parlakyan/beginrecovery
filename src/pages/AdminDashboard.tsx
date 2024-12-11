@@ -13,6 +13,8 @@ import ConditionsPage from './admin/ConditionsPage';
 import SubstancesPage from './admin/SubstancesPage';
 import TherapiesPage from './admin/TherapiesPage';
 import TreatmentTypesPage from './admin/TreatmentTypesPage';
+import AmenitiesPage from './admin/AmenitiesPage';
+import LanguagesPage from './admin/LanguagesPage';
 
 export default function AdminDashboard() {
   const [searchParams, setSearchParams] = useSearchParams();
@@ -57,14 +59,9 @@ export default function AdminDashboard() {
       content: <UsersPage />
     },
     {
-      id: 'licenses',
-      label: 'Licenses',
-      content: <LicensesPage />
-    },
-    {
-      id: 'insurances',
-      label: 'Insurance',
-      content: <InsurancesPage />
+      id: 'treatmentTypes',
+      label: 'Treatment Types',
+      content: <TreatmentTypesPage />
     },
     {
       id: 'conditions',
@@ -82,9 +79,24 @@ export default function AdminDashboard() {
       content: <TherapiesPage />
     },
     {
-      id: 'treatmentTypes',
-      label: 'Treatment Types',
-      content: <TreatmentTypesPage />
+      id: 'amenities',
+      label: 'Amenities',
+      content: <AmenitiesPage />
+    },
+    {
+      id: 'insurances',
+      label: 'Insurance Providers',
+      content: <InsurancesPage />
+    },
+    {
+      id: 'licenses',
+      label: 'Certifications & Licenses',
+      content: <LicensesPage />
+    },
+    {
+      id: 'languages',
+      label: 'Languages',
+      content: <LanguagesPage />
     }
   ];
 
@@ -102,7 +114,7 @@ export default function AdminDashboard() {
           <div className="p-6 border-b">
             <h1 className="text-2xl font-bold">Admin Dashboard</h1>
             <p className="text-gray-600 mt-2">
-              Manage facilities, locations, users, licenses, insurance, conditions, substances, therapies, and treatment types
+              Manage facilities, locations, users, and all facility attributes
             </p>
           </div>
 

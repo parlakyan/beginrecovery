@@ -1,58 +1,56 @@
 import React, { useState, useEffect } from 'react';
 import { Plus, Edit2, Trash2 } from 'lucide-react';
-import { substancesService } from '../../services/substances';
-import { Substance } from '../../types';
+import { amenitiesService } from '../../services/amenities';
+import { Amenity } from '../../types';
 
-export default function SubstancesPage() {
-  const [substances, setSubstances] = useState<Substance[]>([]);
+export default function AmenitiesPage() {
+  const [amenities, setAmenities] = useState<Amenity[]>([]);
   const [loading, setLoading] = useState(true);
-  const [editingSubstance, setEditingSubstance] = useState<Substance | null>(null);
+  const [editingAmenity, setEditingAmenity] = useState<Amenity | null>(null);
   const [isModalOpen, setIsModalOpen] = useState(false);
   const [formData, setFormData] = useState({
     name: '',
-    description: '',
-    logo: ''
+    description: ''
   });
 
   useEffect(() => {
-    fetchSubstances();
+    fetchAmenities();
   }, []);
 
-  const fetchSubstances = async () => {
+  const fetchAmenities = async () => {
     try {
       setLoading(true);
-      const data = await substancesService.getSubstances();
-      setSubstances(data);
+      const data = await amenitiesService.getAmenities();
+      setAmenities(data);
     } catch (error) {
-      console.error('Error fetching substances:', error);
+      console.error('Error fetching amenities:', error);
     } finally {
       setLoading(false);
     }
   };
 
   const handleAdd = () => {
-    setEditingSubstance(null);
-    setFormData({ name: '', description: '', logo: '' });
+    setEditingAmenity(null);
+    setFormData({ name: '', description: '' });
     setIsModalOpen(true);
   };
 
-  const handleEdit = (substance: Substance) => {
-    setEditingSubstance(substance);
+  const handleEdit = (amenity: Amenity) => {
+    setEditingAmenity(amenity);
     setFormData({
-      name: substance.name,
-      description: substance.description,
-      logo: substance.logo
+      name: amenity.name,
+      description: amenity.description
     });
     setIsModalOpen(true);
   };
 
   const handleDelete = async (id: string) => {
-    if (window.confirm('Are you sure you want to delete this substance?')) {
+    if (window.confirm('Are you sure you want to delete this amenity?')) {
       try {
-        await substancesService.deleteSubstance(id);
-        await fetchSubstances();
+        await amenitiesService.deleteAmenity(id);
+        await fetchAmenities();
       } catch (error) {
-        console.error('Error deleting substance:', error);
+        console.error('Error deleting amenity:', error);
       }
     }
   };
@@ -60,16 +58,16 @@ export default function SubstancesPage() {
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     try {
-      if (editingSubstance) {
-        await substancesService.updateSubstance(editingSubstance.id, formData);
+      if (editingAmenity) {
+        await amenitiesService.updateAmenity(editingAmenity.id, formData);
       } else {
-        await substancesService.addSubstance(formData);
+        await amenitiesService.addAmenity(formData);
       }
-      await fetchSubstances();
+      await fetchAmenities();
       setIsModalOpen(false);
-      setFormData({ name: '', description: '', logo: '' });
+      setFormData({ name: '', description: '' });
     } catch (error) {
-      console.error('Error saving substance:', error);
+      console.error('Error saving amenity:', error);
     }
   };
 
@@ -85,41 +83,34 @@ export default function SubstancesPage() {
     <div className="space-y-6">
       {/* Header */}
       <div className="flex justify-between items-center">
-        <h1 className="text-2xl font-bold text-gray-900">Substances</h1>
+        <h1 className="text-2xl font-bold text-gray-900">Amenities</h1>
         <button
           onClick={handleAdd}
           className="bg-blue-600 text-white px-4 py-2 rounded-lg hover:bg-blue-700 transition-colors flex items-center gap-2"
         >
           <Plus className="w-4 h-4" />
-          Add Substance
+          Add Amenity
         </button>
       </div>
 
-      {/* Substances Grid */}
+      {/* Amenities Grid */}
       <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
-        {substances.map((substance) => (
-          <div key={substance.id} className="bg-white rounded-xl shadow-sm border border-gray-100 p-6">
+        {amenities.map((amenity) => (
+          <div key={amenity.id} className="bg-white rounded-xl shadow-sm border border-gray-100 p-6">
             <div className="flex items-start justify-between mb-4">
               <div className="flex-1">
-                <div className="w-12 h-12 mb-3">
-                  <img
-                    src={substance.logo}
-                    alt={substance.name}
-                    className="w-full h-full object-contain"
-                  />
-                </div>
-                <h3 className="text-lg font-semibold text-gray-900">{substance.name}</h3>
-                <p className="text-sm text-gray-600 mt-1">{substance.description}</p>
+                <h3 className="text-lg font-semibold text-gray-900">{amenity.name}</h3>
+                <p className="text-sm text-gray-600 mt-1">{amenity.description}</p>
               </div>
               <div className="flex items-center gap-2">
                 <button
-                  onClick={() => handleEdit(substance)}
+                  onClick={() => handleEdit(amenity)}
                   className="p-1 text-gray-500 hover:text-blue-600 transition-colors"
                 >
                   <Edit2 className="w-4 h-4" />
                 </button>
                 <button
-                  onClick={() => handleDelete(substance.id)}
+                  onClick={() => handleDelete(amenity.id)}
                   className="p-1 text-gray-500 hover:text-red-600 transition-colors"
                 >
                   <Trash2 className="w-4 h-4" />
@@ -135,7 +126,7 @@ export default function SubstancesPage() {
         <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center p-4 z-50">
           <div className="bg-white rounded-xl p-6 max-w-md w-full mx-4">
             <h2 className="text-xl font-bold mb-4">
-              {editingSubstance ? 'Edit Substance' : 'Add Substance'}
+              {editingAmenity ? 'Edit Amenity' : 'Add Amenity'}
             </h2>
             <form onSubmit={handleSubmit} className="space-y-4">
               <div>
@@ -159,18 +150,6 @@ export default function SubstancesPage() {
                   onChange={(e) => setFormData(prev => ({ ...prev, description: e.target.value }))}
                   className="w-full px-3 py-2 border rounded-lg focus:ring-2 focus:ring-blue-500 outline-none"
                   rows={3}
-                  required
-                />
-              </div>
-              <div>
-                <label className="block text-sm font-medium text-gray-700 mb-1">
-                  Logo URL
-                </label>
-                <input
-                  type="url"
-                  value={formData.logo}
-                  onChange={(e) => setFormData(prev => ({ ...prev, logo: e.target.value }))}
-                  className="w-full px-3 py-2 border rounded-lg focus:ring-2 focus:ring-blue-500 outline-none"
                   required
                 />
               </div>

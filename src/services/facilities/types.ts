@@ -12,7 +12,6 @@ export interface SearchParams {
   location?: string[];
   treatmentTypes: string[];
   amenities: string[];
-  insurance: string[];
   conditions: string[];
   substances: string[];
   therapies: string[];

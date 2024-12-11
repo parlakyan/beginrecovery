@@ -11,6 +11,9 @@ interface FilterBarProps {
     conditions: Set<string>;
     substances: Set<string>;
     therapies: Set<string>;
+    insurances: Set<string>;
+    languages: Set<string>;
+    licenses: Set<string>;
   };
   optionCounts: {
     locations: { [key: string]: number };
@@ -19,27 +22,34 @@ interface FilterBarProps {
     conditions: { [key: string]: number };
     substances: { [key: string]: number };
     therapies: { [key: string]: number };
+    insurances: { [key: string]: number };
+    languages: { [key: string]: number };
+    licenses: { [key: string]: number };
   };
   onFilterChange: (type: keyof SearchFiltersState, value: string, clearOthers?: boolean) => void;
 }
 
+type SearchableFilterType = Exclude<keyof SearchFiltersState, 'rating' | 'priceRange'>;
+
 export default function FilterBar({ filters, filterOptions, optionCounts, onFilterChange }: FilterBarProps) {
   const [activeDropdown, setActiveDropdown] = useState<string | null>(null);
-  const [searchQueries, setSearchQueries] = useState({
+  const [searchQueries, setSearchQueries] = useState<Record<SearchableFilterType, string>>({
     location: '',
     treatmentTypes: '',
     amenities: '',
     conditions: '',
     substances: '',
     therapies: '',
-    rating: ''
+    insurances: '',
+    languages: '',
+    licenses: ''
   });
 
   const handleDropdownClick = (dropdown: string) => {
     setActiveDropdown(activeDropdown === dropdown ? null : dropdown);
   };
 
-  const handleSearchChange = (dropdown: string, query: string) => {
+  const handleSearchChange = (dropdown: SearchableFilterType, query: string) => {
     setSearchQueries(prev => ({ ...prev, [dropdown]: query }));
   };
 
@@ -55,7 +65,7 @@ export default function FilterBar({ filters, filterOptions, optionCounts, onFilt
     return () => document.removeEventListener('mousedown', handleClickOutside);
   }, []);
 
-  const handleClearSelection = (type: keyof SearchFiltersState) => {
+  const handleClearSelection = (type: SearchableFilterType) => {
     // Clear the search query
     handleSearchChange(type, '');
     // Clear all selected items of this type
@@ -67,7 +77,7 @@ export default function FilterBar({ filters, filterOptions, optionCounts, onFilt
   };
 
   const renderDropdown = (
-    type: 'location' | 'treatmentTypes' | 'amenities' | 'conditions' | 'substances' | 'therapies',
+    type: SearchableFilterType,
     title: string,
     options: Set<string>,
     counts: { [key: string]: number }
@@ -83,9 +93,6 @@ export default function FilterBar({ filters, filterOptions, optionCounts, onFilt
       option.value.toLowerCase().includes(searchQueries[type].toLowerCase())
     );
 
-    // Use the actual type for filtering
-    const filterType = type;
-
     return (
       <div className="relative filter-dropdown">
         <button
@@ -95,9 +102,9 @@ export default function FilterBar({ filters, filterOptions, optionCounts, onFilt
           }`}
         >
           <span>{title}</span>
-          {(filters[filterType] as string[]).length > 0 && (
+          {(filters[type] as string[]).length > 0 && (
             <span className="bg-blue-100 text-blue-800 text-xs font-medium px-2 py-0.5 rounded-full">
-              {(filters[filterType] as string[]).length}
+              {(filters[type] as string[]).length}
             </span>
           )}
           <ChevronDown className="w-4 h-4" />
@@ -123,8 +130,8 @@ export default function FilterBar({ filters, filterOptions, optionCounts, onFilt
                   <div className="flex items-center gap-2">
                     <input
                       type="checkbox"
-                      checked={filters[filterType].includes(value)}
-                      onChange={() => onFilterChange(filterType, value)}
+                      checked={(filters[type] as string[]).includes(value)}
+                      onChange={() => onFilterChange(type, value)}
                       className="rounded text-blue-600 focus:ring-blue-500"
                     />
                     <span className="text-sm text-gray-700">{value}</span>
@@ -135,9 +142,9 @@ export default function FilterBar({ filters, filterOptions, optionCounts, onFilt
             </div>
 
             {/* Clear button */}
-            {(filters[filterType] as string[]).length > 0 && (
+            {(filters[type] as string[]).length > 0 && (
               <button
-                onClick={() => handleClearSelection(filterType)}
+                onClick={() => handleClearSelection(type)}
                 className="mt-3 text-sm text-blue-600 hover:text-blue-700 font-medium"
               >
                 Clear Selection
@@ -158,6 +165,9 @@ export default function FilterBar({ filters, filterOptions, optionCounts, onFilt
         {renderDropdown('substances', 'Substances', filterOptions.substances, optionCounts.substances)}
         {renderDropdown('therapies', 'Therapies', filterOptions.therapies, optionCounts.therapies)}
         {renderDropdown('amenities', 'Amenities', filterOptions.amenities, optionCounts.amenities)}
+        {renderDropdown('insurances', 'Insurance Providers', filterOptions.insurances, optionCounts.insurances)}
+        {renderDropdown('languages', 'Languages', filterOptions.languages, optionCounts.languages)}
+        {renderDropdown('licenses', 'Certifications & Licenses', filterOptions.licenses, optionCounts.licenses)}
 
         {/* Rating Filter */}
         <div className="relative filter-dropdown">

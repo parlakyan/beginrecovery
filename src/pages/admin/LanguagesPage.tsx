@@ -1,12 +1,12 @@
 import React, { useState, useEffect } from 'react';
 import { Plus, Edit2, Trash2 } from 'lucide-react';
-import { substancesService } from '../../services/substances';
-import { Substance } from '../../types';
+import { languagesService } from '../../services/languages';
+import { Language } from '../../types';
 
-export default function SubstancesPage() {
-  const [substances, setSubstances] = useState<Substance[]>([]);
+export default function LanguagesPage() {
+  const [languages, setLanguages] = useState<Language[]>([]);
   const [loading, setLoading] = useState(true);
-  const [editingSubstance, setEditingSubstance] = useState<Substance | null>(null);
+  const [editingLanguage, setEditingLanguage] = useState<Language | null>(null);
   const [isModalOpen, setIsModalOpen] = useState(false);
   const [formData, setFormData] = useState({
     name: '',
@@ -15,44 +15,44 @@ export default function SubstancesPage() {
   });
 
   useEffect(() => {
-    fetchSubstances();
+    fetchLanguages();
   }, []);
 
-  const fetchSubstances = async () => {
+  const fetchLanguages = async () => {
     try {
       setLoading(true);
-      const data = await substancesService.getSubstances();
-      setSubstances(data);
+      const data = await languagesService.getLanguages();
+      setLanguages(data);
     } catch (error) {
-      console.error('Error fetching substances:', error);
+      console.error('Error fetching languages:', error);
     } finally {
       setLoading(false);
     }
   };
 
   const handleAdd = () => {
-    setEditingSubstance(null);
+    setEditingLanguage(null);
     setFormData({ name: '', description: '', logo: '' });
     setIsModalOpen(true);
   };
 
-  const handleEdit = (substance: Substance) => {
-    setEditingSubstance(substance);
+  const handleEdit = (language: Language) => {
+    setEditingLanguage(language);
     setFormData({
-      name: substance.name,
-      description: substance.description,
-      logo: substance.logo
+      name: language.name,
+      description: language.description,
+      logo: language.logo
     });
     setIsModalOpen(true);
   };
 
   const handleDelete = async (id: string) => {
-    if (window.confirm('Are you sure you want to delete this substance?')) {
+    if (window.confirm('Are you sure you want to delete this language?')) {
       try {
-        await substancesService.deleteSubstance(id);
-        await fetchSubstances();
+        await languagesService.deleteLanguage(id);
+        await fetchLanguages();
       } catch (error) {
-        console.error('Error deleting substance:', error);
+        console.error('Error deleting language:', error);
       }
     }
   };
@@ -60,16 +60,16 @@ export default function SubstancesPage() {
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     try {
-      if (editingSubstance) {
-        await substancesService.updateSubstance(editingSubstance.id, formData);
+      if (editingLanguage) {
+        await languagesService.updateLanguage(editingLanguage.id, formData);
       } else {
-        await substancesService.addSubstance(formData);
+        await languagesService.addLanguage(formData);
       }
-      await fetchSubstances();
+      await fetchLanguages();
       setIsModalOpen(false);
       setFormData({ name: '', description: '', logo: '' });
     } catch (error) {
-      console.error('Error saving substance:', error);
+      console.error('Error saving language:', error);
     }
   };
 
@@ -85,41 +85,41 @@ export default function SubstancesPage() {
     <div className="space-y-6">
       {/* Header */}
       <div className="flex justify-between items-center">
-        <h1 className="text-2xl font-bold text-gray-900">Substances</h1>
+        <h1 className="text-2xl font-bold text-gray-900">Languages</h1>
         <button
           onClick={handleAdd}
           className="bg-blue-600 text-white px-4 py-2 rounded-lg hover:bg-blue-700 transition-colors flex items-center gap-2"
         >
           <Plus className="w-4 h-4" />
-          Add Substance
+          Add Language
         </button>
       </div>
 
-      {/* Substances Grid */}
+      {/* Languages Grid */}
       <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
-        {substances.map((substance) => (
-          <div key={substance.id} className="bg-white rounded-xl shadow-sm border border-gray-100 p-6">
+        {languages.map((language) => (
+          <div key={language.id} className="bg-white rounded-xl shadow-sm border border-gray-100 p-6">
             <div className="flex items-start justify-between mb-4">
               <div className="flex-1">
                 <div className="w-12 h-12 mb-3">
                   <img
-                    src={substance.logo}
-                    alt={substance.name}
+                    src={language.logo}
+                    alt={language.name}
                     className="w-full h-full object-contain"
                   />
                 </div>
-                <h3 className="text-lg font-semibold text-gray-900">{substance.name}</h3>
-                <p className="text-sm text-gray-600 mt-1">{substance.description}</p>
+                <h3 className="text-lg font-semibold text-gray-900">{language.name}</h3>
+                <p className="text-sm text-gray-600 mt-1">{language.description}</p>
               </div>
               <div className="flex items-center gap-2">
                 <button
-                  onClick={() => handleEdit(substance)}
+                  onClick={() => handleEdit(language)}
                   className="p-1 text-gray-500 hover:text-blue-600 transition-colors"
                 >
                   <Edit2 className="w-4 h-4" />
                 </button>
                 <button
-                  onClick={() => handleDelete(substance.id)}
+                  onClick={() => handleDelete(language.id)}
                   className="p-1 text-gray-500 hover:text-red-600 transition-colors"
                 >
                   <Trash2 className="w-4 h-4" />
@@ -135,7 +135,7 @@ export default function SubstancesPage() {
         <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center p-4 z-50">
           <div className="bg-white rounded-xl p-6 max-w-md w-full mx-4">
             <h2 className="text-xl font-bold mb-4">
-              {editingSubstance ? 'Edit Substance' : 'Add Substance'}
+              {editingLanguage ? 'Edit Language' : 'Add Language'}
             </h2>
             <form onSubmit={handleSubmit} className="space-y-4">
               <div>

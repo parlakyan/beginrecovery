@@ -1,166 +1,67 @@
-import { QueryDocumentSnapshot, DocumentData, Timestamp, collection, getDocs, updateDoc, doc } from 'firebase/firestore';
-import { db } from '../../lib/firebase';
-import { Facility, License, Insurance } from '../../types';
-import { FACILITIES_COLLECTION } from './types';
+import { Facility } from '../../types';
 
-/**
- * Generates URL-friendly slug from facility name and location
- */
-export const generateSlug = (name: string, location: string): string => {
-  const cleanName = name
-    .toLowerCase()
-    .replace(/[^a-z0-9\s-]/g, '')
-    .replace(/\s+/g, '-');
+export const facilitiesUtils = {
+  transformFacilityData: (data: any): Partial<Facility> => {
+    const transformedData: Partial<Facility> = {
+      ...data,
+      // Convert timestamps to strings
+      createdAt: data.createdAt?.toDate?.()?.toISOString() || new Date().toISOString(),
+      updatedAt: data.updatedAt?.toDate?.()?.toISOString() || new Date().toISOString(),
+      // Ensure arrays exist
+      images: data.images || [],
+      treatmentTypes: data.treatmentTypes || [],
+      amenities: data.amenities || [],
+      highlights: data.highlights || [],
+      substances: data.substances || [],
+      languages: data.languages || [],
+      // Optional arrays
+      conditions: data.conditions || undefined,
+      therapies: data.therapies || undefined,
+      insurances: data.insurances || undefined,
+      licenses: data.licenses || undefined,
+      // Searchable fields
+      searchableLocation: data.city || data.state ? [
+        data.city?.toLowerCase(),
+        data.state?.toLowerCase(),
+        `${data.city}, ${data.state}`.toLowerCase()
+      ].filter(Boolean) : undefined,
+      treatmentTypeIds: data.treatmentTypes?.length > 0 ? data.treatmentTypes.map((t: any) => t.id) : undefined,
+      conditionIds: data.conditions?.length > 0 ? data.conditions.map((c: any) => c.id) : undefined,
+      therapyIds: data.therapies?.length > 0 ? data.therapies.map((t: any) => t.id) : undefined,
+      substanceIds: data.substances?.length > 0 ? data.substances : undefined,
+      amenityIds: data.amenities?.length > 0 ? data.amenities : undefined,
+      insuranceIds: data.insurances?.length > 0 ? data.insurances.map((i: any) => i.id) : undefined,
+      languageIds: data.languages?.length > 0 ? data.languages : undefined,
+      licenseIds: data.licenses?.length > 0 ? data.licenses.map((l: any) => l.id) : undefined
+    };
 
-  if (!location) {
-    return cleanName;
-  }
+    return transformedData;
+  },
 
-  const cleanLocation = location
-    .toLowerCase()
-    .replace(/[^a-z0-9\s-]/g, '')
-    .replace(/\s+/g, '-');
+  validateFacilityData: (data: Partial<Facility>): string[] => {
+    const errors: string[] = [];
 
-  return `${cleanName}-${cleanLocation}`;
-};
+    // Required fields
+    if (!data.name) errors.push('Name is required');
+    if (!data.description) errors.push('Description is required');
+    if (!data.location) errors.push('Location is required');
+    if (!data.city) errors.push('City is required');
+    if (!data.state) errors.push('State is required');
+    if (!data.phone) errors.push('Phone is required');
+    if (!data.email) errors.push('Email is required');
 
-/**
- * Migrate existing facilities to include slugs
- */
-export const migrateExistingSlugs = async () => {
-  try {
-    const facilitiesRef = collection(db, FACILITIES_COLLECTION);
-    const snapshot = await getDocs(facilitiesRef);
-    
-    const updates = snapshot.docs.map(async (docSnap) => {
-      const data = docSnap.data();
-      if (!data.slug) {
-        const name = data.name || '';
-        const location = data.location || '';
-        const slug = generateSlug(name, location);
-        
-        const facilityRef = doc(db, FACILITIES_COLLECTION, docSnap.id);
-        return updateDoc(facilityRef, { slug });
-      }
-      return Promise.resolve();
-    });
+    // Array fields should exist
+    if (!Array.isArray(data.treatmentTypes)) errors.push('Treatment types must be an array');
+    if (!Array.isArray(data.amenities)) errors.push('Amenities must be an array');
+    if (!Array.isArray(data.highlights)) errors.push('Highlights must be an array');
+    if (!Array.isArray(data.substances)) errors.push('Substances must be an array');
+    if (!Array.isArray(data.languages)) errors.push('Languages must be an array');
 
-    await Promise.all(updates);
-    console.log('Slug migration completed successfully');
-  } catch (error) {
-    console.error('Error migrating slugs:', error);
-    throw error;
-  }
-};
-
-interface RawLicense {
-  id?: string;
-  name?: string;
-  description?: string;
-  logo?: string;
-  createdAt?: Timestamp | string;
-  updatedAt?: Timestamp | string;
-}
-
-interface RawInsurance {
-  id?: string;
-  name?: string;
-  description?: string;
-  logo?: string;
-  createdAt?: Timestamp | string;
-  updatedAt?: Timestamp | string;
-}
-
-/**
- * Transforms Firestore document to Facility type
- * Handles license and insurance data transformation and verification status
- */
-export const transformFacilityData = (doc: QueryDocumentSnapshot<DocumentData>): Facility => {
-  const data = doc.data();
-  
-  const name = data.name || '';
-  const location = data.location || '';
-  const city = data.city || '';
-  const state = data.state || '';
-  
-  const createdAt = data.createdAt instanceof Timestamp 
-    ? data.createdAt.toDate().toISOString()
-    : new Date().toISOString();
-    
-  const updatedAt = data.updatedAt instanceof Timestamp
-    ? data.updatedAt.toDate().toISOString()
-    : new Date().toISOString();
-
-  // Transform licenses data to ensure it matches the License type
-  const licenses = (data.licenses || []).map((license: RawLicense) => {
-    if (typeof license === 'object' && license !== null) {
-      return {
-        id: license.id || '',
-        name: license.name || '',
-        description: license.description || '',
-        logo: license.logo || '',
-        createdAt: license.createdAt instanceof Timestamp 
-          ? license.createdAt.toDate().toISOString()
-          : (license.createdAt || new Date().toISOString()),
-        updatedAt: license.updatedAt instanceof Timestamp
-          ? license.updatedAt.toDate().toISOString()
-          : (license.updatedAt || new Date().toISOString())
-      } as License;
+    // Coordinates validation
+    if (!data.coordinates || typeof data.coordinates.lat !== 'number' || typeof data.coordinates.lng !== 'number') {
+      errors.push('Valid coordinates are required');
     }
-    return null;
-  }).filter(Boolean) as License[];
 
-  // Transform insurances data to ensure it matches the Insurance type
-  const insurances = (data.insurances || []).map((insurance: RawInsurance) => {
-    if (typeof insurance === 'object' && insurance !== null) {
-      return {
-        id: insurance.id || '',
-        name: insurance.name || '',
-        description: insurance.description || '',
-        logo: insurance.logo || '',
-        createdAt: insurance.createdAt instanceof Timestamp 
-          ? insurance.createdAt.toDate().toISOString()
-          : (insurance.createdAt || new Date().toISOString()),
-        updatedAt: insurance.updatedAt instanceof Timestamp
-          ? insurance.updatedAt.toDate().toISOString()
-          : (insurance.updatedAt || new Date().toISOString())
-      } as Insurance;
-    }
-    return null;
-  }).filter(Boolean) as Insurance[];
-
-  return {
-    id: doc.id,
-    name,
-    description: data.description || '',
-    location,
-    city,
-    state,
-    coordinates: data.coordinates,
-    amenities: data.amenities || [],
-    images: data.images || [],
-    status: data.status || 'pending',
-    ownerId: data.ownerId || '',
-    rating: data.rating || 0,
-    reviews: data.reviews || 0,
-    reviewCount: data.reviewCount || 0,
-    createdAt,
-    updatedAt,
-    subscriptionId: data.subscriptionId,
-    phone: data.phone || '',
-    email: data.email || '',
-    tags: data.tags || [],
-    highlights: data.highlights || [],
-    substances: data.substances || [],
-    insurance: data.insurance || [],
-    insurances,
-    accreditation: data.accreditation || [],
-    languages: data.languages || [],
-    licenses,
-    isVerified: Boolean(data.isVerified),
-    isFeatured: Boolean(data.isFeatured),
-    moderationStatus: data.moderationStatus || 'pending',
-    slug: data.slug || generateSlug(name, location),
-    logo: data.logo || undefined
-  };
+    return errors;
+  }
 };

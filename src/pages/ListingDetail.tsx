@@ -11,10 +11,7 @@ import ContactBox from '../components/ContactBox';
 import ReviewsSection from '../components/ReviewsSection';
 import MapSection from '../components/MapSection';
 import StaffSection from '../components/StaffSection';
-import CertificationsSection from '../components/CertificationsSection';
-import InsurancesSection from '../components/InsurancesSection';
-import ConditionsSection from '../components/ConditionsSection';
-import TherapiesSection from '../components/TherapiesSection';
+import FacilityDetailsSection from '../components/FacilityDetailsSection';
 import { Button, Tag, Breadcrumb } from '../components/ui';
 import EditListingModal from '../components/EditListingModal';
 
@@ -143,7 +140,7 @@ export default function ListingDetail() {
     <div className="min-h-screen bg-gray-50 flex flex-col">
       <Header />
       
-      {/* Sticky Breadcrumb Navigation - positioned below header */}
+      {/* Sticky Breadcrumb Navigation */}
       <div className="sticky top-[65px] bg-white border-b border-gray-200 z-10 shadow-sm">
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-4">
           <Breadcrumb items={breadcrumbItems} />
@@ -232,22 +229,17 @@ export default function ListingDetail() {
                     {/* Description */}
                     <p className="text-gray-600 mb-6">{facility.description}</p>
 
-                    {/* Tags */}
-                    <div className="flex flex-wrap gap-2 mb-6">
-                      {facility.tags.map((tag: string, index: number) => (
-                        <Tag key={index} variant="secondary">{tag}</Tag>
-                      ))}
-                    </div>
-
-                    {/* Amenities */}
-                    <div>
-                      <h2 className="text-xl font-semibold mb-4">Amenities & Services</h2>
-                      <div className="flex flex-wrap gap-2">
-                        {facility.amenities.map((amenity: string, index: number) => (
-                          <Tag key={index} variant="primary">{amenity}</Tag>
-                        ))}
+                    {/* Highlights */}
+                    {facility.highlights.length > 0 && (
+                      <div className="mb-6">
+                        <h2 className="text-lg font-semibold mb-3">Highlights</h2>
+                        <div className="flex flex-wrap gap-2">
+                          {facility.highlights.map((highlight, index) => (
+                            <Tag key={index} variant="secondary">{highlight}</Tag>
+                          ))}
+                        </div>
                       </div>
-                    </div>
+                    )}
                   </div>
 
                   {/* Reviews Summary */}
@@ -264,25 +256,8 @@ export default function ListingDetail() {
                 </div>
               </div>
 
-              {/* Conditions Section */}
-              {facility.conditions && facility.conditions.length > 0 && (
-                <ConditionsSection conditions={facility.conditions} />
-              )}
-
-              {/* Therapies Section */}
-              {facility.therapies && facility.therapies.length > 0 && (
-                <TherapiesSection therapies={facility.therapies} />
-              )}
-
-              {/* Certifications Section - Only for verified facilities with licenses */}
-              {facility.isVerified && facility.licenses && facility.licenses.length > 0 && (
-                <CertificationsSection licenses={facility.licenses} />
-              )}
-
-              {/* Insurances Section - Only for verified facilities with insurances */}
-              {facility.isVerified && facility.insurances && facility.insurances.length > 0 && (
-                <InsurancesSection insurances={facility.insurances} />
-              )}
+              {/* Facility Details Section */}
+              <FacilityDetailsSection facility={facility} />
 
               {/* Staff Section - Only for verified facilities */}
               {facility.isVerified && <StaffSection />}

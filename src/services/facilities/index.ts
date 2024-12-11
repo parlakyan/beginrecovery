@@ -1,49 +1,31 @@
 import { facilitiesCrud } from './crud';
-import { facilitiesSearch } from './search';
+import { searchFacilities } from './search';
 import { facilitiesModeration } from './moderation';
 import { facilitiesVerification } from './verification';
-import { Facility } from '../../types';
-import { FacilitiesResponse, CreateFacilityResponse, SearchParams } from './types';
-import { generateSlug, transformFacilityData, migrateExistingSlugs } from './utils';
+import { facilitiesUtils } from './utils';
+import type { SearchParams } from './search';
 
-/**
- * Facilities Service
- * Provides a unified interface for all facility-related operations
- */
+export type { SearchParams };
+
 export const facilitiesService = {
-  // CRUD Operations
-  createFacility: facilitiesCrud.createFacility as (data: Partial<Facility>) => Promise<CreateFacilityResponse>,
-  getFacilities: facilitiesCrud.getFacilities as () => Promise<FacilitiesResponse>,
-  getFacilityById: facilitiesCrud.getFacilityById as (id: string) => Promise<Facility | null>,
-  getFacilityBySlug: facilitiesCrud.getFacilityBySlug as (slug: string) => Promise<Facility | null>,
-  updateFacility: facilitiesCrud.updateFacility as (id: string, data: Partial<Facility>) => Promise<Facility>,
-  deleteFacility: facilitiesCrud.deleteFacility as (id: string) => Promise<void>,
+  // CRUD operations
+  getFacilities: facilitiesCrud.getFacilities,
+  getFacilityById: facilitiesCrud.getFacilityById,
+  getFacilityBySlug: facilitiesCrud.getFacilityBySlug,
+  getFeaturedFacilities: facilitiesCrud.getFeaturedFacilities,
+  createFacility: facilitiesCrud.createFacility,
+  updateFacility: facilitiesCrud.updateFacility,
+  deleteFacility: facilitiesCrud.deleteFacility,
 
-  // Search Operations
-  searchFacilities: facilitiesSearch.searchFacilities as (params: SearchParams) => Promise<Facility[]>,
-  getFeaturedFacilities: facilitiesSearch.getFeaturedFacilities as () => Promise<Facility[]>,
-  getUserListings: facilitiesSearch.getUserListings as (userId: string) => Promise<Facility[]>,
+  // Search operations
+  searchFacilities,
 
-  // Moderation Operations
-  getAllListingsForAdmin: facilitiesModeration.getAllListingsForAdmin as () => Promise<Facility[]>,
-  getArchivedListings: facilitiesModeration.getArchivedListings as () => Promise<Facility[]>,
-  approveFacility: facilitiesModeration.approveFacility as (id: string) => Promise<Facility>,
-  rejectFacility: facilitiesModeration.rejectFacility as (id: string) => Promise<Facility>,
-  archiveFacility: facilitiesModeration.archiveFacility as (id: string) => Promise<Facility>,
-  restoreFacility: facilitiesModeration.restoreFacility as (id: string) => Promise<Facility>,
+  // Moderation operations
+  ...facilitiesModeration,
 
-  // Verification Operations
-  verifyFacility: facilitiesVerification.verifyFacility as (id: string) => Promise<Facility>,
-  unverifyFacility: facilitiesVerification.unverifyFacility as (id: string) => Promise<Facility>,
-  featureFacility: facilitiesVerification.featureFacility as (id: string) => Promise<Facility>,
-  unfeatureFacility: facilitiesVerification.unfeatureFacility as (id: string) => Promise<Facility>,
+  // Verification operations
+  ...facilitiesVerification,
 
-  // Migration Operations
-  migrateExistingSlugs
-} as const;
-
-// Export types
-export * from './types';
-
-// Export utility functions if needed externally
-export { generateSlug, transformFacilityData, migrateExistingSlugs };
+  // Utility operations
+  ...facilitiesUtils
+};

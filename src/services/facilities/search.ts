@@ -1,247 +1,110 @@
-import {
-  collection,
-  getDocs,
-  query,
-  where,
-  orderBy,
-  QueryDocumentSnapshot,
-  DocumentData
-} from 'firebase/firestore';
+import { collection, query, where, getDocs, orderBy, limit } from 'firebase/firestore';
 import { db } from '../../lib/firebase';
 import { Facility } from '../../types';
-import { FACILITIES_COLLECTION } from './types';
-import { transformFacilityData } from './utils';
-import { SearchParams } from './types';
 
-/**
- * Search and filtering operations for facilities
- */
-export const facilitiesSearch = {
-  async searchFacilities({
-    query: searchQuery,
-    location,
-    treatmentTypes,
-    amenities,
-    insurance,
-    conditions,
-    substances,
-    therapies,
-    rating
-  }: SearchParams): Promise<Facility[]> {
-    try {
-      console.log('Searching facilities:', {
-        query: searchQuery,
-        location,
-        treatmentTypes,
-        amenities,
-        insurance,
-        conditions,
-        substances,
-        therapies,
-        rating
-      });
+export interface SearchParams {
+  query?: string;
+  location?: string[];
+  treatmentTypes?: string[];
+  amenities?: string[];
+  conditions?: string[];
+  substances?: string[];
+  therapies?: string[];
+  insurances?: string[];
+  languages?: string[];
+  licenses?: string[];
+  rating?: number | null;
+}
 
-      const facilitiesRef = collection(db, FACILITIES_COLLECTION);
-      
-      // Start with base query for approved facilities
-      let q = query(
-        facilitiesRef,
-        where('moderationStatus', '==', 'approved')
-      );
+export const searchFacilities = async (params: SearchParams): Promise<Facility[]> => {
+  try {
+    const facilitiesRef = collection(db, 'facilities');
+    let q = query(facilitiesRef);
 
-      // Get all facilities and filter in memory
-      const snapshot = await getDocs(q);
-      let facilities = snapshot.docs.map(doc => transformFacilityData(doc as QueryDocumentSnapshot<DocumentData>));
+    // Base query - exclude pending/rejected/archived facilities
+    q = query(q, where('moderationStatus', '==', 'approved'));
 
-      // Apply filters
-      facilities = facilities.filter(facility => {
-        // Text search across multiple fields
-        const searchText = searchQuery.toLowerCase();
-        const matchesQuery = !searchQuery || [
+    // Add search filters
+    if (params.location && params.location.length > 0) {
+      // Location search (city or state)
+      const locationTerms = params.location.map(loc => loc.toLowerCase());
+      q = query(q, where('searchableLocation', 'array-contains-any', locationTerms));
+    }
+
+    if (params.treatmentTypes && params.treatmentTypes.length > 0) {
+      q = query(q, where('treatmentTypeIds', 'array-contains-any', params.treatmentTypes));
+    }
+
+    if (params.conditions && params.conditions.length > 0) {
+      q = query(q, where('conditionIds', 'array-contains-any', params.conditions));
+    }
+
+    if (params.substances && params.substances.length > 0) {
+      q = query(q, where('substanceIds', 'array-contains-any', params.substances));
+    }
+
+    if (params.therapies && params.therapies.length > 0) {
+      q = query(q, where('therapyIds', 'array-contains-any', params.therapies));
+    }
+
+    if (params.amenities && params.amenities.length > 0) {
+      q = query(q, where('amenityIds', 'array-contains-any', params.amenities));
+    }
+
+    if (params.insurances && params.insurances.length > 0) {
+      q = query(q, where('insuranceIds', 'array-contains-any', params.insurances));
+    }
+
+    if (params.languages && params.languages.length > 0) {
+      q = query(q, where('languageIds', 'array-contains-any', params.languages));
+    }
+
+    if (params.licenses && params.licenses.length > 0) {
+      q = query(q, where('licenseIds', 'array-contains-any', params.licenses));
+    }
+
+    if (params.rating) {
+      q = query(q, where('rating', '>=', params.rating));
+    }
+
+    // Add ordering
+    q = query(q, orderBy('isVerified', 'desc')); // Verified facilities first
+    q = query(q, orderBy('rating', 'desc')); // Higher rated facilities first
+    q = query(q, orderBy('reviewCount', 'desc')); // More reviewed facilities first
+
+    // Execute query
+    const snapshot = await getDocs(q);
+    const facilities = snapshot.docs.map(doc => ({
+      id: doc.id,
+      ...doc.data()
+    })) as Facility[];
+
+    // If there's a text query, filter results client-side
+    if (params.query) {
+      const searchTerms = params.query.toLowerCase().split(' ');
+      return facilities.filter(facility => {
+        const searchableText = [
           facility.name,
           facility.description,
-          facility.location,
           facility.city,
           facility.state,
-          facility.email,
-          facility.phone,
-          ...facility.tags,  // Legacy treatment types
-          ...(facility.treatmentTypes?.map(t => t.name) || []),  // Managed treatment types
-          ...facility.highlights,
+          ...facility.treatmentTypes.map(t => t.name),
+          ...facility.amenities,
           ...facility.substances,
-          ...facility.insurance,
           ...facility.languages,
           ...(facility.conditions?.map(c => c.name) || []),
-          ...(facility.therapies?.map(t => t.name) || [])
-        ].some(field => 
-          field && field.toString().toLowerCase().includes(searchText)
-        );
+          ...(facility.therapies?.map(t => t.name) || []),
+          ...(facility.insurances?.map(i => i.name) || []),
+          ...(facility.licenses?.map(l => l.name) || [])
+        ].join(' ').toLowerCase();
 
-        // Location filter
-        const matchesLocation = !location?.length || location.some(loc => {
-          const [city, state] = loc.split(',').map(part => part.trim());
-          return facility.city.toLowerCase() === city.toLowerCase() &&
-                 facility.state.toLowerCase() === state.toLowerCase();
-        });
-
-        // Treatment types - check both legacy and managed types
-        const matchesTreatment = treatmentTypes.length === 0 ||
-          treatmentTypes.some(type => 
-            facility.tags.includes(type) || // Check legacy types
-            facility.treatmentTypes?.some(t => t.name === type) // Check managed types
-          );
-
-        // Amenities
-        const matchesAmenities = amenities.length === 0 ||
-          amenities.some(amenity => facility.amenities.includes(amenity));
-
-        // Insurance
-        const matchesInsurance = insurance.length === 0 ||
-          insurance.some(ins => facility.insurance.includes(ins));
-
-        // Conditions
-        const matchesConditions = conditions.length === 0 ||
-          conditions.some(conditionId => 
-            facility.conditions?.some(c => c.id === conditionId)
-          );
-
-        // Substances
-        const matchesSubstances = substances.length === 0 ||
-          substances.some(substance => facility.substances.includes(substance));
-
-        // Therapies
-        const matchesTherapies = therapies.length === 0 ||
-          therapies.some(therapyId => 
-            facility.therapies?.some(t => t.id === therapyId)
-          );
-
-        // Rating
-        const matchesRating = !rating || facility.rating >= rating;
-
-        return matchesQuery && 
-               matchesLocation &&
-               matchesTreatment && 
-               matchesAmenities && 
-               matchesInsurance && 
-               matchesConditions &&
-               matchesSubstances &&
-               matchesTherapies &&
-               matchesRating;
+        return searchTerms.every(term => searchableText.includes(term));
       });
-
-      // Sort results by relevance and rating
-      facilities.sort((a, b) => {
-        // First sort by exact name match
-        const aNameMatch = a.name.toLowerCase().includes(searchQuery.toLowerCase());
-        const bNameMatch = b.name.toLowerCase().includes(searchQuery.toLowerCase());
-        if (aNameMatch && !bNameMatch) return -1;
-        if (!aNameMatch && bNameMatch) return 1;
-
-        // Then sort by rating
-        if (b.rating !== a.rating) return b.rating - a.rating;
-
-        // Then sort by verification status
-        if (a.isVerified && !b.isVerified) return -1;
-        if (!a.isVerified && b.isVerified) return 1;
-
-        // Finally sort by name
-        return a.name.localeCompare(b.name);
-      });
-
-      console.log('Search results:', facilities.length);
-      return facilities;
-    } catch (error) {
-      console.error('Error searching facilities:', error);
-      return [];
     }
-  },
 
-  async getFeaturedFacilities() {
-    try {
-      console.log('Fetching featured facilities');
-      const facilitiesRef = collection(db, FACILITIES_COLLECTION);
-      
-      // Create index for compound query
-      const q = query(
-        facilitiesRef,
-        where('moderationStatus', '==', 'approved'),
-        where('isFeatured', '==', true),
-        orderBy('createdAt', 'desc')
-      );
-      
-      console.log('Executing featured facilities query');
-      const snapshot = await getDocs(q);
-      console.log('Featured documents:', snapshot.size);
-      
-      const facilities = snapshot.docs.map(transformFacilityData);
-      console.log('Transformed featured facilities:', facilities.length);
-      
-      return facilities;
-    } catch (error) {
-      console.error('Error getting featured facilities:', error);
-      
-      // If compound query fails, try simple query
-      try {
-        console.log('Falling back to simple query');
-        const snapshot = await getDocs(collection(db, FACILITIES_COLLECTION));
-        
-        const facilities = snapshot.docs
-          .map(transformFacilityData)
-          .filter(f => f.moderationStatus === 'approved' && f.isFeatured)
-          .sort((a, b) => new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime());
-        
-        console.log('Fallback query successful:', facilities.length);
-        return facilities;
-      } catch (fallbackError) {
-        console.error('Fallback query failed:', fallbackError);
-        return [];
-      }
-    }
-  },
-
-  async getUserListings(userId: string) {
-    try {
-      console.log('Fetching listings for user:', userId);
-      const facilitiesRef = collection(db, FACILITIES_COLLECTION);
-      
-      // Create index for compound query
-      const q = query(
-        facilitiesRef,
-        where('ownerId', '==', userId),
-        orderBy('createdAt', 'desc')
-      );
-      
-      console.log('Executing user listings query:', {
-        userId,
-        timestamp: new Date().toISOString()
-      });
-
-      const snapshot = await getDocs(q);
-      console.log('User listings found:', snapshot.size);
-      
-      const facilities = snapshot.docs.map(transformFacilityData);
-      console.log('Transformed user listings:', facilities.length);
-      
-      return facilities;
-    } catch (error) {
-      console.error('Error getting user listings:', error);
-      
-      // If compound query fails, try simple query
-      try {
-        console.log('Falling back to simple query for user listings');
-        const snapshot = await getDocs(collection(db, FACILITIES_COLLECTION));
-        
-        const facilities = snapshot.docs
-          .map(transformFacilityData)
-          .filter(f => f.ownerId === userId)
-          .sort((a, b) => new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime());
-        
-        console.log('Fallback query successful:', facilities.length);
-        return facilities;
-      } catch (fallbackError) {
-        console.error('Fallback query failed:', fallbackError);
-        return [];
-      }
-    }
+    return facilities;
+  } catch (error) {
+    console.error('Error searching facilities:', error);
+    return [];
   }
 };

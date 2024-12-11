@@ -123,11 +123,7 @@ export default function RehabCard({ facility, onEdit, showOwnerControls = false 
 
   // Get all tags to display
   const allTags = [
-    // Legacy treatment types
-    ...(facility.tags || []).map(tag => ({ text: tag, type: 'legacy' })),
-    // Managed treatment types
-    ...(facility.treatmentTypes || []).map(type => ({ text: type.name, type: 'managed' })),
-    // Other tags
+    ...(facility.treatmentTypes?.map(type => ({ text: type.name, type: 'treatment' })) || []),
     ...(facility.conditions?.map(c => ({ text: c.name, type: 'condition' })) || []),
     ...(facility.therapies?.map(t => ({ text: t.name, type: 'therapy' })) || [])
   ];
@@ -175,12 +171,7 @@ export default function RehabCard({ facility, onEdit, showOwnerControls = false 
             {allTags.slice(0, 3).map((tag, index) => (
               <Tag 
                 key={index} 
-                variant={
-                  tag.type === 'managed' ? 'primary' :
-                  tag.type === 'legacy' ? 'secondary' :
-                  tag.type === 'condition' ? 'secondary' :
-                  'secondary'
-                }
+                variant={tag.type === 'treatment' ? 'primary' : 'secondary'}
               >
                 {tag.text}
               </Tag>

@@ -2,14 +2,13 @@ import React from 'react';
 import { useState, useEffect, useCallback } from 'react';
 import { useForm } from 'react-hook-form';
 import { X } from 'lucide-react';
-import { Facility, License, Insurance, Condition, Substance, Therapy, TreatmentType } from '../types';
+import { Facility, License, Condition, Therapy, TreatmentType } from '../types';
 import PhotoUpload from './PhotoUpload';
 import LogoUpload from './LogoUpload';
 import AddressAutocomplete from './AddressAutocomplete';
 import DropdownSelect from './ui/DropdownSelect';
 import { useAuthStore } from '../store/authStore';
 import { licensesService } from '../services/licenses';
-import { insurancesService } from '../services/insurances';
 import { conditionsService } from '../services/conditions';
 import { therapiesService } from '../services/therapies';
 import { treatmentTypesService } from '../services/treatmentTypes';
@@ -34,15 +33,11 @@ interface EditListingForm {
   phone: string;
   email: string;
   highlights: string[];
-  treatmentTypes: string[];  // For backward compatibility
-  managedTreatmentTypes: string[];  // For new managed treatment types
+  treatmentTypes: string[];
   substances: string[];
   conditions: string[];
   therapies: string[];
   amenities: string[];
-  insurance: string[];
-  insurances: Insurance[];
-  accreditation: string[];
   languages: string[];
   licenses: License[];
 }
@@ -59,7 +54,6 @@ const EditListingModal: React.FC<EditListingModalProps> = ({ facility, isOpen, o
     logo: undefined
   });
   const [availableLicenses, setAvailableLicenses] = useState<License[]>([]);
-  const [availableInsurances, setAvailableInsurances] = useState<Insurance[]>([]);
   const [availableConditions, setAvailableConditions] = useState<Condition[]>([]);
   const [availableTherapies, setAvailableTherapies] = useState<Therapy[]>([]);
   const [availableTreatmentTypes, setAvailableTreatmentTypes] = useState<TreatmentType[]>([]);
@@ -74,15 +68,13 @@ const EditListingModal: React.FC<EditListingModalProps> = ({ facility, isOpen, o
   // Fetch available options
   useEffect(() => {
     const fetchData = async () => {
-      const [licenses, insurances, conditions, therapies, treatmentTypes] = await Promise.all([
+      const [licenses, conditions, therapies, treatmentTypes] = await Promise.all([
         licensesService.getLicenses(),
-        insurancesService.getInsurances(),
         conditionsService.getConditions(),
         therapiesService.getTherapies(),
         treatmentTypesService.getTreatmentTypes()
       ]);
       setAvailableLicenses(licenses);
-      setAvailableInsurances(insurances);
       setAvailableConditions(conditions);
       setAvailableTherapies(therapies);
       setAvailableTreatmentTypes(treatmentTypes);
@@ -93,14 +85,10 @@ const EditListingModal: React.FC<EditListingModalProps> = ({ facility, isOpen, o
   // Watch form values for DropdownSelect components
   const highlights = watch('highlights', []);
   const treatmentTypes = watch('treatmentTypes', []);
-  const managedTreatmentTypes = watch('managedTreatmentTypes', []);
   const substances = watch('substances', []);
   const amenities = watch('amenities', []);
-  const insurance = watch('insurance', []);
-  const accreditation = watch('accreditation', []);
   const languages = watch('languages', []);
   const selectedLicenses = watch('licenses', []);
-  const selectedInsurances = watch('insurances', []);
   const selectedConditions = watch('conditions', []);
   const selectedTherapies = watch('therapies', []);
 
@@ -126,15 +114,11 @@ const EditListingModal: React.FC<EditListingModalProps> = ({ facility, isOpen, o
         phone: facility.phone || '',
         email: facility.email || '',
         highlights: facility.highlights || [],
-        treatmentTypes: facility.tags || [],  // For backward compatibility
-        managedTreatmentTypes: facility.treatmentTypes?.map(t => t.id) || [],  // For new managed treatment types
+        treatmentTypes: facility.treatmentTypes?.map(t => t.id) || [],
         substances: facility.substances || [],
         conditions: facility.conditions?.map(c => c.id) || [],
         therapies: facility.therapies?.map(t => t.id) || [],
         amenities: facility.amenities || [],
-        insurance: facility.insurance || [],
-        insurances: facility.insurances || [],
-        accreditation: facility.accreditation || [],
         languages: facility.languages || [],
         licenses: facility.licenses || []
       });
@@ -190,7 +174,7 @@ const EditListingModal: React.FC<EditListingModalProps> = ({ facility, isOpen, o
         availableTherapies.find(t => t.id === id)
       ).filter((t): t is Therapy => t !== undefined);
 
-      const treatmentTypes = data.managedTreatmentTypes.map(id =>
+      const selectedTreatmentTypes = data.treatmentTypes.map(id =>
         availableTreatmentTypes.find(t => t.id === id)
       ).filter((t): t is TreatmentType => t !== undefined);
 
@@ -204,15 +188,11 @@ const EditListingModal: React.FC<EditListingModalProps> = ({ facility, isOpen, o
         phone: data.phone,
         email: data.email,
         highlights: data.highlights,
-        tags: data.treatmentTypes,  // For backward compatibility
-        treatmentTypes,  // New managed treatment types
+        treatmentTypes: selectedTreatmentTypes,
         substances: data.substances,
         conditions,
         therapies,
         amenities: data.amenities,
-        insurance: data.insurance,
-        insurances: data.insurances,
-        accreditation: data.accreditation,
         languages: data.languages,
         licenses: data.licenses,
         images: formData.images,
@@ -382,20 +362,11 @@ const EditListingModal: React.FC<EditListingModalProps> = ({ facility, isOpen, o
               type="treatmentTypes"
               value={treatmentTypes}
               onChange={(values) => setValue('treatmentTypes', values)}
-              error={errors.treatmentTypes?.message}
-            />
-
-            <DropdownSelect
-              label="Managed Treatment Types"
-              type="treatmentTypes"
-              value={managedTreatmentTypes}
-              onChange={(values) => setValue('managedTreatmentTypes', values)}
-              useManagedOptions={true}
               options={availableTreatmentTypes.map(type => ({
                 value: type.id,
                 label: type.name
               }))}
-              error={errors.managedTreatmentTypes?.message}
+              error={errors.treatmentTypes?.message}
             />
 
             <DropdownSelect
@@ -436,37 +407,6 @@ const EditListingModal: React.FC<EditListingModalProps> = ({ facility, isOpen, o
               value={amenities}
               onChange={(values) => setValue('amenities', values)}
               error={errors.amenities?.message}
-            />
-
-            <DropdownSelect
-              label="Insurance Accepted"
-              type="insurance"
-              value={insurance}
-              onChange={(values) => setValue('insurance', values)}
-              error={errors.insurance?.message}
-            />
-
-            <DropdownSelect
-              label="Insurance Providers"
-              type="insurances"
-              value={selectedInsurances.map(i => i.id)}
-              onChange={(values) => {
-                const selected = availableInsurances.filter(i => values.includes(i.id));
-                setValue('insurances', selected);
-              }}
-              options={availableInsurances.map(insurance => ({
-                value: insurance.id,
-                label: insurance.name
-              }))}
-              error={errors.insurances?.message}
-            />
-
-            <DropdownSelect
-              label="Accreditation"
-              type="accreditation"
-              value={accreditation}
-              onChange={(values) => setValue('accreditation', values)}
-              error={errors.accreditation?.message}
             />
 
             <DropdownSelect

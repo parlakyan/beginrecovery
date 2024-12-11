@@ -15,10 +15,12 @@ export default function SearchResults() {
     location: [],
     treatmentTypes: [],
     amenities: [],
-    insurance: [],
     conditions: [],
     substances: [],
     therapies: [],
+    insurances: [],
+    languages: [],
+    licenses: [],
     rating: null,
     priceRange: null
   });
@@ -36,13 +38,19 @@ export default function SearchResults() {
     const conditions = new Set<string>();
     const substances = new Set<string>();
     const therapies = new Set<string>();
+    const insurances = new Set<string>();
+    const languages = new Set<string>();
+    const licenses = new Set<string>();
     const counts = {
       locations: {} as { [key: string]: number },
       treatmentTypes: {} as { [key: string]: number },
       amenities: {} as { [key: string]: number },
       conditions: {} as { [key: string]: number },
       substances: {} as { [key: string]: number },
-      therapies: {} as { [key: string]: number }
+      therapies: {} as { [key: string]: number },
+      insurances: {} as { [key: string]: number },
+      languages: {} as { [key: string]: number },
+      licenses: {} as { [key: string]: number }
     };
 
     facilities.forEach((facility) => {
@@ -54,9 +62,9 @@ export default function SearchResults() {
       }
 
       // Treatment type counts
-      facility.tags.forEach(tag => {
-        treatmentTypes.add(tag);
-        counts.treatmentTypes[tag] = (counts.treatmentTypes[tag] || 0) + 1;
+      facility.treatmentTypes.forEach(type => {
+        treatmentTypes.add(type.id);
+        counts.treatmentTypes[type.id] = (counts.treatmentTypes[type.id] || 0) + 1;
       });
 
       // Amenity counts
@@ -82,10 +90,38 @@ export default function SearchResults() {
         therapies.add(therapy.id);
         counts.therapies[therapy.id] = (counts.therapies[therapy.id] || 0) + 1;
       });
+
+      // Insurance counts
+      facility.insurances?.forEach(insurance => {
+        insurances.add(insurance.id);
+        counts.insurances[insurance.id] = (counts.insurances[insurance.id] || 0) + 1;
+      });
+
+      // Language counts
+      facility.languages.forEach(language => {
+        languages.add(language);
+        counts.languages[language] = (counts.languages[language] || 0) + 1;
+      });
+
+      // License counts
+      facility.licenses?.forEach(license => {
+        licenses.add(license.id);
+        counts.licenses[license.id] = (counts.licenses[license.id] || 0) + 1;
+      });
     });
 
     return {
-      filterOptions: { locations, treatmentTypes, amenities, conditions, substances, therapies },
+      filterOptions: { 
+        locations, 
+        treatmentTypes, 
+        amenities, 
+        conditions, 
+        substances, 
+        therapies,
+        insurances,
+        languages,
+        licenses
+      },
       optionCounts: counts
     };
   };
@@ -100,10 +136,12 @@ export default function SearchResults() {
       // Reset other filters when location changes
       treatmentTypes: [],
       amenities: [],
-      insurance: [],
       conditions: [],
       substances: [],
       therapies: [],
+      insurances: [],
+      languages: [],
+      licenses: [],
       rating: null,
       priceRange: null
     }));
@@ -120,10 +158,12 @@ export default function SearchResults() {
           location: filters.location,
           treatmentTypes: filters.treatmentTypes,
           amenities: filters.amenities,
-          insurance: filters.insurance,
           conditions: filters.conditions,
           substances: filters.substances,
           therapies: filters.therapies,
+          insurances: filters.insurances,
+          languages: filters.languages,
+          licenses: filters.licenses,
           rating: filters.rating === 0 ? null : filters.rating
         });
 

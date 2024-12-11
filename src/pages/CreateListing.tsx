@@ -6,12 +6,11 @@ import { useAuthStore } from '../store/authStore';
 import { facilitiesService } from '../services/facilities';
 import { usersService } from '../services/users';
 import { licensesService } from '../services/licenses';
-import { insurancesService } from '../services/insurances';
 import { conditionsService } from '../services/conditions';
 import { therapiesService } from '../services/therapies';
 import { treatmentTypesService } from '../services/treatmentTypes';
 import { storageService } from '../services/storage';
-import { Facility, License, Insurance, Condition, Therapy, TreatmentType } from '../types';
+import { Facility, License, Condition, Therapy, TreatmentType } from '../types';
 import Header from '../components/Header';
 import Footer from '../components/Footer';
 import PhotoUpload from '../components/PhotoUpload';
@@ -32,15 +31,11 @@ interface CreateListingForm {
   phone: string;
   email: string;
   highlights: string[];
-  treatmentTypes: string[];  // For backward compatibility
-  managedTreatmentTypes: string[];  // For new managed treatment types
+  treatmentTypes: string[];
   substances: string[];
   conditions: string[];
   therapies: string[];
   amenities: string[];
-  insurance: string[];
-  insurances: Insurance[];
-  accreditation: string[];
   languages: string[];
   licenses: License[];
 }
@@ -53,14 +48,10 @@ export default function CreateListing() {
     defaultValues: {
       highlights: [],
       treatmentTypes: [],
-      managedTreatmentTypes: [],
       substances: [],
       conditions: [],
       therapies: [],
       amenities: [],
-      insurance: [],
-      insurances: [],
-      accreditation: [],
       languages: [],
       licenses: [],
       city: '',
@@ -73,7 +64,6 @@ export default function CreateListing() {
   const [photos, setPhotos] = React.useState<string[]>([]);
   const [logo, setLogo] = React.useState<string | undefined>(undefined);
   const [availableLicenses, setAvailableLicenses] = React.useState<License[]>([]);
-  const [availableInsurances, setAvailableInsurances] = React.useState<Insurance[]>([]);
   const [availableConditions, setAvailableConditions] = React.useState<Condition[]>([]);
   const [availableTherapies, setAvailableTherapies] = React.useState<Therapy[]>([]);
   const [availableTreatmentTypes, setAvailableTreatmentTypes] = React.useState<TreatmentType[]>([]);
@@ -83,16 +73,12 @@ export default function CreateListing() {
   // Watch form values for DropdownSelect components
   const highlights = watch('highlights');
   const treatmentTypes = watch('treatmentTypes');
-  const managedTreatmentTypes = watch('managedTreatmentTypes');
   const substances = watch('substances');
-  const conditions = watch('conditions');
-  const therapies = watch('therapies');
   const amenities = watch('amenities');
-  const insurance = watch('insurance');
-  const accreditation = watch('accreditation');
   const languages = watch('languages');
   const selectedLicenses = watch('licenses');
-  const selectedInsurances = watch('insurances');
+  const selectedConditions = watch('conditions');
+  const selectedTherapies = watch('therapies');
 
   // Generate a temporary ID for photo uploads
   const tempId = React.useMemo(() => 'temp-' + Date.now(), []);
@@ -100,15 +86,13 @@ export default function CreateListing() {
   // Fetch available options
   React.useEffect(() => {
     const fetchData = async () => {
-      const [licenses, insurances, conditions, therapies, treatmentTypes] = await Promise.all([
+      const [licenses, conditions, therapies, treatmentTypes] = await Promise.all([
         licensesService.getLicenses(),
-        insurancesService.getInsurances(),
         conditionsService.getConditions(),
         therapiesService.getTherapies(),
         treatmentTypesService.getTreatmentTypes()
       ]);
       setAvailableLicenses(licenses);
-      setAvailableInsurances(insurances);
       setAvailableConditions(conditions);
       setAvailableTherapies(therapies);
       setAvailableTreatmentTypes(treatmentTypes);
@@ -141,15 +125,15 @@ export default function CreateListing() {
       await refreshToken();
 
       // Convert IDs to full objects
-      const selectedConditions = data.conditions.map(id => 
+      const conditions = data.conditions.map(id => 
         availableConditions.find(c => c.id === id)
       ).filter((c): c is Condition => c !== undefined);
 
-      const selectedTherapies = data.therapies.map(id => 
+      const therapies = data.therapies.map(id => 
         availableTherapies.find(t => t.id === id)
       ).filter((t): t is Therapy => t !== undefined);
 
-      const selectedTreatmentTypes = data.managedTreatmentTypes.map(id =>
+      const selectedTreatmentTypes = data.treatmentTypes.map(id =>
         availableTreatmentTypes.find(t => t.id === id)
       ).filter((t): t is TreatmentType => t !== undefined);
 
@@ -164,15 +148,11 @@ export default function CreateListing() {
         phone: data.phone,
         email: data.email,
         highlights: data.highlights,
-        tags: data.treatmentTypes,  // For backward compatibility
-        treatmentTypes: selectedTreatmentTypes,  // New managed treatment types
+        treatmentTypes: selectedTreatmentTypes,
         substances: data.substances,
-        conditions: selectedConditions,
-        therapies: selectedTherapies,
+        conditions,
+        therapies,
         amenities: data.amenities,
-        insurance: data.insurance,
-        insurances: data.insurances,
-        accreditation: data.accreditation,
         languages: data.languages,
         licenses: data.licenses,
         images: photos,
@@ -420,20 +400,11 @@ export default function CreateListing() {
                   type="treatmentTypes"
                   value={treatmentTypes}
                   onChange={(values) => setValue('treatmentTypes', values)}
-                  error={errors.treatmentTypes?.message}
-                />
-
-                <DropdownSelect
-                  label="Managed Treatment Types"
-                  type="treatmentTypes"
-                  value={managedTreatmentTypes}
-                  onChange={(values) => setValue('managedTreatmentTypes', values)}
-                  useManagedOptions={true}
                   options={availableTreatmentTypes.map(type => ({
                     value: type.id,
                     label: type.name
                   }))}
-                  error={errors.managedTreatmentTypes?.message}
+                  error={errors.treatmentTypes?.message}
                 />
 
                 <DropdownSelect
@@ -447,7 +418,7 @@ export default function CreateListing() {
                 <DropdownSelect
                   label="Conditions We Treat"
                   type="conditions"
-                  value={conditions}
+                  value={selectedConditions}
                   onChange={(values) => setValue('conditions', values)}
                   options={availableConditions.map(condition => ({
                     value: condition.id,
@@ -459,7 +430,7 @@ export default function CreateListing() {
                 <DropdownSelect
                   label="Therapies"
                   type="therapies"
-                  value={therapies}
+                  value={selectedTherapies}
                   onChange={(values) => setValue('therapies', values)}
                   options={availableTherapies.map(therapy => ({
                     value: therapy.id,
@@ -474,37 +445,6 @@ export default function CreateListing() {
                   value={amenities}
                   onChange={(values) => setValue('amenities', values)}
                   error={errors.amenities?.message}
-                />
-
-                <DropdownSelect
-                  label="Insurance Accepted"
-                  type="insurance"
-                  value={insurance}
-                  onChange={(values) => setValue('insurance', values)}
-                  error={errors.insurance?.message}
-                />
-
-                <DropdownSelect
-                  label="Insurance Providers"
-                  type="insurances"
-                  value={selectedInsurances.map(i => i.id)}
-                  onChange={(values) => {
-                    const selected = availableInsurances.filter(i => values.includes(i.id));
-                    setValue('insurances', selected);
-                  }}
-                  options={availableInsurances.map(insurance => ({
-                    value: insurance.id,
-                    label: insurance.name
-                  }))}
-                  error={errors.insurances?.message}
-                />
-
-                <DropdownSelect
-                  label="Accreditation"
-                  type="accreditation"
-                  value={accreditation}
-                  onChange={(values) => setValue('accreditation', values)}
-                  error={errors.accreditation?.message}
                 />
 
                 <DropdownSelect
