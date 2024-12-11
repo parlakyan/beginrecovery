@@ -7,12 +7,11 @@ import {
   updateDoc,
   deleteDoc,
   serverTimestamp,
-  QueryDocumentSnapshot,
-  DocumentData
+  query,
+  orderBy
 } from 'firebase/firestore';
 import { db } from '../lib/firebase';
 import { Substance } from '../types';
-import { storageService } from './storage';
 
 const SUBSTANCES_COLLECTION = 'substances';
 
@@ -23,7 +22,8 @@ export const substancesService = {
   async getSubstances() {
     try {
       const substancesRef = collection(db, SUBSTANCES_COLLECTION);
-      const snapshot = await getDocs(substancesRef);
+      const q = query(substancesRef, orderBy('name', 'asc'));
+      const snapshot = await getDocs(q);
       
       return snapshot.docs.map(doc => ({
         id: doc.id,
@@ -45,7 +45,14 @@ export const substancesService = {
         createdAt: serverTimestamp(),
         updatedAt: serverTimestamp()
       });
-      return { id: docRef.id };
+
+      const newDoc = await getDoc(docRef);
+      return {
+        id: docRef.id,
+        ...newDoc.data(),
+        createdAt: newDoc.data()?.createdAt?.toDate?.()?.toISOString() || new Date().toISOString(),
+        updatedAt: newDoc.data()?.updatedAt?.toDate?.()?.toISOString() || new Date().toISOString()
+      } as Substance;
     } catch (error) {
       console.error('Error adding substance:', error);
       throw error;
@@ -55,24 +62,6 @@ export const substancesService = {
   async updateSubstance(id: string, data: Partial<Substance>) {
     try {
       const substanceRef = doc(db, SUBSTANCES_COLLECTION, id);
-      
-      // Handle logo removal
-      if (data.logo === undefined) {
-        const substanceDoc = await getDoc(substanceRef);
-        const currentData = substanceDoc.data();
-        if (currentData?.logo) {
-          try {
-            const url = new URL(currentData.logo);
-            const path = decodeURIComponent(url.pathname.split('/o/')[1].split('?')[0]);
-            if (path.startsWith('substances/')) {
-              await storageService.deleteFile(path);
-            }
-          } catch (error) {
-            console.error('Error cleaning up old logo:', error);
-          }
-        }
-      }
-
       await updateDoc(substanceRef, {
         ...data,
         updatedAt: serverTimestamp()
@@ -94,22 +83,6 @@ export const substancesService = {
   async deleteSubstance(id: string) {
     try {
       const substanceRef = doc(db, SUBSTANCES_COLLECTION, id);
-      
-      // Clean up logo if exists
-      const substanceDoc = await getDoc(substanceRef);
-      const substanceData = substanceDoc.data();
-      if (substanceData?.logo) {
-        try {
-          const url = new URL(substanceData.logo);
-          const path = decodeURIComponent(url.pathname.split('/o/')[1].split('?')[0]);
-          if (path.startsWith('substances/')) {
-            await storageService.deleteFile(path);
-          }
-        } catch (error) {
-          console.error('Error cleaning up logo:', error);
-        }
-      }
-
       await deleteDoc(substanceRef);
     } catch (error) {
       console.error('Error deleting substance:', error);

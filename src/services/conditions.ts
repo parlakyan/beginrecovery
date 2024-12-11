@@ -7,12 +7,11 @@ import {
   updateDoc,
   deleteDoc,
   serverTimestamp,
-  QueryDocumentSnapshot,
-  DocumentData
+  query,
+  orderBy
 } from 'firebase/firestore';
 import { db } from '../lib/firebase';
 import { Condition } from '../types';
-import { storageService } from './storage';
 
 const CONDITIONS_COLLECTION = 'conditions';
 
@@ -23,7 +22,8 @@ export const conditionsService = {
   async getConditions() {
     try {
       const conditionsRef = collection(db, CONDITIONS_COLLECTION);
-      const snapshot = await getDocs(conditionsRef);
+      const q = query(conditionsRef, orderBy('name', 'asc'));
+      const snapshot = await getDocs(q);
       
       return snapshot.docs.map(doc => ({
         id: doc.id,
@@ -45,7 +45,14 @@ export const conditionsService = {
         createdAt: serverTimestamp(),
         updatedAt: serverTimestamp()
       });
-      return { id: docRef.id };
+
+      const newDoc = await getDoc(docRef);
+      return {
+        id: docRef.id,
+        ...newDoc.data(),
+        createdAt: newDoc.data()?.createdAt?.toDate?.()?.toISOString() || new Date().toISOString(),
+        updatedAt: newDoc.data()?.updatedAt?.toDate?.()?.toISOString() || new Date().toISOString()
+      } as Condition;
     } catch (error) {
       console.error('Error adding condition:', error);
       throw error;
@@ -55,24 +62,6 @@ export const conditionsService = {
   async updateCondition(id: string, data: Partial<Condition>) {
     try {
       const conditionRef = doc(db, CONDITIONS_COLLECTION, id);
-      
-      // Handle logo removal
-      if (data.logo === undefined) {
-        const conditionDoc = await getDoc(conditionRef);
-        const currentData = conditionDoc.data();
-        if (currentData?.logo) {
-          try {
-            const url = new URL(currentData.logo);
-            const path = decodeURIComponent(url.pathname.split('/o/')[1].split('?')[0]);
-            if (path.startsWith('conditions/')) {
-              await storageService.deleteFile(path);
-            }
-          } catch (error) {
-            console.error('Error cleaning up old logo:', error);
-          }
-        }
-      }
-
       await updateDoc(conditionRef, {
         ...data,
         updatedAt: serverTimestamp()
@@ -94,22 +83,6 @@ export const conditionsService = {
   async deleteCondition(id: string) {
     try {
       const conditionRef = doc(db, CONDITIONS_COLLECTION, id);
-      
-      // Clean up logo if exists
-      const conditionDoc = await getDoc(conditionRef);
-      const conditionData = conditionDoc.data();
-      if (conditionData?.logo) {
-        try {
-          const url = new URL(conditionData.logo);
-          const path = decodeURIComponent(url.pathname.split('/o/')[1].split('?')[0]);
-          if (path.startsWith('conditions/')) {
-            await storageService.deleteFile(path);
-          }
-        } catch (error) {
-          console.error('Error cleaning up logo:', error);
-        }
-      }
-
       await deleteDoc(conditionRef);
     } catch (error) {
       console.error('Error deleting condition:', error);
