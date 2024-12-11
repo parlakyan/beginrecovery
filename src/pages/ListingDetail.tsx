@@ -13,6 +13,8 @@ import MapSection from '../components/MapSection';
 import StaffSection from '../components/StaffSection';
 import CertificationsSection from '../components/CertificationsSection';
 import InsurancesSection from '../components/InsurancesSection';
+import ConditionsSection from '../components/ConditionsSection';
+import TherapiesSection from '../components/TherapiesSection';
 import { Button, Tag, Breadcrumb } from '../components/ui';
 import EditListingModal from '../components/EditListingModal';
 
@@ -262,6 +264,16 @@ export default function ListingDetail() {
                 </div>
               </div>
 
+              {/* Conditions Section */}
+              {facility.conditions && facility.conditions.length > 0 && (
+                <ConditionsSection conditions={facility.conditions} />
+              )}
+
+              {/* Therapies Section */}
+              {facility.therapies && facility.therapies.length > 0 && (
+                <TherapiesSection therapies={facility.therapies} />
+              )}
+
               {/* Certifications Section - Only for verified facilities with licenses */}
               {facility.isVerified && facility.licenses && facility.licenses.length > 0 && (
                 <CertificationsSection licenses={facility.licenses} />
@@ -272,40 +284,40 @@ export default function ListingDetail() {
                 <InsurancesSection insurances={facility.insurances} />
               )}
 
-   {/* Reviews Section */}
-   <ReviewsSection facility={facility} />
+              {/* Staff Section - Only for verified facilities */}
+              {facility.isVerified && <StaffSection />}
 
-{/* Staff Section - Only for verified facilities */}
-{facility.isVerified && <StaffSection />}
+              {/* Reviews Section */}
+              <ReviewsSection facility={facility} />
 
-{/* Map Section */}
-<MapSection 
-  coordinates={facility.coordinates} 
-  address={facility.location}
-/>
-</div>
+              {/* Map Section */}
+              <MapSection 
+                coordinates={facility.coordinates} 
+                address={facility.location}
+              />
+            </div>
 
-{/* Contact Box - Sticky */}
-<div className="lg:col-span-1">
-<div className="sticky top-24" style={{ zIndex: 1 }}>
-  <ContactBox facility={facility} />
-</div>
-</div>
-</div>
-</div>
-</main>
+            {/* Contact Box - Sticky */}
+            <div className="lg:col-span-1">
+              <div className="sticky top-24" style={{ zIndex: 1 }}>
+                <ContactBox facility={facility} />
+              </div>
+            </div>
+          </div>
+        </div>
+      </main>
 
-{/* Edit Modal */}
-{isEditModalOpen && (
-<EditListingModal
-facility={facility}
-isOpen={isEditModalOpen}
-onClose={() => setIsEditModalOpen(false)}
-onSave={handleSave}
-/>
-)}
+      {/* Edit Modal */}
+      {isEditModalOpen && (
+        <EditListingModal
+          facility={facility}
+          isOpen={isEditModalOpen}
+          onClose={() => setIsEditModalOpen(false)}
+          onSave={handleSave}
+        />
+      )}
 
-<Footer />
-</div>
-);
+      <Footer />
+    </div>
+  );
 }

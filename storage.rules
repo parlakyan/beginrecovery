@@ -37,6 +37,21 @@ service firebase.storage {
       allow delete: if isAdmin();
     }
 
+    match /conditions/{fileName} {
+      allow write: if isAdmin() && isValidImage();
+      allow delete: if isAdmin();
+    }
+
+    match /substances/{fileName} {
+      allow write: if isAdmin() && isValidImage();
+      allow delete: if isAdmin();
+    }
+
+    match /therapies/{fileName} {
+      allow write: if isAdmin() && isValidImage();
+      allow delete: if isAdmin();
+    }
+
     // Facility files - admins and owners can write
     match /facilities/{facilityId}/{allPaths=**} {
       allow write: if request.auth != null 

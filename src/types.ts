@@ -20,9 +20,11 @@ export interface Facility {
   amenities: string[];
   highlights: string[];
   substances: string[];
-  insurance: string[];
-  insurances?: Insurance[];  // Added this line for insurance objects
-  accreditation: string[];
+  conditions?: Condition[];  // New field
+  therapies?: Therapy[];    // New field
+  insurance: string[];      // Keep for backward compatibility
+  insurances?: Insurance[]; // Keep for backward compatibility
+  accreditation: string[];  // Keep for backward compatibility
   languages: string[];
   licenses?: License[];
   rating: number;
@@ -95,6 +97,9 @@ export interface SearchFiltersState {
   treatmentTypes: string[];
   amenities: string[];
   insurance: string[];
+  conditions: string[];
+  substances: string[];
+  therapies: string[];
   rating: number | null;
   priceRange: number | null;
 }
@@ -111,6 +116,33 @@ export interface License {
 }
 
 export interface Insurance {
+  id: string;
+  name: string;
+  description: string;
+  logo: string;
+  createdAt: string;
+  updatedAt: string;
+}
+
+export interface Condition {
+  id: string;
+  name: string;
+  description: string;
+  logo: string;
+  createdAt: string;
+  updatedAt: string;
+}
+
+export interface Substance {
+  id: string;
+  name: string;
+  description: string;
+  logo: string;
+  createdAt: string;
+  updatedAt: string;
+}
+
+export interface Therapy {
   id: string;
   name: string;
   description: string;

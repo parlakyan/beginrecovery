@@ -23,6 +23,9 @@ export const facilitiesSearch = {
     treatmentTypes,
     amenities,
     insurance,
+    conditions,
+    substances,
+    therapies,
     rating
   }: SearchParams): Promise<Facility[]> {
     try {
@@ -32,6 +35,9 @@ export const facilitiesSearch = {
         treatmentTypes,
         amenities,
         insurance,
+        conditions,
+        substances,
+        therapies,
         rating
       });
 
@@ -63,8 +69,9 @@ export const facilitiesSearch = {
           ...facility.highlights,
           ...facility.substances,
           ...facility.insurance,
-          ...facility.accreditation,
-          ...facility.languages
+          ...facility.languages,
+          ...(facility.conditions?.map(c => c.name) || []),
+          ...(facility.therapies?.map(t => t.name) || [])
         ].some(field => 
           field && field.toString().toLowerCase().includes(searchText)
         );
@@ -88,6 +95,22 @@ export const facilitiesSearch = {
         const matchesInsurance = insurance.length === 0 ||
           insurance.some(ins => facility.insurance.includes(ins));
 
+        // Conditions
+        const matchesConditions = conditions.length === 0 ||
+          conditions.some(conditionId => 
+            facility.conditions?.some(c => c.id === conditionId)
+          );
+
+        // Substances
+        const matchesSubstances = substances.length === 0 ||
+          substances.some(substance => facility.substances.includes(substance));
+
+        // Therapies
+        const matchesTherapies = therapies.length === 0 ||
+          therapies.some(therapyId => 
+            facility.therapies?.some(t => t.id === therapyId)
+          );
+
         // Rating
         const matchesRating = !rating || facility.rating >= rating;
 
@@ -96,6 +119,9 @@ export const facilitiesSearch = {
                matchesTreatment && 
                matchesAmenities && 
                matchesInsurance && 
+               matchesConditions &&
+               matchesSubstances &&
+               matchesTherapies &&
                matchesRating;
       });
 

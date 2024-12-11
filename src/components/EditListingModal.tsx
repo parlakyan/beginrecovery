@@ -1,7 +1,8 @@
+import React from 'react';
 import { useState, useEffect, useCallback } from 'react';
 import { useForm } from 'react-hook-form';
 import { X } from 'lucide-react';
-import { Facility, License, Insurance } from '../types';
+import { Facility, License, Insurance, Condition, Substance, Therapy } from '../types';
 import PhotoUpload from './PhotoUpload';
 import LogoUpload from './LogoUpload';
 import AddressAutocomplete from './AddressAutocomplete';
@@ -9,6 +10,8 @@ import DropdownSelect from './ui/DropdownSelect';
 import { useAuthStore } from '../store/authStore';
 import { licensesService } from '../services/licenses';
 import { insurancesService } from '../services/insurances';
+import { conditionsService } from '../services/conditions';
+import { therapiesService } from '../services/therapies';
 
 interface EditListingModalProps {
   facility: Facility;
@@ -32,9 +35,11 @@ interface EditListingForm {
   highlights: string[];
   treatmentTypes: string[];
   substances: string[];
+  conditions: string[];
+  therapies: string[];
   amenities: string[];
   insurance: string[];
-  insurances: Insurance[];  // Added this line
+  insurances: Insurance[];
   accreditation: string[];
   languages: string[];
   licenses: License[];
@@ -43,7 +48,7 @@ interface EditListingForm {
 const emailRegex = /^[A-Z0-9._%+-]+@[A-Z0-9.-]+\.[A-Z]{2,}$/i;
 const phoneRegex = /^(\+\d{1,2}\s?)?\(?\d{3}\)?[\s.-]?\d{3}[\s.-]?\d{4}$/;
 
-const EditListingModal = ({ facility, isOpen, onClose, onSave }: EditListingModalProps) => {
+const EditListingModal: React.FC<EditListingModalProps> = ({ facility, isOpen, onClose, onSave }) => {
   const { register, handleSubmit, formState: { errors }, setValue, watch, reset } = useForm<EditListingForm>();
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
@@ -53,6 +58,8 @@ const EditListingModal = ({ facility, isOpen, onClose, onSave }: EditListingModa
   });
   const [availableLicenses, setAvailableLicenses] = useState<License[]>([]);
   const [availableInsurances, setAvailableInsurances] = useState<Insurance[]>([]);
+  const [availableConditions, setAvailableConditions] = useState<Condition[]>([]);
+  const [availableTherapies, setAvailableTherapies] = useState<Therapy[]>([]);
   const { user } = useAuthStore();
 
   // Check if user can edit this facility
@@ -61,15 +68,19 @@ const EditListingModal = ({ facility, isOpen, onClose, onSave }: EditListingModa
     (user.role === 'owner' && user.id === facility.ownerId)
   );
 
-  // Fetch available licenses and insurances
+  // Fetch available options
   useEffect(() => {
     const fetchData = async () => {
-      const [licenses, insurances] = await Promise.all([
+      const [licenses, insurances, conditions, therapies] = await Promise.all([
         licensesService.getLicenses(),
-        insurancesService.getInsurances()
+        insurancesService.getInsurances(),
+        conditionsService.getConditions(),
+        therapiesService.getTherapies()
       ]);
       setAvailableLicenses(licenses);
       setAvailableInsurances(insurances);
+      setAvailableConditions(conditions);
+      setAvailableTherapies(therapies);
     };
     fetchData();
   }, []);
@@ -84,7 +95,8 @@ const EditListingModal = ({ facility, isOpen, onClose, onSave }: EditListingModa
   const languages = watch('languages', []);
   const selectedLicenses = watch('licenses', []);
   const selectedInsurances = watch('insurances', []);
-
+  const selectedConditions = watch('conditions', []);
+  const selectedTherapies = watch('therapies', []);
 
   // Reset form when modal opens or facility changes
   useEffect(() => {
@@ -110,9 +122,11 @@ const EditListingModal = ({ facility, isOpen, onClose, onSave }: EditListingModa
         highlights: facility.highlights || [],
         treatmentTypes: facility.tags || [],
         substances: facility.substances || [],
+        conditions: facility.conditions?.map(c => c.id) || [],
+        therapies: facility.therapies?.map(t => t.id) || [],
         amenities: facility.amenities || [],
         insurance: facility.insurance || [],
-        insurances: facility.insurances || [],  // Added this line
+        insurances: facility.insurances || [],
         accreditation: facility.accreditation || [],
         languages: facility.languages || [],
         licenses: facility.licenses || []
@@ -121,7 +135,7 @@ const EditListingModal = ({ facility, isOpen, onClose, onSave }: EditListingModa
       // Reset form data with existing images and logo
       setFormData({
         images: facility.images || [],
-        logo: facility.logo || undefined // Ensure logo is undefined if falsy
+        logo: facility.logo || undefined
       });
 
       console.log('Form data reset with logo:', facility.logo);
@@ -160,6 +174,15 @@ const EditListingModal = ({ facility, isOpen, onClose, onSave }: EditListingModa
         logo: formData.logo
       });
 
+      // Convert condition and therapy IDs back to full objects
+      const conditions = data.conditions.map(id => 
+        availableConditions.find(c => c.id === id)
+      ).filter((c): c is Condition => c !== undefined);
+
+      const therapies = data.therapies.map(id => 
+        availableTherapies.find(t => t.id === id)
+      ).filter((t): t is Therapy => t !== undefined);
+
       await onSave({
         name: data.name,
         description: data.description,
@@ -170,11 +193,13 @@ const EditListingModal = ({ facility, isOpen, onClose, onSave }: EditListingModa
         phone: data.phone,
         email: data.email,
         highlights: data.highlights,
-        tags: data.treatmentTypes, // Map treatmentTypes to tags
+        tags: data.treatmentTypes,
         substances: data.substances,
+        conditions,
+        therapies,
         amenities: data.amenities,
         insurance: data.insurance,
-        insurances: data.insurances,  // Added this line
+        insurances: data.insurances,
         accreditation: data.accreditation,
         languages: data.languages,
         licenses: data.licenses,
@@ -354,6 +379,30 @@ const EditListingModal = ({ facility, isOpen, onClose, onSave }: EditListingModa
               value={substances}
               onChange={(values) => setValue('substances', values)}
               error={errors.substances?.message}
+            />
+
+            <DropdownSelect
+              label="Conditions We Treat"
+              type="conditions"
+              value={selectedConditions}
+              onChange={(values) => setValue('conditions', values)}
+              options={availableConditions.map(condition => ({
+                value: condition.id,
+                label: condition.name
+              }))}
+              error={errors.conditions?.message}
+            />
+
+            <DropdownSelect
+              label="Therapies"
+              type="therapies"
+              value={selectedTherapies}
+              onChange={(values) => setValue('therapies', values)}
+              options={availableTherapies.map(therapy => ({
+                value: therapy.id,
+                label: therapy.name
+              }))}
+              error={errors.therapies?.message}
             />
 
             <DropdownSelect

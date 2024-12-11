@@ -16,6 +16,9 @@ export default function SearchResults() {
     treatmentTypes: [],
     amenities: [],
     insurance: [],
+    conditions: [],
+    substances: [],
+    therapies: [],
     rating: null,
     priceRange: null
   });
@@ -30,10 +33,16 @@ export default function SearchResults() {
     const locations = new Set<string>();
     const treatmentTypes = new Set<string>();
     const amenities = new Set<string>();
+    const conditions = new Set<string>();
+    const substances = new Set<string>();
+    const therapies = new Set<string>();
     const counts = {
       locations: {} as { [key: string]: number },
       treatmentTypes: {} as { [key: string]: number },
-      amenities: {} as { [key: string]: number }
+      amenities: {} as { [key: string]: number },
+      conditions: {} as { [key: string]: number },
+      substances: {} as { [key: string]: number },
+      therapies: {} as { [key: string]: number }
     };
 
     facilities.forEach((facility) => {
@@ -55,10 +64,28 @@ export default function SearchResults() {
         amenities.add(amenity);
         counts.amenities[amenity] = (counts.amenities[amenity] || 0) + 1;
       });
+
+      // Condition counts
+      facility.conditions?.forEach(condition => {
+        conditions.add(condition.id);
+        counts.conditions[condition.id] = (counts.conditions[condition.id] || 0) + 1;
+      });
+
+      // Substance counts
+      facility.substances.forEach(substance => {
+        substances.add(substance);
+        counts.substances[substance] = (counts.substances[substance] || 0) + 1;
+      });
+
+      // Therapy counts
+      facility.therapies?.forEach(therapy => {
+        therapies.add(therapy.id);
+        counts.therapies[therapy.id] = (counts.therapies[therapy.id] || 0) + 1;
+      });
     });
 
     return {
-      filterOptions: { locations, treatmentTypes, amenities },
+      filterOptions: { locations, treatmentTypes, amenities, conditions, substances, therapies },
       optionCounts: counts
     };
   };
@@ -74,6 +101,9 @@ export default function SearchResults() {
       treatmentTypes: [],
       amenities: [],
       insurance: [],
+      conditions: [],
+      substances: [],
+      therapies: [],
       rating: null,
       priceRange: null
     }));
@@ -91,6 +121,9 @@ export default function SearchResults() {
           treatmentTypes: filters.treatmentTypes,
           amenities: filters.amenities,
           insurance: filters.insurance,
+          conditions: filters.conditions,
+          substances: filters.substances,
+          therapies: filters.therapies,
           rating: filters.rating === 0 ? null : filters.rating
         });
 

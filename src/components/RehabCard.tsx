@@ -121,6 +121,13 @@ export default function RehabCard({ facility, onEdit, showOwnerControls = false 
     </div>
   );
 
+  // Get all tags to display
+  const allTags = [
+    ...facility.tags,
+    ...(facility.conditions?.map(c => c.name) || []),
+    ...(facility.therapies?.map(t => t.name) || [])
+  ];
+
   return (
     <div 
       className="group bg-white rounded-2xl shadow-md hover:shadow-xl transition-all duration-300 overflow-hidden cursor-pointer border border-gray-100 flex flex-col h-full"
@@ -161,12 +168,12 @@ export default function RehabCard({ facility, onEdit, showOwnerControls = false 
 
           {/* Tags */}
           <div className="flex flex-wrap gap-2 mb-2">
-            {facility.tags.slice(0, 2).map((tag, index) => (
+            {allTags.slice(0, 3).map((tag, index) => (
               <Tag key={index} variant="secondary">{tag}</Tag>
             ))}
-            {facility.tags.length > 2 && (
+            {allTags.length > 3 && (
               <span className="px-3 py-1 bg-gray-50 text-gray-600 rounded-full text-sm">
-                +{facility.tags.length - 2} more
+                +{allTags.length - 3} more
               </span>
             )}
           </div>

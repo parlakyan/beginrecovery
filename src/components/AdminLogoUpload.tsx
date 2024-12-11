@@ -6,7 +6,7 @@ import { useAuthStore } from '../store/authStore';
 interface AdminLogoUploadProps {
   currentLogo?: string;
   onUpload: (url: string) => void;
-  folder: 'licenses' | 'insurances' | 'locations';
+  folder: 'licenses' | 'insurances' | 'locations' | 'conditions' | 'substances' | 'therapies';
 }
 
 export default function AdminLogoUpload({ 

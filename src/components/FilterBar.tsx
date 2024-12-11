@@ -8,11 +8,17 @@ interface FilterBarProps {
     locations: Set<string>;
     treatmentTypes: Set<string>;
     amenities: Set<string>;
+    conditions: Set<string>;
+    substances: Set<string>;
+    therapies: Set<string>;
   };
   optionCounts: {
     locations: { [key: string]: number };
     treatmentTypes: { [key: string]: number };
     amenities: { [key: string]: number };
+    conditions: { [key: string]: number };
+    substances: { [key: string]: number };
+    therapies: { [key: string]: number };
   };
   onFilterChange: (type: keyof SearchFiltersState, value: string, clearOthers?: boolean) => void;
 }
@@ -23,6 +29,9 @@ export default function FilterBar({ filters, filterOptions, optionCounts, onFilt
     location: '',
     treatmentTypes: '',
     amenities: '',
+    conditions: '',
+    substances: '',
+    therapies: '',
     rating: ''
   });
 
@@ -58,7 +67,7 @@ export default function FilterBar({ filters, filterOptions, optionCounts, onFilt
   };
 
   const renderDropdown = (
-    type: 'location' | 'treatmentTypes' | 'amenities',
+    type: 'location' | 'treatmentTypes' | 'amenities' | 'conditions' | 'substances' | 'therapies',
     title: string,
     options: Set<string>,
     counts: { [key: string]: number }
@@ -142,9 +151,12 @@ export default function FilterBar({ filters, filterOptions, optionCounts, onFilt
 
   return (
     <div className="w-full">
-      <div className="flex gap-2 py-3">
+      <div className="flex gap-2 py-3 flex-wrap">
         {renderDropdown('location', 'Location', filterOptions.locations, optionCounts.locations)}
         {renderDropdown('treatmentTypes', 'Treatment Types', filterOptions.treatmentTypes, optionCounts.treatmentTypes)}
+        {renderDropdown('conditions', 'Conditions', filterOptions.conditions, optionCounts.conditions)}
+        {renderDropdown('substances', 'Substances', filterOptions.substances, optionCounts.substances)}
+        {renderDropdown('therapies', 'Therapies', filterOptions.therapies, optionCounts.therapies)}
         {renderDropdown('amenities', 'Amenities', filterOptions.amenities, optionCounts.amenities)}
 
         {/* Rating Filter */}

@@ -7,8 +7,10 @@ import { facilitiesService } from '../services/facilities';
 import { usersService } from '../services/users';
 import { licensesService } from '../services/licenses';
 import { insurancesService } from '../services/insurances';
+import { conditionsService } from '../services/conditions';
+import { therapiesService } from '../services/therapies';
 import { storageService } from '../services/storage';
-import { Facility, License, Insurance } from '../types';
+import { Facility, License, Insurance, Condition, Therapy } from '../types';
 import Header from '../components/Header';
 import Footer from '../components/Footer';
 import PhotoUpload from '../components/PhotoUpload';
@@ -31,6 +33,8 @@ interface CreateListingForm {
   highlights: string[];
   treatmentTypes: string[];
   substances: string[];
+  conditions: string[];
+  therapies: string[];
   amenities: string[];
   insurance: string[];
   insurances: Insurance[];
@@ -48,9 +52,11 @@ export default function CreateListing() {
       highlights: [],
       treatmentTypes: [],
       substances: [],
+      conditions: [],
+      therapies: [],
       amenities: [],
       insurance: [],
-      insurances: [],  // Added this line
+      insurances: [],
       accreditation: [],
       languages: [],
       licenses: [],
@@ -65,6 +71,8 @@ const [photos, setPhotos] = React.useState<string[]>([]);
 const [logo, setLogo] = React.useState<string | undefined>(undefined);
 const [availableLicenses, setAvailableLicenses] = React.useState<License[]>([]);
 const [availableInsurances, setAvailableInsurances] = React.useState<Insurance[]>([]);
+const [availableConditions, setAvailableConditions] = React.useState<Condition[]>([]);
+const [availableTherapies, setAvailableTherapies] = React.useState<Therapy[]>([]);
 const { user, refreshToken } = useAuthStore();
 const navigate = useNavigate();
 
@@ -72,6 +80,8 @@ const navigate = useNavigate();
 const highlights = watch('highlights');
 const treatmentTypes = watch('treatmentTypes');
 const substances = watch('substances');
+const conditions = watch('conditions');
+const therapies = watch('therapies');
 const amenities = watch('amenities');
 const insurance = watch('insurance');
 const accreditation = watch('accreditation');
@@ -82,15 +92,19 @@ const selectedInsurances = watch('insurances');
 // Generate a temporary ID for photo uploads
 const tempId = React.useMemo(() => 'temp-' + Date.now(), []);
 
-// Fetch available licenses and insurances
+// Fetch available options
 React.useEffect(() => {
   const fetchData = async () => {
-    const [licenses, insurances] = await Promise.all([
+    const [licenses, insurances, conditions, therapies] = await Promise.all([
       licensesService.getLicenses(),
-      insurancesService.getInsurances()
+      insurancesService.getInsurances(),
+      conditionsService.getConditions(),
+      therapiesService.getTherapies()
     ]);
     setAvailableLicenses(licenses);
     setAvailableInsurances(insurances);
+    setAvailableConditions(conditions);
+    setAvailableTherapies(therapies);
   };
   fetchData();
 }, []);
@@ -119,6 +133,15 @@ React.useEffect(() => {
       // Refresh auth token first
       await refreshToken();
 
+      // Convert condition and therapy IDs to full objects
+      const selectedConditions = data.conditions.map(id => 
+        availableConditions.find(c => c.id === id)
+      ).filter((c): c is Condition => c !== undefined);
+
+      const selectedTherapies = data.therapies.map(id => 
+        availableTherapies.find(t => t.id === id)
+      ).filter((t): t is Therapy => t !== undefined);
+
       // Process form data
       const formattedData: Partial<Facility> = {
         name: data.name,
@@ -132,9 +155,11 @@ React.useEffect(() => {
         highlights: data.highlights,
         tags: data.treatmentTypes,
         substances: data.substances,
+        conditions: selectedConditions,
+        therapies: selectedTherapies,
         amenities: data.amenities,
         insurance: data.insurance,
-        insurances: data.insurances,  // Added this line
+        insurances: data.insurances,
         accreditation: data.accreditation,
         languages: data.languages,
         licenses: data.licenses,
@@ -392,6 +417,30 @@ React.useEffect(() => {
                   value={substances}
                   onChange={(values) => setValue('substances', values)}
                   error={errors.substances?.message}
+                />
+
+                <DropdownSelect
+                  label="Conditions We Treat"
+                  type="conditions"
+                  value={conditions}
+                  onChange={(values) => setValue('conditions', values)}
+                  options={availableConditions.map(condition => ({
+                    value: condition.id,
+                    label: condition.name
+                  }))}
+                  error={errors.conditions?.message}
+                />
+
+                <DropdownSelect
+                  label="Therapies"
+                  type="therapies"
+                  value={therapies}
+                  onChange={(values) => setValue('therapies', values)}
+                  options={availableTherapies.map(therapy => ({
+                    value: therapy.id,
+                    label: therapy.name
+                  }))}
+                  error={errors.therapies?.message}
                 />
 
                 <DropdownSelect
