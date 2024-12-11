@@ -1,7 +1,8 @@
 import { useEffect, useState, useCallback } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
-import { Edit2, ShieldCheck, ShieldAlert, Clock, MapPin, Star, Phone } from 'lucide-react';
+import { Edit2, ShieldCheck, ShieldAlert, Clock, MapPin, Star, Phone, ArrowUpCircle } from 'lucide-react';
 import { facilitiesService } from '../services/facilities';
+import { paymentsService } from '../services/payments';
 import { useAuthStore } from '../store/authStore';
 import { Facility } from '../types';
 import Header from '../components/Header';
@@ -28,6 +29,8 @@ export default function ListingDetail() {
 
   // Check if current user is owner or admin
   const canEdit = user && (user.role === 'admin' || (facility && user.id === facility.ownerId));
+  // Check if current user is owner
+  const isOwner = user && facility && user.id === facility.ownerId;
 
   const fetchFacility = useCallback(async () => {
     try {
@@ -77,6 +80,15 @@ export default function ListingDetail() {
       await fetchFacility(); // Refetch facility data
     } catch (error) {
       console.error('Error toggling verification:', error);
+    }
+  };
+
+  const handleUpgrade = async () => {
+    if (!facility) return;
+    try {
+      await paymentsService.createSubscription({ facilityId: facility.id });
+    } catch (error) {
+      console.error('Error upgrading facility:', error);
     }
   };
 
@@ -161,16 +173,29 @@ export default function ListingDetail() {
           />
           
           {/* Admin and Owner Controls */}
-          {canEdit && (
+          {(canEdit || (isOwner && !facility.isVerified)) && (
             <div className="absolute top-4 right-4 flex items-center gap-2 z-10">
-              <Button
-                variant="secondary"
-                onClick={() => setIsEditModalOpen(true)}
-                className="flex items-center gap-2"
-              >
-                <Edit2 className="w-4 h-4" />
-                Edit Facility
-              </Button>
+              {canEdit && (
+                <Button
+                  variant="secondary"
+                  onClick={() => setIsEditModalOpen(true)}
+                  className="flex items-center gap-2"
+                >
+                  <Edit2 className="w-4 h-4" />
+                  Edit Facility
+                </Button>
+              )}
+
+              {isOwner && !facility.isVerified && (
+                <Button
+                  variant="primary"
+                  onClick={handleUpgrade}
+                  className="flex items-center gap-2"
+                >
+                  <ArrowUpCircle className="w-4 h-4" />
+                  Upgrade to Verified
+                </Button>
+              )}
 
               {user.role === 'admin' && (
                 <>
