@@ -61,6 +61,11 @@ export default function AdminDashboard() {
       content: <LicensesPage />
     },
     {
+      id: 'insurances',
+      label: 'Insurance',
+      content: <InsurancesPage />
+    },
+    {
       id: 'conditions',
       label: 'Conditions',
       content: <ConditionsPage />
@@ -91,7 +96,7 @@ export default function AdminDashboard() {
           <div className="p-6 border-b">
             <h1 className="text-2xl font-bold">Admin Dashboard</h1>
             <p className="text-gray-600 mt-2">
-              Manage facilities, locations, users, licenses, conditions, substances, and therapies
+              Manage facilities, locations, users, licenses, insurance, conditions, substances, and therapies
             </p>
           </div>
 
