@@ -10,6 +10,7 @@ Core UI building blocks used throughout the application.
 - [Tabs](#tabs)
 - [Breadcrumb](#breadcrumb)
 - [ImageCarousel](#imagecarousel)
+- [AdminEntryCard](#adminentrycard)
 
 ## Button
 Base button component with consistent styling and variants.
@@ -189,6 +190,7 @@ interface Tab {
 [Back to Top](#table-of-contents)
 
 ## Breadcrumb
+
 Navigation breadcrumb component.
 
 ### Features
@@ -250,6 +252,66 @@ interface ImageCarouselProps {
   showNavigation={facility.images.length > 1}
   isVerified={facility.isVerified}
 />
+```
+
+[Back to Top](#table-of-contents)
+## AdminEntryCard
+Consistent card component for displaying entries in admin sections (Conditions, Substances, Therapies, Treatment Types).
+
+### Features
+- Large photo display (aspect-[3/2])
+- Edit and delete actions
+- Logo/image display with fallback
+- Consistent styling across admin sections
+- Hover effects and transitions
+
+### Props
+```typescript
+interface AdminEntryCardProps {
+  id: string;
+  name: string;
+  description: string;
+  logo?: string;
+  onEdit: (id: string) => void;
+  onDelete: (id: string) => void;
+}
+```
+
+### Usage
+```tsx
+<AdminEntryCard
+  id={condition.id}
+  name={condition.name}
+  description={condition.description}
+  logo={condition.logo}
+  onEdit={handleEdit}
+  onDelete={handleDelete}
+/>
+```
+
+### Implementation Details
+- Uses a grid layout for consistent sizing
+- Maintains aspect ratio for images
+- Shows placeholder icon when no logo is present
+- Provides clear edit and delete actions
+- Includes hover states for better UX
+- Follows design system spacing and colors
+
+### Example
+```tsx
+<div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+  {items.map((item) => (
+    <AdminEntryCard
+      key={item.id}
+      id={item.id}
+      name={item.name}
+      description={item.description}
+      logo={item.logo}
+      onEdit={handleEdit}
+      onDelete={handleDelete}
+    />
+  ))}
+</div>
 ```
 
 [Back to Top](#table-of-contents)

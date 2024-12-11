@@ -18,7 +18,15 @@ gs://beginrecovery-bb288.appspot.com/
 │   └── [filename]
 ├── insurances/
 │   └── [filename]
-└── locations/
+├── locations/
+│   └── [filename]
+├── conditions/
+│   └── [filename]
+├── substances/
+│   └── [filename]
+├── therapies/
+│   └── [filename]
+└── treatmentTypes/
     └── [filename]
 ```
 
@@ -68,6 +76,26 @@ service firebase.storage {
     }
 
     match /locations/{fileName} {
+      allow write: if isAdmin() && isValidImage();
+      allow delete: if isAdmin();
+    }
+
+    match /conditions/{fileName} {
+      allow write: if isAdmin() && isValidImage();
+      allow delete: if isAdmin();
+    }
+
+    match /substances/{fileName} {
+      allow write: if isAdmin() && isValidImage();
+      allow delete: if isAdmin();
+    }
+
+    match /therapies/{fileName} {
+      allow write: if isAdmin() && isValidImage();
+      allow delete: if isAdmin();
+    }
+
+    match /treatmentTypes/{fileName} {
       allow write: if isAdmin() && isValidImage();
       allow delete: if isAdmin();
     }
