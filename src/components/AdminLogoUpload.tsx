@@ -17,12 +17,9 @@ export default function AdminLogoUpload({
   const [isUploading, setIsUploading] = useState(false);
   const [error, setError] = useState<string | undefined>();
   const [uploadProgress, setUploadProgress] = useState<number>(0);
-  const { user } = useAuthStore();
+  const { user, refreshToken } = useAuthStore();
 
-  const handleDrop = useCallback(async (e: React.DragEvent<HTMLDivElement>) => {
-    e.preventDefault();
-    setError(undefined);
-
+  const handleUpload = useCallback(async (file: File) => {
     if (!user) {
       setError('You must be logged in to upload logos');
       return;
@@ -33,16 +30,12 @@ export default function AdminLogoUpload({
       return;
     }
 
-    const files = Array.from(e.dataTransfer.files);
-    if (files.length > 1) {
-      setError('Please upload only one logo image');
-      return;
-    }
-
     setIsUploading(true);
     setUploadProgress(0);
     try {
-      const file = files[0];
+      // Force token refresh before upload
+      await refreshToken();
+
       const timestamp = Date.now();
       const fileExtension = file.name.split('.').pop()?.toLowerCase() || '';
       const fileName = `${timestamp}.${fileExtension}`;
@@ -84,20 +77,23 @@ export default function AdminLogoUpload({
       setIsUploading(false);
       setUploadProgress(0);
     }
-  }, [folder, onUpload, user]);
+  }, [folder, onUpload, user, refreshToken]);
+
+  const handleDrop = useCallback(async (e: React.DragEvent<HTMLDivElement>) => {
+    e.preventDefault();
+    setError(undefined);
+
+    const files = Array.from(e.dataTransfer.files);
+    if (files.length > 1) {
+      setError('Please upload only one logo image');
+      return;
+    }
+
+    await handleUpload(files[0]);
+  }, [handleUpload]);
 
   const handleFileSelect = useCallback(async (e: React.ChangeEvent<HTMLInputElement>) => {
     setError(undefined);
-
-    if (!user) {
-      setError('You must be logged in to upload logos');
-      return;
-    }
-
-    if (user.role !== 'admin') {
-      setError('Only admins can upload logos');
-      return;
-    }
 
     const files = Array.from(e.target.files || []);
     
@@ -106,54 +102,10 @@ export default function AdminLogoUpload({
       return;
     }
 
-    setIsUploading(true);
-    setUploadProgress(0);
-    try {
-      const file = files[0];
-      const timestamp = Date.now();
-      const fileExtension = file.name.split('.').pop()?.toLowerCase() || '';
-      const fileName = `${timestamp}.${fileExtension}`;
-      const path = `${folder}/${fileName}`;
-
-      console.log('Starting logo upload:', {
-        folder,
-        fileName,
-        userRole: user.role,
-        userId: user.id
-      });
-
-      const result = await storageService.uploadImage(file, path, (progress: number) => {
-        setUploadProgress(progress);
-      });
-
-      if ('error' in result) {
-        console.error('Logo upload error:', {
-          error: result.error,
-          code: result.code,
-          folder,
-          fileName
-        });
-        setError(result.error);
-        return;
-      }
-
-      if ('url' in result) {
-        console.log('Logo upload successful:', {
-          url: result.url.split('?')[0], // Log URL without query params
-          path: result.path
-        });
-        onUpload(result.url);
-      }
-    } catch (err) {
-      console.error('Error uploading logo:', err);
-      setError('Failed to upload logo. Please try again.');
-    } finally {
-      setIsUploading(false);
-      setUploadProgress(0);
-      // Reset input value to allow uploading the same file again
-      e.target.value = '';
-    }
-  }, [folder, onUpload, user]);
+    await handleUpload(files[0]);
+    // Reset input value to allow uploading the same file again
+    e.target.value = '';
+  }, [handleUpload]);
 
   const handleRemoveLogo = useCallback(async (e: React.MouseEvent) => {
     e.stopPropagation();
@@ -170,6 +122,9 @@ export default function AdminLogoUpload({
     }
 
     try {
+      // Force token refresh before removal
+      await refreshToken();
+
       if (currentLogo) {
         // Extract path from URL
         const url = new URL(currentLogo);
@@ -187,7 +142,7 @@ export default function AdminLogoUpload({
       console.error('Error removing logo:', err);
       setError('Failed to remove logo. Please try again.');
     }
-  }, [currentLogo, onUpload, user]);
+  }, [currentLogo, onUpload, user, refreshToken]);
 
   const dragOverHandler = useCallback((e: React.DragEvent<HTMLDivElement>) => {
     e.preventDefault();
