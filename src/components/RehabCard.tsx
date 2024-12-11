@@ -123,9 +123,13 @@ export default function RehabCard({ facility, onEdit, showOwnerControls = false 
 
   // Get all tags to display
   const allTags = [
-    ...facility.tags,
-    ...(facility.conditions?.map(c => c.name) || []),
-    ...(facility.therapies?.map(t => t.name) || [])
+    // Legacy treatment types
+    ...(facility.tags || []).map(tag => ({ text: tag, type: 'legacy' })),
+    // Managed treatment types
+    ...(facility.treatmentTypes || []).map(type => ({ text: type.name, type: 'managed' })),
+    // Other tags
+    ...(facility.conditions?.map(c => ({ text: c.name, type: 'condition' })) || []),
+    ...(facility.therapies?.map(t => ({ text: t.name, type: 'therapy' })) || [])
   ];
 
   return (
@@ -169,7 +173,17 @@ export default function RehabCard({ facility, onEdit, showOwnerControls = false 
           {/* Tags */}
           <div className="flex flex-wrap gap-2 mb-2">
             {allTags.slice(0, 3).map((tag, index) => (
-              <Tag key={index} variant="secondary">{tag}</Tag>
+              <Tag 
+                key={index} 
+                variant={
+                  tag.type === 'managed' ? 'primary' :
+                  tag.type === 'legacy' ? 'secondary' :
+                  tag.type === 'condition' ? 'secondary' :
+                  'secondary'
+                }
+              >
+                {tag.text}
+              </Tag>
             ))}
             {allTags.length > 3 && (
               <span className="px-3 py-1 bg-gray-50 text-gray-600 rounded-full text-sm">

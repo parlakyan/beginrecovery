@@ -65,7 +65,8 @@ export const facilitiesSearch = {
           facility.state,
           facility.email,
           facility.phone,
-          ...facility.tags,
+          ...facility.tags,  // Legacy treatment types
+          ...(facility.treatmentTypes?.map(t => t.name) || []),  // Managed treatment types
           ...facility.highlights,
           ...facility.substances,
           ...facility.insurance,
@@ -83,9 +84,12 @@ export const facilitiesSearch = {
                  facility.state.toLowerCase() === state.toLowerCase();
         });
 
-        // Treatment types
+        // Treatment types - check both legacy and managed types
         const matchesTreatment = treatmentTypes.length === 0 ||
-          treatmentTypes.some(type => facility.tags.includes(type));
+          treatmentTypes.some(type => 
+            facility.tags.includes(type) || // Check legacy types
+            facility.treatmentTypes?.some(t => t.name === type) // Check managed types
+          );
 
         // Amenities
         const matchesAmenities = amenities.length === 0 ||

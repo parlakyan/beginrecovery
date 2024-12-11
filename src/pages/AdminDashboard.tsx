@@ -12,6 +12,7 @@ import InsurancesPage from './admin/InsurancesPage';
 import ConditionsPage from './admin/ConditionsPage';
 import SubstancesPage from './admin/SubstancesPage';
 import TherapiesPage from './admin/TherapiesPage';
+import TreatmentTypesPage from './admin/TreatmentTypesPage';
 
 export default function AdminDashboard() {
   const [searchParams, setSearchParams] = useSearchParams();
@@ -79,6 +80,11 @@ export default function AdminDashboard() {
       id: 'therapies',
       label: 'Therapies',
       content: <TherapiesPage />
+    },
+    {
+      id: 'treatmentTypes',
+      label: 'Treatment Types',
+      content: <TreatmentTypesPage />
     }
   ];
 
@@ -96,7 +102,7 @@ export default function AdminDashboard() {
           <div className="p-6 border-b">
             <h1 className="text-2xl font-bold">Admin Dashboard</h1>
             <p className="text-gray-600 mt-2">
-              Manage facilities, locations, users, licenses, insurance, conditions, substances, and therapies
+              Manage facilities, locations, users, licenses, insurance, conditions, substances, therapies, and treatment types
             </p>
           </div>
 

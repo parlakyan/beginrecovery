@@ -16,15 +16,16 @@ export interface Facility {
   website?: string;
   images: string[];
   logo?: string;
-  tags: string[];
+  tags: string[];  // Keep as string[] for backward compatibility
+  treatmentTypes?: TreatmentType[];  // New field for managed treatment types
   amenities: string[];
   highlights: string[];
   substances: string[];
-  conditions?: Condition[];  // New field
-  therapies?: Therapy[];    // New field
-  insurance: string[];      // Keep for backward compatibility
-  insurances?: Insurance[]; // Keep for backward compatibility
-  accreditation: string[];  // Keep for backward compatibility
+  conditions?: Condition[];
+  therapies?: Therapy[];
+  insurance: string[];
+  insurances?: Insurance[];
+  accreditation: string[];
   languages: string[];
   licenses?: License[];
   rating: number;
@@ -147,6 +148,14 @@ export interface Therapy {
   name: string;
   description: string;
   logo: string;
+  createdAt: string;
+  updatedAt: string;
+}
+
+export interface TreatmentType {
+  id: string;
+  name: string;
+  description: string;
   createdAt: string;
   updatedAt: string;
 }

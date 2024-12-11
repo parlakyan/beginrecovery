@@ -9,8 +9,9 @@ import { licensesService } from '../services/licenses';
 import { insurancesService } from '../services/insurances';
 import { conditionsService } from '../services/conditions';
 import { therapiesService } from '../services/therapies';
+import { treatmentTypesService } from '../services/treatmentTypes';
 import { storageService } from '../services/storage';
-import { Facility, License, Insurance, Condition, Therapy } from '../types';
+import { Facility, License, Insurance, Condition, Therapy, TreatmentType } from '../types';
 import Header from '../components/Header';
 import Footer from '../components/Footer';
 import PhotoUpload from '../components/PhotoUpload';
@@ -31,7 +32,8 @@ interface CreateListingForm {
   phone: string;
   email: string;
   highlights: string[];
-  treatmentTypes: string[];
+  treatmentTypes: string[];  // For backward compatibility
+  managedTreatmentTypes: string[];  // For new managed treatment types
   substances: string[];
   conditions: string[];
   therapies: string[];
@@ -51,6 +53,7 @@ export default function CreateListing() {
     defaultValues: {
       highlights: [],
       treatmentTypes: [],
+      managedTreatmentTypes: [],
       substances: [],
       conditions: [],
       therapies: [],
@@ -65,65 +68,69 @@ export default function CreateListing() {
     }
   });
 
-const [loading, setLoading] = React.useState(false);
-const [error, setError] = React.useState<string | null>(null);
-const [photos, setPhotos] = React.useState<string[]>([]);
-const [logo, setLogo] = React.useState<string | undefined>(undefined);
-const [availableLicenses, setAvailableLicenses] = React.useState<License[]>([]);
-const [availableInsurances, setAvailableInsurances] = React.useState<Insurance[]>([]);
-const [availableConditions, setAvailableConditions] = React.useState<Condition[]>([]);
-const [availableTherapies, setAvailableTherapies] = React.useState<Therapy[]>([]);
-const { user, refreshToken } = useAuthStore();
-const navigate = useNavigate();
+  const [loading, setLoading] = React.useState(false);
+  const [error, setError] = React.useState<string | null>(null);
+  const [photos, setPhotos] = React.useState<string[]>([]);
+  const [logo, setLogo] = React.useState<string | undefined>(undefined);
+  const [availableLicenses, setAvailableLicenses] = React.useState<License[]>([]);
+  const [availableInsurances, setAvailableInsurances] = React.useState<Insurance[]>([]);
+  const [availableConditions, setAvailableConditions] = React.useState<Condition[]>([]);
+  const [availableTherapies, setAvailableTherapies] = React.useState<Therapy[]>([]);
+  const [availableTreatmentTypes, setAvailableTreatmentTypes] = React.useState<TreatmentType[]>([]);
+  const { user, refreshToken } = useAuthStore();
+  const navigate = useNavigate();
 
-// Watch form values for DropdownSelect components
-const highlights = watch('highlights');
-const treatmentTypes = watch('treatmentTypes');
-const substances = watch('substances');
-const conditions = watch('conditions');
-const therapies = watch('therapies');
-const amenities = watch('amenities');
-const insurance = watch('insurance');
-const accreditation = watch('accreditation');
-const languages = watch('languages');
-const selectedLicenses = watch('licenses');
-const selectedInsurances = watch('insurances');
+  // Watch form values for DropdownSelect components
+  const highlights = watch('highlights');
+  const treatmentTypes = watch('treatmentTypes');
+  const managedTreatmentTypes = watch('managedTreatmentTypes');
+  const substances = watch('substances');
+  const conditions = watch('conditions');
+  const therapies = watch('therapies');
+  const amenities = watch('amenities');
+  const insurance = watch('insurance');
+  const accreditation = watch('accreditation');
+  const languages = watch('languages');
+  const selectedLicenses = watch('licenses');
+  const selectedInsurances = watch('insurances');
 
-// Generate a temporary ID for photo uploads
-const tempId = React.useMemo(() => 'temp-' + Date.now(), []);
+  // Generate a temporary ID for photo uploads
+  const tempId = React.useMemo(() => 'temp-' + Date.now(), []);
 
-// Fetch available options
-React.useEffect(() => {
-  const fetchData = async () => {
-    const [licenses, insurances, conditions, therapies] = await Promise.all([
-      licensesService.getLicenses(),
-      insurancesService.getInsurances(),
-      conditionsService.getConditions(),
-      therapiesService.getTherapies()
-    ]);
-    setAvailableLicenses(licenses);
-    setAvailableInsurances(insurances);
-    setAvailableConditions(conditions);
-    setAvailableTherapies(therapies);
-  };
-  fetchData();
-}, []);
+  // Fetch available options
+  React.useEffect(() => {
+    const fetchData = async () => {
+      const [licenses, insurances, conditions, therapies, treatmentTypes] = await Promise.all([
+        licensesService.getLicenses(),
+        insurancesService.getInsurances(),
+        conditionsService.getConditions(),
+        therapiesService.getTherapies(),
+        treatmentTypesService.getTreatmentTypes()
+      ]);
+      setAvailableLicenses(licenses);
+      setAvailableInsurances(insurances);
+      setAvailableConditions(conditions);
+      setAvailableTherapies(therapies);
+      setAvailableTreatmentTypes(treatmentTypes);
+    };
+    fetchData();
+  }, []);
 
-// Redirect non-logged-in users to register
-React.useEffect(() => {
-  if (!user) {
-    navigate('/register', { 
-      state: { 
-        returnUrl: '/create-listing'
-      }
-    });
-  }
-}, [user, navigate]);
+  // Redirect non-logged-in users to register
+  React.useEffect(() => {
+    if (!user) {
+      navigate('/register', { 
+        state: { 
+          returnUrl: '/create-listing'
+        }
+      });
+    }
+  }, [user, navigate]);
 
-// Scroll to top on mount
-React.useEffect(() => {
-  window.scrollTo(0, 0);
-}, []);
+  // Scroll to top on mount
+  React.useEffect(() => {
+    window.scrollTo(0, 0);
+  }, []);
 
   const onSubmit = async (data: CreateListingForm) => {
     setLoading(true);
@@ -133,7 +140,7 @@ React.useEffect(() => {
       // Refresh auth token first
       await refreshToken();
 
-      // Convert condition and therapy IDs to full objects
+      // Convert IDs to full objects
       const selectedConditions = data.conditions.map(id => 
         availableConditions.find(c => c.id === id)
       ).filter((c): c is Condition => c !== undefined);
@@ -141,6 +148,10 @@ React.useEffect(() => {
       const selectedTherapies = data.therapies.map(id => 
         availableTherapies.find(t => t.id === id)
       ).filter((t): t is Therapy => t !== undefined);
+
+      const selectedTreatmentTypes = data.managedTreatmentTypes.map(id =>
+        availableTreatmentTypes.find(t => t.id === id)
+      ).filter((t): t is TreatmentType => t !== undefined);
 
       // Process form data
       const formattedData: Partial<Facility> = {
@@ -153,7 +164,8 @@ React.useEffect(() => {
         phone: data.phone,
         email: data.email,
         highlights: data.highlights,
-        tags: data.treatmentTypes,
+        tags: data.treatmentTypes,  // For backward compatibility
+        treatmentTypes: selectedTreatmentTypes,  // New managed treatment types
         substances: data.substances,
         conditions: selectedConditions,
         therapies: selectedTherapies,
@@ -409,6 +421,19 @@ React.useEffect(() => {
                   value={treatmentTypes}
                   onChange={(values) => setValue('treatmentTypes', values)}
                   error={errors.treatmentTypes?.message}
+                />
+
+                <DropdownSelect
+                  label="Managed Treatment Types"
+                  type="treatmentTypes"
+                  value={managedTreatmentTypes}
+                  onChange={(values) => setValue('managedTreatmentTypes', values)}
+                  useManagedOptions={true}
+                  options={availableTreatmentTypes.map(type => ({
+                    value: type.id,
+                    label: type.name
+                  }))}
+                  error={errors.managedTreatmentTypes?.message}
                 />
 
                 <DropdownSelect

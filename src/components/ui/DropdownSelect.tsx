@@ -1,7 +1,8 @@
 import React, { useState, useEffect } from 'react';
 import { ChevronDown, Search, X } from 'lucide-react';
 import { optionsService } from '../../services/options';
-import { CollectionType } from '../../types';
+import { treatmentTypesService } from '../../services/treatmentTypes';
+import { CollectionType, TreatmentType } from '../../types';
 
 interface Option {
   value: string;
@@ -10,11 +11,12 @@ interface Option {
 
 interface DropdownSelectProps {
   label: string;
-  type: CollectionType;
+  type: CollectionType | 'treatmentTypes';
   value: string[];
   onChange: (values: string[]) => void;
   error?: string;
   options?: Option[];
+  useManagedOptions?: boolean;  // Flag to use managed options (like TreatmentType) instead of strings
 }
 
 export default function DropdownSelect({
@@ -23,7 +25,8 @@ export default function DropdownSelect({
   value,
   onChange,
   error,
-  options: customOptions
+  options: customOptions,
+  useManagedOptions = false
 }: DropdownSelectProps) {
   const [isOpen, setIsOpen] = useState(false);
   const [options, setOptions] = useState<Option[]>([]);
@@ -41,8 +44,18 @@ export default function DropdownSelect({
           return;
         }
 
-        const fetchedOptions = await optionsService.getOptions(type);
-        setOptions(fetchedOptions.map(opt => ({ value: opt, label: opt })));
+        if (type === 'treatmentTypes' && useManagedOptions) {
+          // Fetch managed treatment types
+          const treatmentTypes = await treatmentTypesService.getTreatmentTypes();
+          setOptions(treatmentTypes.map(type => ({
+            value: type.id,
+            label: type.name
+          })));
+        } else {
+          // Fetch string options from optionsService
+          const fetchedOptions = await optionsService.getOptions(type);
+          setOptions(fetchedOptions.map(opt => ({ value: opt, label: opt })));
+        }
       } catch (error) {
         console.error('Error fetching options:', error);
       } finally {
@@ -51,7 +64,7 @@ export default function DropdownSelect({
     };
 
     fetchOptions();
-  }, [type, customOptions]);
+  }, [type, customOptions, useManagedOptions]);
 
   // Handle click outside to close dropdown
   useEffect(() => {
