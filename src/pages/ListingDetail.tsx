@@ -1,6 +1,6 @@
 import { useEffect, useState, useCallback } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
-import { Edit2, ShieldCheck, ShieldAlert, Clock, MapPin, Star, Phone, ArrowUpCircle, CreditCard } from 'lucide-react';
+import { Edit2, ShieldCheck, ShieldAlert, Clock, MapPin, Star, Phone, CreditCard } from 'lucide-react';
 import { facilitiesService } from '../services/facilities';
 import { useAuthStore } from '../store/authStore';
 import { Facility } from '../types';
@@ -325,7 +325,7 @@ export default function ListingDetail() {
 
             {/* Contact Box - Sticky */}
             <div className="lg:col-span-1">
-              <div className="sticky top-24" style={{ zIndex: 1 }}>
+              <div className="sticky top-[125px] transition-all duration-200" style={{ zIndex: 1 }}>
                 <ContactBox facility={facility} />
               </div>
             </div>
