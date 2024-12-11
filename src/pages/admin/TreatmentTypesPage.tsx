@@ -1,6 +1,9 @@
 import React, { useState, useEffect } from 'react';
-import { Plus, Edit2, Trash2 } from 'lucide-react';
-import { treatmentTypesService, TreatmentType } from '../../services/treatmentTypes';
+import { Plus } from 'lucide-react';
+import { treatmentTypesService } from '../../services/treatmentTypes';
+import { TreatmentType } from '../../types';
+import AdminLogoUpload from '../../components/AdminLogoUpload';
+import { AdminEntryCard } from '../../components/ui';
 
 export default function TreatmentTypesPage() {
   const [treatmentTypes, setTreatmentTypes] = useState<TreatmentType[]>([]);
@@ -9,7 +12,8 @@ export default function TreatmentTypesPage() {
   const [isModalOpen, setIsModalOpen] = useState(false);
   const [formData, setFormData] = useState({
     name: '',
-    description: ''
+    description: '',
+    logo: ''
   });
 
   useEffect(() => {
@@ -30,27 +34,31 @@ export default function TreatmentTypesPage() {
 
   const handleAdd = () => {
     setEditingType(null);
-    setFormData({ name: '', description: '' });
+    setFormData({ name: '', description: '', logo: '' });
     setIsModalOpen(true);
   };
 
-  const handleEdit = (type: TreatmentType) => {
-    setEditingType(type);
-    setFormData({
-      name: type.name,
-      description: type.description
-    });
-    setIsModalOpen(true);
+  const handleEdit = (id: string) => {
+    const type = treatmentTypes.find(t => t.id === id);
+    if (type) {
+      setEditingType(type);
+      setFormData({
+        name: type.name,
+        description: type.description,
+        logo: type.logo || ''
+      });
+      setIsModalOpen(true);
+    }
   };
 
   const handleDelete = async (id: string) => {
-    if (window.confirm('Are you sure you want to delete this treatment type?')) {
-      try {
-        await treatmentTypesService.deleteTreatmentType(id);
-        await fetchTreatmentTypes();
-      } catch (error) {
-        console.error('Error deleting treatment type:', error);
-      }
+    if (!window.confirm('Are you sure you want to delete this treatment type?')) return;
+    
+    try {
+      await treatmentTypesService.deleteTreatmentType(id);
+      await fetchTreatmentTypes();
+    } catch (error) {
+      console.error('Error deleting treatment type:', error);
     }
   };
 
@@ -64,10 +72,14 @@ export default function TreatmentTypesPage() {
       }
       await fetchTreatmentTypes();
       setIsModalOpen(false);
-      setFormData({ name: '', description: '' });
+      setFormData({ name: '', description: '', logo: '' });
     } catch (error) {
       console.error('Error saving treatment type:', error);
     }
+  };
+
+  const handleLogoUpload = (url: string) => {
+    setFormData(prev => ({ ...prev, logo: url }));
   };
 
   if (loading) {
@@ -95,34 +107,21 @@ export default function TreatmentTypesPage() {
       {/* Treatment Types Grid */}
       <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
         {treatmentTypes.map((type) => (
-          <div key={type.id} className="bg-white rounded-xl shadow-sm border border-gray-100 p-6">
-            <div className="flex items-start justify-between mb-4">
-              <div className="flex-1">
-                <h3 className="text-lg font-semibold text-gray-900">{type.name}</h3>
-                <p className="text-sm text-gray-600 mt-1">{type.description}</p>
-              </div>
-              <div className="flex items-center gap-2">
-                <button
-                  onClick={() => handleEdit(type)}
-                  className="p-1 text-gray-500 hover:text-blue-600 transition-colors"
-                >
-                  <Edit2 className="w-4 h-4" />
-                </button>
-                <button
-                  onClick={() => handleDelete(type.id)}
-                  className="p-1 text-gray-500 hover:text-red-600 transition-colors"
-                >
-                  <Trash2 className="w-4 h-4" />
-                </button>
-              </div>
-            </div>
-          </div>
+          <AdminEntryCard
+            key={type.id}
+            id={type.id}
+            name={type.name}
+            description={type.description}
+            logo={type.logo}
+            onEdit={handleEdit}
+            onDelete={handleDelete}
+          />
         ))}
       </div>
 
       {/* Modal */}
       {isModalOpen && (
-        <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center p-4 z-50">
+        <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50">
           <div className="bg-white rounded-xl p-6 max-w-md w-full mx-4">
             <h2 className="text-xl font-bold mb-4">
               {editingType ? 'Edit Treatment Type' : 'Add Treatment Type'}
@@ -150,6 +149,16 @@ export default function TreatmentTypesPage() {
                   className="w-full px-3 py-2 border rounded-lg focus:ring-2 focus:ring-blue-500 outline-none"
                   rows={3}
                   required
+                />
+              </div>
+              <div>
+                <label className="block text-sm font-medium text-gray-700 mb-1">
+                  Logo
+                </label>
+                <AdminLogoUpload
+                  currentLogo={formData.logo}
+                  onUpload={handleLogoUpload}
+                  folder="treatmentTypes"
                 />
               </div>
               <div className="flex justify-end gap-3 mt-6">

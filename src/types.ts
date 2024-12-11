@@ -156,6 +156,7 @@ export interface TreatmentType {
   id: string;
   name: string;
   description: string;
+  logo: string;  // Changed from optional to required to match other interfaces
   createdAt: string;
   updatedAt: string;
 }
