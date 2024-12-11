@@ -1,8 +1,7 @@
 import { useEffect, useState, useCallback } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
-import { Edit2, ShieldCheck, ShieldAlert, Clock, MapPin, Star, Phone, ArrowUpCircle } from 'lucide-react';
+import { Edit2, ShieldCheck, ShieldAlert, Clock, MapPin, Star, Phone, ArrowUpCircle, CreditCard } from 'lucide-react';
 import { facilitiesService } from '../services/facilities';
-import { paymentsService } from '../services/payments';
 import { useAuthStore } from '../store/authStore';
 import { Facility } from '../types';
 import Header from '../components/Header';
@@ -83,13 +82,15 @@ export default function ListingDetail() {
     }
   };
 
-  const handleUpgrade = async () => {
+  const handleUpgrade = (e: React.MouseEvent) => {
+    e.stopPropagation();
     if (!facility) return;
-    try {
-      await paymentsService.createSubscription({ facilityId: facility.id });
-    } catch (error) {
-      console.error('Error upgrading facility:', error);
-    }
+    navigate('/payment', { 
+      state: { 
+        facilityId: facility.id,
+        facility: facility
+      }
+    });
   };
 
   const handleSave = async (data: Partial<Facility>) => {
@@ -192,7 +193,7 @@ export default function ListingDetail() {
                   onClick={handleUpgrade}
                   className="flex items-center gap-2"
                 >
-                  <ArrowUpCircle className="w-4 h-4" />
+                  <CreditCard className="w-4 h-4" />
                   Upgrade to Verified
                 </Button>
               )}
