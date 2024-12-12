@@ -409,7 +409,7 @@ const EditListingModal: React.FC<EditListingModalProps> = ({ facility, isOpen, o
             <DropdownSelect
               label="Conditions We Treat"
               type="conditions"
-              value={selectedConditions}
+              value={selectedConditions.map(id => id)}  // Changed from selectedConditions to selectedConditions.map(id => id)
               onChange={(values) => setValue('conditions', values)}
               options={availableConditions.map(condition => ({
                 value: condition.id,
@@ -421,7 +421,7 @@ const EditListingModal: React.FC<EditListingModalProps> = ({ facility, isOpen, o
             <DropdownSelect
               label="Therapies"
               type="therapies"
-              value={selectedTherapies}
+              value={selectedTherapies.map(id => id)}  // Changed from selectedTherapies to selectedTherapies.map(id => id)
               onChange={(values) => setValue('therapies', values)}
               options={availableTherapies.map(therapy => ({
                 value: therapy.id,
