@@ -1,4 +1,4 @@
-import React from 'react';
+import React, { useState } from 'react';
 import { useForm } from 'react-hook-form';
 import { useNavigate } from 'react-router-dom';
 import { Building2, Loader2 } from 'lucide-react';
@@ -49,14 +49,26 @@ const phoneRegex = /^(\+\d{1,2}\s?)?\(?\d{3}\)?[\s.-]?\d{3}[\s.-]?\d{4}$/;
 const emailRegex = /^[A-Z0-9._%+-]+@[A-Z0-9.-]+\.[A-Z]{2,}$/i;
 
 export default function CreateListing() {
+  const navigate = useNavigate();
+  const { user, refreshToken } = useAuthStore();
+  const [loading, setLoading] = useState(false);
+  const [error, setError] = useState<string | null>(null);
+  const [photos, setPhotos] = useState<string[]>([]);
+  const [logo, setLogo] = useState<string | undefined>(undefined);
+  const [availableLicenses, setAvailableLicenses] = useState<License[]>([]);
+  const [availableInsurances, setAvailableInsurances] = useState<Insurance[]>([]);
+  const [availableConditions, setAvailableConditions] = useState<Condition[]>([]);
+  const [availableTherapies, setAvailableTherapies] = useState<Therapy[]>([]);
+  const [availableTreatmentTypes, setAvailableTreatmentTypes] = useState<TreatmentType[]>([]);
+
   const { register, handleSubmit, formState: { errors }, setValue, watch } = useForm<CreateListingForm>({
     defaultValues: {
       highlights: [],
       treatmentTypes: [],
       managedTreatmentTypes: [],
       substances: [],
-      conditions: [],
-      therapies: [],
+      conditions: [],  // Initialize as empty array
+      therapies: [],   // Initialize as empty array
       amenities: [],
       insurance: [],
       insurances: [],
@@ -68,25 +80,13 @@ export default function CreateListing() {
     }
   });
 
-  const [loading, setLoading] = React.useState(false);
-  const [error, setError] = React.useState<string | null>(null);
-  const [photos, setPhotos] = React.useState<string[]>([]);
-  const [logo, setLogo] = React.useState<string | undefined>(undefined);
-  const [availableLicenses, setAvailableLicenses] = React.useState<License[]>([]);
-  const [availableInsurances, setAvailableInsurances] = React.useState<Insurance[]>([]);
-  const [availableConditions, setAvailableConditions] = React.useState<Condition[]>([]);
-  const [availableTherapies, setAvailableTherapies] = React.useState<Therapy[]>([]);
-  const [availableTreatmentTypes, setAvailableTreatmentTypes] = React.useState<TreatmentType[]>([]);
-  const { user, refreshToken } = useAuthStore();
-  const navigate = useNavigate();
-
   // Watch form values for DropdownSelect components
   const highlights = watch('highlights');
   const treatmentTypes = watch('treatmentTypes');
   const managedTreatmentTypes = watch('managedTreatmentTypes');
   const substances = watch('substances');
-  const conditions = watch('conditions');
-  const therapies = watch('therapies');
+  const conditions = watch('conditions', []);  // Add default empty array
+  const therapies = watch('therapies', []);    // Add default empty array
   const amenities = watch('amenities');
   const insurance = watch('insurance');
   const accreditation = watch('accreditation');
@@ -439,9 +439,8 @@ export default function CreateListing() {
                 <DropdownSelect
                   label="Conditions We Treat"
                   type="conditions"
-                  value={conditions.map(c => c.id)}  // Map full objects to IDs for value
+                  value={(conditions || []).map(c => c.id)}
                   onChange={(values) => {
-                    // Convert IDs back to full objects
                     const selected = availableConditions.filter(c => values.includes(c.id));
                     setValue('conditions', selected);
                   }}
@@ -455,9 +454,8 @@ export default function CreateListing() {
                 <DropdownSelect
                   label="Therapies"
                   type="therapies"
-                  value={therapies.map(t => t.id)}  // Map full objects to IDs for value
+                  value={(therapies || []).map(t => t.id)}
                   onChange={(values) => {
-                    // Convert IDs back to full objects
                     const selected = availableTherapies.filter(t => values.includes(t.id));
                     setValue('therapies', selected);
                   }}

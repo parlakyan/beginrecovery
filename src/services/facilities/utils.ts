@@ -1,6 +1,6 @@
 import { QueryDocumentSnapshot, DocumentData, Timestamp, collection, getDocs, updateDoc, doc } from 'firebase/firestore';
 import { db } from '../../lib/firebase';
-import { Facility, License, Insurance } from '../../types';
+import { Facility, License, Insurance, Condition, Therapy } from '../../types';
 import { FACILITIES_COLLECTION } from './types';
 
 /**
@@ -71,9 +71,27 @@ interface RawInsurance {
   updatedAt?: Timestamp | string;
 }
 
+interface RawCondition {
+  id?: string;
+  name?: string;
+  description?: string;
+  logo?: string;
+  createdAt?: Timestamp | string;
+  updatedAt?: Timestamp | string;
+}
+
+interface RawTherapy {
+  id?: string;
+  name?: string;
+  description?: string;
+  logo?: string;
+  createdAt?: Timestamp | string;
+  updatedAt?: Timestamp | string;
+}
+
 /**
  * Transforms Firestore document to Facility type
- * Handles license and insurance data transformation and verification status
+ * Handles license, insurance, condition, and therapy data transformation and verification status
  */
 export const transformFacilityData = (doc: QueryDocumentSnapshot<DocumentData>): Facility => {
   const data = doc.data();
@@ -129,6 +147,44 @@ export const transformFacilityData = (doc: QueryDocumentSnapshot<DocumentData>):
     return null;
   }).filter(Boolean) as Insurance[];
 
+  // Transform conditions data to ensure it matches the Condition type
+  const conditions = (data.conditions || []).map((condition: RawCondition) => {
+    if (typeof condition === 'object' && condition !== null) {
+      return {
+        id: condition.id || '',
+        name: condition.name || '',
+        description: condition.description || '',
+        logo: condition.logo || '',  // Added logo field
+        createdAt: condition.createdAt instanceof Timestamp 
+          ? condition.createdAt.toDate().toISOString()
+          : (condition.createdAt || new Date().toISOString()),
+        updatedAt: condition.updatedAt instanceof Timestamp
+          ? condition.updatedAt.toDate().toISOString()
+          : (condition.updatedAt || new Date().toISOString())
+      } as Condition;
+    }
+    return null;
+  }).filter(Boolean) as Condition[];
+
+  // Transform therapies data to ensure it matches the Therapy type
+  const therapies = (data.therapies || []).map((therapy: RawTherapy) => {
+    if (typeof therapy === 'object' && therapy !== null) {
+      return {
+        id: therapy.id || '',
+        name: therapy.name || '',
+        description: therapy.description || '',
+        logo: therapy.logo || '',  // Added logo field
+        createdAt: therapy.createdAt instanceof Timestamp 
+          ? therapy.createdAt.toDate().toISOString()
+          : (therapy.createdAt || new Date().toISOString()),
+        updatedAt: therapy.updatedAt instanceof Timestamp
+          ? therapy.updatedAt.toDate().toISOString()
+          : (therapy.updatedAt || new Date().toISOString())
+      } as Therapy;
+    }
+    return null;
+  }).filter(Boolean) as Therapy[];
+
   return {
     id: doc.id,
     name,
@@ -157,6 +213,8 @@ export const transformFacilityData = (doc: QueryDocumentSnapshot<DocumentData>):
     accreditation: data.accreditation || [],
     languages: data.languages || [],
     licenses,
+    conditions,  // Added conditions
+    therapies,   // Added therapies
     isVerified: Boolean(data.isVerified),
     isFeatured: Boolean(data.isFeatured),
     moderationStatus: data.moderationStatus || 'pending',

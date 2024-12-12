@@ -129,8 +129,8 @@ const EditListingModal: React.FC<EditListingModalProps> = ({ facility, isOpen, o
         treatmentTypes: facility.tags || [],  // For backward compatibility
         managedTreatmentTypes: facility.treatmentTypes?.map(t => t.id) || [],  // For new managed treatment types
         substances: facility.substances || [],
-        conditions: facility.conditions || [],  // Store full condition objects
-        therapies: facility.therapies || [],   // Store full therapy objects
+        conditions: facility.conditions || [],  // Pass full objects directly
+        therapies: facility.therapies || [],   // Pass full objects directly
         amenities: facility.amenities || [],
         insurance: facility.insurance || [],
         insurances: facility.insurances || [],
@@ -401,7 +401,7 @@ const EditListingModal: React.FC<EditListingModalProps> = ({ facility, isOpen, o
             <DropdownSelect
               label="Conditions We Treat"
               type="conditions"
-              value={selectedConditions.map(c => c.id)}
+              value={(selectedConditions || []).map(c => c.id)}  // Add null check
               onChange={(values) => {
                 const selected = availableConditions.filter(c => values.includes(c.id));
                 setValue('conditions', selected);
@@ -416,7 +416,7 @@ const EditListingModal: React.FC<EditListingModalProps> = ({ facility, isOpen, o
             <DropdownSelect
               label="Therapies"
               type="therapies"
-              value={selectedTherapies.map(t => t.id)}
+              value={(selectedTherapies || []).map(t => t.id)}  // Add null check
               onChange={(values) => {
                 const selected = availableTherapies.filter(t => values.includes(t.id));
                 setValue('therapies', selected);
