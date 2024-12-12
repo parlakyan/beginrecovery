@@ -16,7 +16,7 @@ import InsurancesSection from '../components/InsurancesSection';
 import ConditionsSection from '../components/ConditionsSection';
 import TherapiesSection from '../components/TherapiesSection';
 import { Button, Tag, Breadcrumb } from '../components/ui';
-import EditListingModal from '../components/EditListingModal';
+import EditListingModal from '../components/EditListingModal';import SubstancesSection from '../components/SubstancesSection';
 
 export default function ListingDetail() {
   const { slug, id } = useParams<{ slug?: string; id?: string }>();
@@ -293,6 +293,11 @@ export default function ListingDetail() {
               {/* Conditions Section */}
               {facility.conditions && facility.conditions.length > 0 && (
                 <ConditionsSection conditions={facility.conditions} />
+              )}
+
+              {/* Substances Section */}
+              {facility.substances && facility.substances.length > 0 && (
+                <SubstancesSection substances={facility.substances} isVerified={facility.isVerified} />
               )}
 
               {/* Therapies Section */}

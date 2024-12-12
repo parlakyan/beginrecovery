@@ -1,6 +1,7 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { ChevronDown, Search, X } from 'lucide-react';
 import { SearchFiltersState } from '../types';
+import { substancesService } from '../services/substances';
 
 interface FilterBarProps {
   filters: SearchFiltersState;
@@ -34,6 +35,20 @@ export default function FilterBar({ filters, filterOptions, optionCounts, onFilt
     therapies: '',
     rating: ''
   });
+  const [substanceOptions, setSubstanceOptions] = useState<{ id: string; name: string }[]>([]);
+
+  // Fetch substance options
+  useEffect(() => {
+    const fetchSubstances = async () => {
+      try {
+        const substances = await substancesService.getSubstances();
+        setSubstanceOptions(substances);
+      } catch (error) {
+        console.error('Error fetching substances:', error);
+      }
+    };
+    fetchSubstances();
+  }, []);
 
   const handleDropdownClick = (dropdown: string) => {
     setActiveDropdown(activeDropdown === dropdown ? null : dropdown);
@@ -72,15 +87,29 @@ export default function FilterBar({ filters, filterOptions, optionCounts, onFilt
     options: Set<string>,
     counts: { [key: string]: number }
   ) => {
-    const sortedOptions = Array.from(options)
-      .map(option => ({ 
-        value: option,
-        count: counts[option] || 0 
-      }))
-      .sort((a, b) => b.count - a.count);
+    let sortedOptions;
+    if (type === 'substances') {
+      // For substances, use the managed options
+      sortedOptions = substanceOptions
+        .map(substance => ({
+          value: substance.id,
+          label: substance.name,
+          count: counts[substance.id] || 0
+        }))
+        .sort((a, b) => b.count - a.count);
+    } else {
+      // For other types, use the original options
+      sortedOptions = Array.from(options)
+        .map(option => ({ 
+          value: option,
+          label: option,
+          count: counts[option] || 0 
+        }))
+        .sort((a, b) => b.count - a.count);
+    }
 
     const filteredOptions = sortedOptions.filter(option =>
-      option.value.toLowerCase().includes(searchQueries[type].toLowerCase())
+      option.label.toLowerCase().includes(searchQueries[type].toLowerCase())
     );
 
     // Use the actual type for filtering
@@ -118,7 +147,7 @@ export default function FilterBar({ filters, filterOptions, optionCounts, onFilt
 
             {/* Options list */}
             <div className="space-y-2 max-h-64 overflow-y-auto">
-              {filteredOptions.map(({ value, count }) => (
+              {filteredOptions.map(({ value, label, count }) => (
                 <label key={value} className="flex items-center justify-between hover:bg-gray-50 p-2 rounded-lg cursor-pointer">
                   <div className="flex items-center gap-2">
                     <input
@@ -127,7 +156,7 @@ export default function FilterBar({ filters, filterOptions, optionCounts, onFilt
                       onChange={() => onFilterChange(filterType, value)}
                       className="rounded text-blue-600 focus:ring-blue-500"
                     />
-                    <span className="text-sm text-gray-700">{value}</span>
+                    <span className="text-sm text-gray-700">{label}</span>
                   </div>
                   <span className="text-xs text-gray-500">({count})</span>
                 </label>

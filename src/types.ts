@@ -1,3 +1,5 @@
+// Previous interfaces remain the same...
+
 export interface Facility {
   id: string;
   ownerId: string;
@@ -20,7 +22,7 @@ export interface Facility {
   treatmentTypes?: TreatmentType[];  // New field for managed treatment types
   amenities: string[];
   highlights: string[];
-  substances: string[];
+  substances?: Substance[];  // Changed from string[] to Substance[]
   conditions?: Condition[];
   therapies?: Therapy[];
   insurance: string[];

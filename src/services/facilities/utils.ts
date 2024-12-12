@@ -1,7 +1,8 @@
 import { QueryDocumentSnapshot, DocumentData, Timestamp, collection, getDocs, updateDoc, doc } from 'firebase/firestore';
 import { db } from '../../lib/firebase';
-import { Facility, License, Insurance, Condition, Therapy } from '../../types';
 import { FACILITIES_COLLECTION } from './types';
+import { Facility, License, Insurance, Condition, Therapy, Substance } from '../../types';
+
 
 /**
  * Generates URL-friendly slug from facility name and location
@@ -88,6 +89,14 @@ interface RawTherapy {
   createdAt?: Timestamp | string;
   updatedAt?: Timestamp | string;
 }
+interface RawSubstance {
+  id?: string;
+  name?: string;
+  description?: string;
+  logo?: string;
+  createdAt?: Timestamp | string;
+  updatedAt?: Timestamp | string;
+}
 
 /**
  * Transforms Firestore document to Facility type
@@ -109,7 +118,7 @@ export const transformFacilityData = (doc: QueryDocumentSnapshot<DocumentData>):
     ? data.updatedAt.toDate().toISOString()
     : new Date().toISOString();
 
-  // Transform licenses data to ensure it matches the License type
+  // Transform licenses data
   const licenses = (data.licenses || []).map((license: RawLicense) => {
     if (typeof license === 'object' && license !== null) {
       return {
@@ -128,7 +137,7 @@ export const transformFacilityData = (doc: QueryDocumentSnapshot<DocumentData>):
     return null;
   }).filter(Boolean) as License[];
 
-  // Transform insurances data to ensure it matches the Insurance type
+  // Transform insurances data
   const insurances = (data.insurances || []).map((insurance: RawInsurance) => {
     if (typeof insurance === 'object' && insurance !== null) {
       return {
@@ -147,14 +156,14 @@ export const transformFacilityData = (doc: QueryDocumentSnapshot<DocumentData>):
     return null;
   }).filter(Boolean) as Insurance[];
 
-  // Transform conditions data to ensure it matches the Condition type
+  // Transform conditions data
   const conditions = (data.conditions || []).map((condition: RawCondition) => {
     if (typeof condition === 'object' && condition !== null) {
       return {
         id: condition.id || '',
         name: condition.name || '',
         description: condition.description || '',
-        logo: condition.logo || '',  // Added logo field
+        logo: condition.logo || '',
         createdAt: condition.createdAt instanceof Timestamp 
           ? condition.createdAt.toDate().toISOString()
           : (condition.createdAt || new Date().toISOString()),
@@ -166,14 +175,14 @@ export const transformFacilityData = (doc: QueryDocumentSnapshot<DocumentData>):
     return null;
   }).filter(Boolean) as Condition[];
 
-  // Transform therapies data to ensure it matches the Therapy type
+  // Transform therapies data
   const therapies = (data.therapies || []).map((therapy: RawTherapy) => {
     if (typeof therapy === 'object' && therapy !== null) {
       return {
         id: therapy.id || '',
         name: therapy.name || '',
         description: therapy.description || '',
-        logo: therapy.logo || '',  // Added logo field
+        logo: therapy.logo || '',
         createdAt: therapy.createdAt instanceof Timestamp 
           ? therapy.createdAt.toDate().toISOString()
           : (therapy.createdAt || new Date().toISOString()),
@@ -184,6 +193,25 @@ export const transformFacilityData = (doc: QueryDocumentSnapshot<DocumentData>):
     }
     return null;
   }).filter(Boolean) as Therapy[];
+
+  // Transform substances data
+  const substances = (data.substances || []).map((substance: RawSubstance) => {
+    if (typeof substance === 'object' && substance !== null) {
+      return {
+        id: substance.id || '',
+        name: substance.name || '',
+        description: substance.description || '',
+        logo: substance.logo || '',
+        createdAt: substance.createdAt instanceof Timestamp 
+          ? substance.createdAt.toDate().toISOString()
+          : (substance.createdAt || new Date().toISOString()),
+        updatedAt: substance.updatedAt instanceof Timestamp
+          ? substance.updatedAt.toDate().toISOString()
+          : (substance.updatedAt || new Date().toISOString())
+      } as Substance;
+    }
+    return null;
+  }).filter(Boolean) as Substance[];
 
   return {
     id: doc.id,
@@ -207,14 +235,14 @@ export const transformFacilityData = (doc: QueryDocumentSnapshot<DocumentData>):
     email: data.email || '',
     tags: data.tags || [],
     highlights: data.highlights || [],
-    substances: data.substances || [],
+    substances,  // Use transformed substances
     insurance: data.insurance || [],
     insurances,
     accreditation: data.accreditation || [],
     languages: data.languages || [],
     licenses,
-    conditions,  // Added conditions
-    therapies,   // Added therapies
+    conditions,
+    therapies,
     isVerified: Boolean(data.isVerified),
     isFeatured: Boolean(data.isFeatured),
     moderationStatus: data.moderationStatus || 'pending',
@@ -222,3 +250,5 @@ export const transformFacilityData = (doc: QueryDocumentSnapshot<DocumentData>):
     logo: data.logo || undefined
   };
 };
+
+// Previous functions remain the same...

@@ -71,10 +71,10 @@ export default function SearchResults() {
         counts.conditions[condition.id] = (counts.conditions[condition.id] || 0) + 1;
       });
 
-      // Substance counts
-      facility.substances.forEach(substance => {
-        substances.add(substance);
-        counts.substances[substance] = (counts.substances[substance] || 0) + 1;
+      // Substance counts - now using complex objects
+      facility.substances?.forEach(substance => {
+        substances.add(substance.id);
+        counts.substances[substance.id] = (counts.substances[substance.id] || 0) + 1;
       });
 
       // Therapy counts

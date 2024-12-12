@@ -2,7 +2,8 @@ import React, { useState, useEffect } from 'react';
 import { ChevronDown, Search, X } from 'lucide-react';
 import { optionsService } from '../../services/options';
 import { treatmentTypesService } from '../../services/treatmentTypes';
-import { CollectionType, TreatmentType } from '../../types';
+import { substancesService } from '../../services/substances';
+import { CollectionType, TreatmentType, Substance } from '../../types';
 
 interface Option {
   value: string;
@@ -11,12 +12,12 @@ interface Option {
 
 interface DropdownSelectProps {
   label: string;
-  type: CollectionType | 'treatmentTypes';
+  type: CollectionType | 'treatmentTypes' | 'substances';
   value: string[];
   onChange: (values: string[]) => void;
   error?: string;
   options?: Option[];
-  useManagedOptions?: boolean;  // Flag to use managed options (like TreatmentType) instead of strings
+  useManagedOptions?: boolean;  // Flag to use managed options instead of strings
 }
 
 export default function DropdownSelect({
@@ -50,6 +51,13 @@ export default function DropdownSelect({
           setOptions(treatmentTypes.map(type => ({
             value: type.id,
             label: type.name
+          })));
+        } else if (type === 'substances' && useManagedOptions) {
+          // Fetch managed substances
+          const substances = await substancesService.getSubstances();
+          setOptions(substances.map(substance => ({
+            value: substance.id,
+            label: substance.name
           })));
         } else {
           // Fetch string options from optionsService

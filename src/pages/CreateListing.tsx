@@ -11,13 +11,14 @@ import { conditionsService } from '../services/conditions';
 import { therapiesService } from '../services/therapies';
 import { treatmentTypesService } from '../services/treatmentTypes';
 import { storageService } from '../services/storage';
-import { Facility, License, Insurance, Condition, Therapy, TreatmentType } from '../types';
+import { Facility, License, Insurance, Condition, Therapy, TreatmentType, Substance } from '../types';
 import Header from '../components/Header';
 import Footer from '../components/Footer';
 import PhotoUpload from '../components/PhotoUpload';
 import LogoUpload from '../components/LogoUpload';
 import AddressAutocomplete from '../components/AddressAutocomplete';
 import DropdownSelect from '../components/ui/DropdownSelect';
+import { substancesService } from '../services/substances';
 
 interface CreateListingForm {
   name: string;
@@ -34,9 +35,9 @@ interface CreateListingForm {
   highlights: string[];
   treatmentTypes: string[];  // For backward compatibility
   managedTreatmentTypes: string[];  // For new managed treatment types
-  substances: string[];
-  conditions: Condition[];  // Changed from string[] to Condition[]
-  therapies: Therapy[];    // Changed from string[] to Therapy[]
+  substances: Substance[];  // Changed from string[] to Substance[]
+  conditions: Condition[];
+  therapies: Therapy[];
   amenities: string[];
   insurance: string[];
   insurances: Insurance[];
@@ -60,6 +61,7 @@ export default function CreateListing() {
   const [availableConditions, setAvailableConditions] = useState<Condition[]>([]);
   const [availableTherapies, setAvailableTherapies] = useState<Therapy[]>([]);
   const [availableTreatmentTypes, setAvailableTreatmentTypes] = useState<TreatmentType[]>([]);
+  const [availableSubstances, setAvailableSubstances] = useState<Substance[]>([]);
 
   const { register, handleSubmit, formState: { errors }, setValue, watch } = useForm<CreateListingForm>({
     defaultValues: {
@@ -100,18 +102,20 @@ export default function CreateListing() {
   // Fetch available options
   React.useEffect(() => {
     const fetchData = async () => {
-      const [licenses, insurances, conditions, therapies, treatmentTypes] = await Promise.all([
+      const [licenses, insurances, conditions, therapies, treatmentTypes, substances] = await Promise.all([
         licensesService.getLicenses(),
         insurancesService.getInsurances(),
         conditionsService.getConditions(),
         therapiesService.getTherapies(),
-        treatmentTypesService.getTreatmentTypes()
+        treatmentTypesService.getTreatmentTypes(),
+        substancesService.getSubstances()
       ]);
       setAvailableLicenses(licenses);
       setAvailableInsurances(insurances);
       setAvailableConditions(conditions);
       setAvailableTherapies(therapies);
       setAvailableTreatmentTypes(treatmentTypes);
+      setAvailableSubstances(substances);
     };
     fetchData();
   }, []);
@@ -428,13 +432,20 @@ export default function CreateListing() {
                   error={errors.managedTreatmentTypes?.message}
                 />
 
-                <DropdownSelect
-                  label="Substances We Treat"
-                  type="substances"
-                  value={substances}
-                  onChange={(values) => setValue('substances', values)}
-                  error={errors.substances?.message}
-                />
+  <DropdownSelect
+    label="Substances We Treat"
+    type="substances"
+    value={(substances || []).map(s => s.id)}
+    onChange={(values) => {
+      const selected = availableSubstances.filter(s => values.includes(s.id));
+      setValue('substances', selected);
+    }}
+    options={availableSubstances.map(substance => ({
+      value: substance.id,
+      label: substance.name
+    }))}
+    error={errors.substances?.message}
+  />
 
                 <DropdownSelect
                   label="Conditions We Treat"

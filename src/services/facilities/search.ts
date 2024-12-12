@@ -68,7 +68,7 @@ export const facilitiesSearch = {
           ...facility.tags,  // Legacy treatment types
           ...(facility.treatmentTypes?.map(t => t.name) || []),  // Managed treatment types
           ...facility.highlights,
-          ...facility.substances,
+          ...(facility.substances?.map(s => s.name) || []),  // Use substance names
           ...facility.insurance,
           ...facility.languages,
           ...(facility.conditions?.map(c => c.name) || []),
@@ -105,9 +105,11 @@ export const facilitiesSearch = {
             facility.conditions?.some(c => c.id === conditionId)
           );
 
-        // Substances
+        // Substances - match by substance ID
         const matchesSubstances = substances.length === 0 ||
-          substances.some(substance => facility.substances.includes(substance));
+          substances.some(substanceId => 
+            facility.substances?.some(s => s.id === substanceId)
+          );
 
         // Therapies
         const matchesTherapies = therapies.length === 0 ||

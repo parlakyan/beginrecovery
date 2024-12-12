@@ -127,6 +127,8 @@ export default function RehabCard({ facility, onEdit, showOwnerControls = false 
     ...(facility.tags || []).map(tag => ({ text: tag, type: 'legacy' })),
     // Managed treatment types
     ...(facility.treatmentTypes || []).map(type => ({ text: type.name, type: 'managed' })),
+    // Substances
+    ...(facility.substances?.map(s => ({ text: s.name, type: 'substance' })) || []),
     // Other tags
     ...(facility.conditions?.map(c => ({ text: c.name, type: 'condition' })) || []),
     ...(facility.therapies?.map(t => ({ text: t.name, type: 'therapy' })) || [])
@@ -170,27 +172,28 @@ export default function RehabCard({ facility, onEdit, showOwnerControls = false 
             <p className="text-gray-600 text-sm line-clamp-2">{facility.description}</p>
           </div>
 
-          {/* Tags */}
-          <div className="flex flex-wrap gap-2 mb-2">
-            {allTags.slice(0, 3).map((tag, index) => (
-              <Tag 
-                key={index} 
-                variant={
-                  tag.type === 'managed' ? 'primary' :
-                  tag.type === 'legacy' ? 'secondary' :
-                  tag.type === 'condition' ? 'secondary' :
-                  'secondary'
-                }
-              >
-                {tag.text}
-              </Tag>
-            ))}
-            {allTags.length > 3 && (
-              <span className="px-3 py-1 bg-gray-50 text-gray-600 rounded-full text-sm">
-                +{allTags.length - 3} more
-              </span>
-            )}
-          </div>
+      {/* Tags */}
+      <div className="flex flex-wrap gap-2 mb-2">
+        {allTags.slice(0, 3).map((tag, index) => (
+          <Tag 
+            key={index} 
+            variant={
+              tag.type === 'managed' ? 'primary' :
+              tag.type === 'legacy' ? 'secondary' :
+              tag.type === 'substance' ? 'primary' :
+              tag.type === 'condition' ? 'secondary' :
+              'secondary'
+            }
+          >
+            {tag.text}
+          </Tag>
+        ))}
+        {allTags.length > 3 && (
+          <span className="px-3 py-1 bg-gray-50 text-gray-600 rounded-full text-sm">
+            +{allTags.length - 3} more
+          </span>
+        )}
+      </div>
 
           {/* Amenities */}
           <div className="flex flex-wrap gap-2">
