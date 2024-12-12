@@ -35,8 +35,8 @@ interface CreateListingForm {
   treatmentTypes: string[];  // For backward compatibility
   managedTreatmentTypes: string[];  // For new managed treatment types
   substances: string[];
-  conditions: string[];
-  therapies: string[];
+  conditions: Condition[];  // Changed from string[] to Condition[]
+  therapies: Therapy[];    // Changed from string[] to Therapy[]
   amenities: string[];
   insurance: string[];
   insurances: Insurance[];
@@ -140,15 +140,7 @@ export default function CreateListing() {
       // Refresh auth token first
       await refreshToken();
 
-      // Convert IDs to full objects
-      const selectedConditions = data.conditions.map(id => 
-        availableConditions.find(c => c.id === id)
-      ).filter((c): c is Condition => c !== undefined);
-
-      const selectedTherapies = data.therapies.map(id => 
-        availableTherapies.find(t => t.id === id)
-      ).filter((t): t is Therapy => t !== undefined);
-
+      // Convert IDs to full objects for treatment types
       const selectedTreatmentTypes = data.managedTreatmentTypes.map(id =>
         availableTreatmentTypes.find(t => t.id === id)
       ).filter((t): t is TreatmentType => t !== undefined);
@@ -167,8 +159,8 @@ export default function CreateListing() {
         tags: data.treatmentTypes,  // For backward compatibility
         treatmentTypes: selectedTreatmentTypes,  // New managed treatment types
         substances: data.substances,
-        conditions: selectedConditions,
-        therapies: selectedTherapies,
+        conditions: data.conditions,  // Already full objects
+        therapies: data.therapies,   // Already full objects
         amenities: data.amenities,
         insurance: data.insurance,
         insurances: data.insurances,
@@ -447,8 +439,12 @@ export default function CreateListing() {
                 <DropdownSelect
                   label="Conditions We Treat"
                   type="conditions"
-                  value={conditions}
-                  onChange={(values) => setValue('conditions', values)}
+                  value={conditions.map(c => c.id)}  // Map full objects to IDs for value
+                  onChange={(values) => {
+                    // Convert IDs back to full objects
+                    const selected = availableConditions.filter(c => values.includes(c.id));
+                    setValue('conditions', selected);
+                  }}
                   options={availableConditions.map(condition => ({
                     value: condition.id,
                     label: condition.name
@@ -459,8 +455,12 @@ export default function CreateListing() {
                 <DropdownSelect
                   label="Therapies"
                   type="therapies"
-                  value={therapies}
-                  onChange={(values) => setValue('therapies', values)}
+                  value={therapies.map(t => t.id)}  // Map full objects to IDs for value
+                  onChange={(values) => {
+                    // Convert IDs back to full objects
+                    const selected = availableTherapies.filter(t => values.includes(t.id));
+                    setValue('therapies', selected);
+                  }}
                   options={availableTherapies.map(therapy => ({
                     value: therapy.id,
                     label: therapy.name

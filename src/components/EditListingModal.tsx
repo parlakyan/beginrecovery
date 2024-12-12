@@ -37,8 +37,8 @@ interface EditListingForm {
   treatmentTypes: string[];  // For backward compatibility
   managedTreatmentTypes: string[];  // For new managed treatment types
   substances: string[];
-  conditions: string[];
-  therapies: string[];
+  conditions: Condition[];
+  therapies: Therapy[];
   amenities: string[];
   insurance: string[];
   insurances: Insurance[];
@@ -129,8 +129,8 @@ const EditListingModal: React.FC<EditListingModalProps> = ({ facility, isOpen, o
         treatmentTypes: facility.tags || [],  // For backward compatibility
         managedTreatmentTypes: facility.treatmentTypes?.map(t => t.id) || [],  // For new managed treatment types
         substances: facility.substances || [],
-        conditions: facility.conditions?.map(c => c.id) || [],
-        therapies: facility.therapies?.map(t => t.id) || [],
+        conditions: facility.conditions || [],  // Store full condition objects
+        therapies: facility.therapies || [],   // Store full therapy objects
         amenities: facility.amenities || [],
         insurance: facility.insurance || [],
         insurances: facility.insurances || [],
@@ -181,15 +181,7 @@ const EditListingModal: React.FC<EditListingModalProps> = ({ facility, isOpen, o
         logo: formData.logo
       });
 
-      // Convert IDs back to full objects
-      const conditions = data.conditions.map(id => 
-        availableConditions.find(c => c.id === id)
-      ).filter((c): c is Condition => c !== undefined);
-
-      const therapies = data.therapies.map(id => 
-        availableTherapies.find(t => t.id === id)
-      ).filter((t): t is Therapy => t !== undefined);
-
+      // Convert IDs back to full objects for treatment types
       const treatmentTypes = data.managedTreatmentTypes.map(id =>
         availableTreatmentTypes.find(t => t.id === id)
       ).filter((t): t is TreatmentType => t !== undefined);
@@ -207,8 +199,8 @@ const EditListingModal: React.FC<EditListingModalProps> = ({ facility, isOpen, o
         tags: data.treatmentTypes,  // For backward compatibility
         treatmentTypes,  // New managed treatment types
         substances: data.substances,
-        conditions,
-        therapies,
+        conditions: data.conditions,  // Already full objects
+        therapies: data.therapies,   // Already full objects
         amenities: data.amenities,
         insurance: data.insurance,
         insurances: data.insurances,
@@ -409,8 +401,11 @@ const EditListingModal: React.FC<EditListingModalProps> = ({ facility, isOpen, o
             <DropdownSelect
               label="Conditions We Treat"
               type="conditions"
-              value={selectedConditions.map(id => id)}  // Changed from selectedConditions to selectedConditions.map(id => id)
-              onChange={(values) => setValue('conditions', values)}
+              value={selectedConditions.map(c => c.id)}
+              onChange={(values) => {
+                const selected = availableConditions.filter(c => values.includes(c.id));
+                setValue('conditions', selected);
+              }}
               options={availableConditions.map(condition => ({
                 value: condition.id,
                 label: condition.name
@@ -421,8 +416,11 @@ const EditListingModal: React.FC<EditListingModalProps> = ({ facility, isOpen, o
             <DropdownSelect
               label="Therapies"
               type="therapies"
-              value={selectedTherapies.map(id => id)}  // Changed from selectedTherapies to selectedTherapies.map(id => id)
-              onChange={(values) => setValue('therapies', values)}
+              value={selectedTherapies.map(t => t.id)}
+              onChange={(values) => {
+                const selected = availableTherapies.filter(t => values.includes(t.id));
+                setValue('therapies', selected);
+              }}
               options={availableTherapies.map(therapy => ({
                 value: therapy.id,
                 label: therapy.name
