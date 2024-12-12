@@ -1,8 +1,7 @@
 import { QueryDocumentSnapshot, DocumentData, Timestamp, collection, getDocs, updateDoc, doc } from 'firebase/firestore';
 import { db } from '../../lib/firebase';
 import { FACILITIES_COLLECTION } from './types';
-import { Facility, License, Insurance, Condition, Therapy, Substance } from '../../types';
-
+import { Facility, License, Insurance, Condition, Therapy, Substance, Amenity, Language } from '../../types';
 
 /**
  * Generates URL-friendly slug from facility name and location
@@ -24,6 +23,7 @@ export const generateSlug = (name: string, location: string): string => {
 
   return `${cleanName}-${cleanLocation}`;
 };
+
 
 /**
  * Migrate existing facilities to include slugs
@@ -97,11 +97,24 @@ interface RawSubstance {
   createdAt?: Timestamp | string;
   updatedAt?: Timestamp | string;
 }
+interface RawAmenity {
+  id?: string;
+  name?: string;
+  description?: string;
+  logo?: string;
+  createdAt?: Timestamp | string;
+  updatedAt?: Timestamp | string;
+}
 
-/**
- * Transforms Firestore document to Facility type
- * Handles license, insurance, condition, and therapy data transformation and verification status
- */
+interface RawLanguage {
+  id?: string;
+  name?: string;
+  description?: string;
+  logo?: string;
+  createdAt?: Timestamp | string;
+  updatedAt?: Timestamp | string;
+}
+
 export const transformFacilityData = (doc: QueryDocumentSnapshot<DocumentData>): Facility => {
   const data = doc.data();
   
@@ -213,6 +226,44 @@ export const transformFacilityData = (doc: QueryDocumentSnapshot<DocumentData>):
     return null;
   }).filter(Boolean) as Substance[];
 
+  // Transform amenities data
+  const amenityObjects = (data.amenityObjects || []).map((amenity: RawAmenity) => {
+    if (typeof amenity === 'object' && amenity !== null) {
+      return {
+        id: amenity.id || '',
+        name: amenity.name || '',
+        description: amenity.description || '',
+        logo: amenity.logo || '',
+        createdAt: amenity.createdAt instanceof Timestamp 
+          ? amenity.createdAt.toDate().toISOString()
+          : (amenity.createdAt || new Date().toISOString()),
+        updatedAt: amenity.updatedAt instanceof Timestamp
+          ? amenity.updatedAt.toDate().toISOString()
+          : (amenity.updatedAt || new Date().toISOString())
+      } as Amenity;
+    }
+    return null;
+  }).filter(Boolean) as Amenity[];
+
+  // Transform languages data
+  const languageObjects = (data.languageObjects || []).map((language: RawLanguage) => {
+    if (typeof language === 'object' && language !== null) {
+      return {
+        id: language.id || '',
+        name: language.name || '',
+        description: language.description || '',
+        logo: language.logo || '',
+        createdAt: language.createdAt instanceof Timestamp 
+          ? language.createdAt.toDate().toISOString()
+          : (language.createdAt || new Date().toISOString()),
+        updatedAt: language.updatedAt instanceof Timestamp
+          ? language.updatedAt.toDate().toISOString()
+          : (language.updatedAt || new Date().toISOString())
+      } as Language;
+    }
+    return null;
+  }).filter(Boolean) as Language[];
+
   return {
     id: doc.id,
     name,
@@ -221,7 +272,8 @@ export const transformFacilityData = (doc: QueryDocumentSnapshot<DocumentData>):
     city,
     state,
     coordinates: data.coordinates,
-    amenities: data.amenities || [],
+    amenities: data.amenities || [],  // Keep for backward compatibility
+    amenityObjects,  // New field for managed amenities
     images: data.images || [],
     status: data.status || 'pending',
     ownerId: data.ownerId || '',
@@ -235,11 +287,12 @@ export const transformFacilityData = (doc: QueryDocumentSnapshot<DocumentData>):
     email: data.email || '',
     tags: data.tags || [],
     highlights: data.highlights || [],
-    substances,  // Use transformed substances
+    substances,
     insurance: data.insurance || [],
     insurances,
     accreditation: data.accreditation || [],
-    languages: data.languages || [],
+    languages: data.languages || [],  // Keep for backward compatibility
+    languageObjects,  // New field for managed languages
     licenses,
     conditions,
     therapies,

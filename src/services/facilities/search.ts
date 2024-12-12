@@ -69,8 +69,9 @@ export const facilitiesSearch = {
           ...(facility.treatmentTypes?.map(t => t.name) || []),  // Managed treatment types
           ...facility.highlights,
           ...(facility.substances?.map(s => s.name) || []),  // Use substance names
+          ...(facility.amenityObjects?.map(a => a.name) || []),  // Use amenity names
           ...facility.insurance,
-          ...facility.languages,
+          ...(facility.languageObjects?.map(l => l.name) || []),  // Use language names
           ...(facility.conditions?.map(c => c.name) || []),
           ...(facility.therapies?.map(t => t.name) || [])
         ].some(field => 
@@ -91,9 +92,12 @@ export const facilitiesSearch = {
             facility.treatmentTypes?.some(t => t.name === type) // Check managed types
           );
 
-        // Amenities
+        // Amenities - check both legacy and managed amenities
         const matchesAmenities = amenities.length === 0 ||
-          amenities.some(amenity => facility.amenities.includes(amenity));
+          amenities.some(amenityId => 
+            facility.amenities.includes(amenityId) || // Check legacy amenities
+            facility.amenityObjects?.some(a => a.id === amenityId) // Check managed amenities
+          );
 
         // Insurance
         const matchesInsurance = insurance.length === 0 ||
@@ -105,7 +109,7 @@ export const facilitiesSearch = {
             facility.conditions?.some(c => c.id === conditionId)
           );
 
-        // Substances - match by substance ID
+        // Substances
         const matchesSubstances = substances.length === 0 ||
           substances.some(substanceId => 
             facility.substances?.some(s => s.id === substanceId)

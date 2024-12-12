@@ -15,8 +15,11 @@ import CertificationsSection from '../components/CertificationsSection';
 import InsurancesSection from '../components/InsurancesSection';
 import ConditionsSection from '../components/ConditionsSection';
 import TherapiesSection from '../components/TherapiesSection';
+import SubstancesSection from '../components/SubstancesSection';
+import AmenitiesSection from '../components/AmenitiesSection';
+import LanguagesSection from '../components/LanguagesSection';
 import { Button, Tag, Breadcrumb } from '../components/ui';
-import EditListingModal from '../components/EditListingModal';import SubstancesSection from '../components/SubstancesSection';
+import EditListingModal from '../components/EditListingModal';
 
 export default function ListingDetail() {
   const { slug, id } = useParams<{ slug?: string; id?: string }>();
@@ -265,15 +268,17 @@ export default function ListingDetail() {
                       ))}
                     </div>
 
-                    {/* Amenities */}
-                    <div>
-                      <h2 className="text-xl font-semibold mb-4">Amenities & Services</h2>
-                      <div className="flex flex-wrap gap-2">
-                        {facility.amenities.map((amenity: string, index: number) => (
-                          <Tag key={index} variant="primary">{amenity}</Tag>
-                        ))}
+                    {/* Legacy Amenities - Show only if no managed amenities */}
+                    {(!facility.amenityObjects || facility.amenityObjects.length === 0) && facility.amenities.length > 0 && (
+                      <div>
+                        <h2 className="text-xl font-semibold mb-4">Amenities & Services</h2>
+                        <div className="flex flex-wrap gap-2">
+                          {facility.amenities.map((amenity: string, index: number) => (
+                            <Tag key={index} variant="primary">{amenity}</Tag>
+                          ))}
+                        </div>
                       </div>
-                    </div>
+                    )}
                   </div>
 
                   {/* Reviews Summary */}
@@ -303,6 +308,28 @@ export default function ListingDetail() {
               {/* Therapies Section */}
               {facility.therapies && facility.therapies.length > 0 && (
                 <TherapiesSection therapies={facility.therapies} />
+              )}
+
+              {/* Amenities Section - Only show if there are managed amenities */}
+              {facility.amenityObjects && facility.amenityObjects.length > 0 && (
+                <AmenitiesSection amenities={facility.amenityObjects} isVerified={facility.isVerified} />
+              )}
+
+              {/* Languages Section - Only show if there are managed languages */}
+              {facility.languageObjects && facility.languageObjects.length > 0 && (
+                <LanguagesSection languages={facility.languageObjects} isVerified={facility.isVerified} />
+              )}
+
+              {/* Legacy Languages - Show only if no managed languages */}
+              {(!facility.languageObjects || facility.languageObjects.length === 0) && facility.languages.length > 0 && (
+                <div className="bg-white rounded-lg shadow-lg p-6">
+                  <h2 className="text-xl font-semibold mb-4">Languages Supported</h2>
+                  <div className="flex flex-wrap gap-2">
+                    {facility.languages.map((language: string, index: number) => (
+                      <Tag key={index} variant="primary">{language}</Tag>
+                    ))}
+                  </div>
+                </div>
               )}
 
               {/* Certifications Section - Only for verified facilities with licenses */}

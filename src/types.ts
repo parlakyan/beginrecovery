@@ -20,15 +20,17 @@ export interface Facility {
   logo?: string;
   tags: string[];  // Keep as string[] for backward compatibility
   treatmentTypes?: TreatmentType[];  // New field for managed treatment types
-  amenities: string[];
+  amenities: string[];  // Keep as string[] for backward compatibility
+  amenityObjects?: Amenity[];  // New field for managed amenities
   highlights: string[];
-  substances?: Substance[];  // Changed from string[] to Substance[]
+  substances?: Substance[];
   conditions?: Condition[];
   therapies?: Therapy[];
   insurance: string[];
   insurances?: Insurance[];
   accreditation: string[];
-  languages: string[];
+  languages: string[];  // Keep as string[] for backward compatibility
+  languageObjects?: Language[];  // New field for managed languages
   licenses?: License[];
   rating: number;
   reviews: number;
@@ -158,7 +160,25 @@ export interface TreatmentType {
   id: string;
   name: string;
   description: string;
-  logo: string;  // Changed from optional to required to match other interfaces
+  logo: string;
+  createdAt: string;
+  updatedAt: string;
+}
+
+export interface Amenity {
+  id: string;
+  name: string;
+  description: string;
+  logo: string;
+  createdAt: string;
+  updatedAt: string;
+}
+
+export interface Language {
+  id: string;
+  name: string;
+  description: string;
+  logo: string;
   createdAt: string;
   updatedAt: string;
 }
