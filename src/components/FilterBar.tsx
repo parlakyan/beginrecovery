@@ -2,6 +2,10 @@ import React, { useState, useEffect } from 'react';
 import { ChevronDown, Search, X } from 'lucide-react';
 import { SearchFiltersState } from '../types';
 import { substancesService } from '../services/substances';
+import { treatmentTypesService } from '../services/treatmentTypes';
+import { amenitiesService } from '../services/amenities';
+import { conditionsService } from '../services/conditions';
+import { therapiesService } from '../services/therapies';
 
 interface FilterBarProps {
   filters: SearchFiltersState;
@@ -24,6 +28,11 @@ interface FilterBarProps {
   onFilterChange: (type: keyof SearchFiltersState, value: string, clearOthers?: boolean) => void;
 }
 
+interface ManagedOption {
+  id: string;
+  name: string;
+}
+
 export default function FilterBar({ filters, filterOptions, optionCounts, onFilterChange }: FilterBarProps) {
   const [activeDropdown, setActiveDropdown] = useState<string | null>(null);
   const [searchQueries, setSearchQueries] = useState({
@@ -35,19 +44,52 @@ export default function FilterBar({ filters, filterOptions, optionCounts, onFilt
     therapies: '',
     rating: ''
   });
-  const [substanceOptions, setSubstanceOptions] = useState<{ id: string; name: string }[]>([]);
 
-  // Fetch substance options
+  // State for managed options
+  const [managedOptions, setManagedOptions] = useState<{
+    treatmentTypes: ManagedOption[];
+    amenities: ManagedOption[];
+    conditions: ManagedOption[];
+    substances: ManagedOption[];
+    therapies: ManagedOption[];
+  }>({
+    treatmentTypes: [],
+    amenities: [],
+    conditions: [],
+    substances: [],
+    therapies: []
+  });
+
+  // Fetch all managed options
   useEffect(() => {
-    const fetchSubstances = async () => {
+    const fetchManagedOptions = async () => {
       try {
-        const substances = await substancesService.getSubstances();
-        setSubstanceOptions(substances);
+        const [
+          treatmentTypes,
+          amenities,
+          conditions,
+          substances,
+          therapies
+        ] = await Promise.all([
+          treatmentTypesService.getTreatmentTypes(),
+          amenitiesService.getAmenities(),
+          conditionsService.getConditions(),
+          substancesService.getSubstances(),
+          therapiesService.getTherapies()
+        ]);
+
+        setManagedOptions({
+          treatmentTypes,
+          amenities,
+          conditions,
+          substances,
+          therapies
+        });
       } catch (error) {
-        console.error('Error fetching substances:', error);
+        console.error('Error fetching managed options:', error);
       }
     };
-    fetchSubstances();
+    fetchManagedOptions();
   }, []);
 
   const handleDropdownClick = (dropdown: string) => {
@@ -71,9 +113,7 @@ export default function FilterBar({ filters, filterOptions, optionCounts, onFilt
   }, []);
 
   const handleClearSelection = (type: keyof SearchFiltersState) => {
-    // Clear the search query
     handleSearchChange(type, '');
-    // Clear all selected items of this type
     const current = filters[type] as string[];
     current.forEach(value => {
       onFilterChange(type, value);
@@ -88,22 +128,23 @@ export default function FilterBar({ filters, filterOptions, optionCounts, onFilt
     counts: { [key: string]: number }
   ) => {
     let sortedOptions;
-    if (type === 'substances') {
-      // For substances, use the managed options
-      sortedOptions = substanceOptions
-        .map(substance => ({
-          value: substance.id,
-          label: substance.name,
-          count: counts[substance.id] || 0
-        }))
-        .sort((a, b) => b.count - a.count);
-    } else {
-      // For other types, use the original options
+    if (type === 'location') {
+      // Handle location options normally
       sortedOptions = Array.from(options)
         .map(option => ({ 
           value: option,
           label: option,
           count: counts[option] || 0 
+        }))
+        .sort((a, b) => b.count - a.count);
+    } else {
+      // For managed fields, use the managed options
+      const fieldOptions = managedOptions[type];
+      sortedOptions = fieldOptions
+        .map(option => ({
+          value: option.id,
+          label: option.name,
+          count: counts[option.id] || 0
         }))
         .sort((a, b) => b.count - a.count);
     }
@@ -112,7 +153,6 @@ export default function FilterBar({ filters, filterOptions, optionCounts, onFilt
       option.label.toLowerCase().includes(searchQueries[type].toLowerCase())
     );
 
-    // Use the actual type for filtering
     const filterType = type;
 
     return (

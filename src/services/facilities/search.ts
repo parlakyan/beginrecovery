@@ -20,12 +20,12 @@ export const facilitiesSearch = {
   async searchFacilities({
     query: searchQuery,
     location,
-    treatmentTypes,
-    amenities,
-    insurance,
-    conditions,
-    substances,
-    therapies,
+    treatmentTypes = [],
+    amenities = [],
+    insurance = [],
+    conditions = [],
+    substances = [],
+    therapies = [],
     rating
   }: SearchParams): Promise<Facility[]> {
     try {

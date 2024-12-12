@@ -54,15 +54,15 @@ export default function SearchResults() {
       }
 
       // Treatment type counts
-      facility.tags.forEach(tag => {
-        treatmentTypes.add(tag);
-        counts.treatmentTypes[tag] = (counts.treatmentTypes[tag] || 0) + 1;
+      facility.treatmentTypes?.forEach(type => {
+        treatmentTypes.add(type.id);
+        counts.treatmentTypes[type.id] = (counts.treatmentTypes[type.id] || 0) + 1;
       });
 
       // Amenity counts
-      facility.amenities.forEach(amenity => {
-        amenities.add(amenity);
-        counts.amenities[amenity] = (counts.amenities[amenity] || 0) + 1;
+      facility.amenityObjects?.forEach(amenity => {
+        amenities.add(amenity.id);
+        counts.amenities[amenity.id] = (counts.amenities[amenity.id] || 0) + 1;
       });
 
       // Condition counts
@@ -71,7 +71,7 @@ export default function SearchResults() {
         counts.conditions[condition.id] = (counts.conditions[condition.id] || 0) + 1;
       });
 
-      // Substance counts - now using complex objects
+      // Substance counts
       facility.substances?.forEach(substance => {
         substances.add(substance.id);
         counts.substances[substance.id] = (counts.substances[substance.id] || 0) + 1;

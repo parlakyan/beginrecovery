@@ -1,16 +1,9 @@
 import { useState, useEffect } from 'react';
 import { facilitiesService } from '../services/facilities';
 import { Facility } from '../types';
+import { SearchParams } from '../services/facilities/types';
 
-interface SearchFilters {
-  treatmentTypes: string[];
-  amenities: string[];
-  insurance: string[];
-  rating: number | null;
-  priceRange: [number, number] | null;
-}
-
-export function useSearch(query: string, filters: SearchFilters) {
+export function useSearch(query: string, filters: Partial<Omit<SearchParams, 'query'>>) {
   const [results, setResults] = useState<Facility[]>([]);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
@@ -23,10 +16,14 @@ export function useSearch(query: string, filters: SearchFilters) {
         
         const facilities = await facilitiesService.searchFacilities({
           query,
-          treatmentTypes: filters.treatmentTypes,
-          amenities: filters.amenities,
-          insurance: filters.insurance,
-          rating: filters.rating
+          treatmentTypes: filters.treatmentTypes || [],
+          amenities: filters.amenities || [],
+          insurance: filters.insurance || [],
+          conditions: filters.conditions || [],
+          substances: filters.substances || [],
+          therapies: filters.therapies || [],
+          location: filters.location,
+          rating: filters.rating || null
         });
         
         setResults(facilities);

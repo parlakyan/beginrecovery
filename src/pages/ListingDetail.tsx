@@ -263,18 +263,18 @@ export default function ListingDetail() {
 
                     {/* Tags */}
                     <div className="flex flex-wrap gap-2 mb-6">
-                      {facility.tags.map((tag: string, index: number) => (
-                        <Tag key={index} variant="secondary">{tag}</Tag>
+                      {facility.treatmentTypes?.map((type) => (
+                        <Tag key={type.id} variant="secondary">{type.name}</Tag>
                       ))}
                     </div>
 
-                    {/* Legacy Amenities - Show only if no managed amenities */}
-                    {(!facility.amenityObjects || facility.amenityObjects.length === 0) && facility.amenities.length > 0 && (
+                    {/* Amenities Section - Only show if there are managed amenities */}
+                    {facility.amenityObjects && facility.amenityObjects.length > 0 && (
                       <div>
                         <h2 className="text-xl font-semibold mb-4">Amenities & Services</h2>
                         <div className="flex flex-wrap gap-2">
-                          {facility.amenities.map((amenity: string, index: number) => (
-                            <Tag key={index} variant="primary">{amenity}</Tag>
+                          {facility.amenityObjects.map((amenity) => (
+                            <Tag key={amenity.id} variant="primary">{amenity.name}</Tag>
                           ))}
                         </div>
                       </div>
@@ -310,26 +310,14 @@ export default function ListingDetail() {
                 <TherapiesSection therapies={facility.therapies} />
               )}
 
-              {/* Amenities Section - Only show if there are managed amenities */}
+              {/* Amenities Section */}
               {facility.amenityObjects && facility.amenityObjects.length > 0 && (
                 <AmenitiesSection amenities={facility.amenityObjects} isVerified={facility.isVerified} />
               )}
 
-              {/* Languages Section - Only show if there are managed languages */}
+              {/* Languages Section */}
               {facility.languageObjects && facility.languageObjects.length > 0 && (
                 <LanguagesSection languages={facility.languageObjects} isVerified={facility.isVerified} />
-              )}
-
-              {/* Legacy Languages - Show only if no managed languages */}
-              {(!facility.languageObjects || facility.languageObjects.length === 0) && facility.languages.length > 0 && (
-                <div className="bg-white rounded-lg shadow-lg p-6">
-                  <h2 className="text-xl font-semibold mb-4">Languages Supported</h2>
-                  <div className="flex flex-wrap gap-2">
-                    {facility.languages.map((language: string, index: number) => (
-                      <Tag key={index} variant="primary">{language}</Tag>
-                    ))}
-                  </div>
-                </div>
               )}
 
               {/* Certifications Section - Only for verified facilities with licenses */}

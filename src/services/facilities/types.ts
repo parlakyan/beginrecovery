@@ -10,12 +10,12 @@ export interface CreateUserInput {
 export interface SearchParams {
   query: string;
   location?: string[];
-  treatmentTypes: string[];
-  amenities: string[];
-  insurance: string[];
-  conditions: string[];
-  substances: string[];
-  therapies: string[];
+  treatmentTypes?: string[];
+  amenities?: string[];
+  insurance?: string[];
+  conditions?: string[];
+  substances?: string[];
+  therapies?: string[];
   rating: number | null;
 }
 
