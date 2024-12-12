@@ -1,7 +1,7 @@
 import { QueryDocumentSnapshot, DocumentData, Timestamp, collection, getDocs, updateDoc, doc } from 'firebase/firestore';
 import { db } from '../../lib/firebase';
 import { FACILITIES_COLLECTION } from './types';
-import { Facility, License, Insurance, Condition, Therapy, Substance, Amenity, Language } from '../../types';
+import { Facility, License, Insurance, Condition, Therapy, Substance, Amenity, Language, TreatmentType } from '../../types';
 
 /**
  * Generates URL-friendly slug from facility name and location
@@ -23,7 +23,6 @@ export const generateSlug = (name: string, location: string): string => {
 
   return `${cleanName}-${cleanLocation}`;
 };
-
 
 /**
  * Migrate existing facilities to include slugs
@@ -54,7 +53,7 @@ export const migrateExistingSlugs = async () => {
   }
 };
 
-interface RawLicense {
+interface RawManagedType {
   id?: string;
   name?: string;
   description?: string;
@@ -63,57 +62,33 @@ interface RawLicense {
   updatedAt?: Timestamp | string;
 }
 
-interface RawInsurance {
-  id?: string;
-  name?: string;
-  description?: string;
-  logo?: string;
-  createdAt?: Timestamp | string;
-  updatedAt?: Timestamp | string;
-}
+const transformManagedType = <T extends RawManagedType>(item: RawManagedType | undefined | null, defaultTimestamp: string): T | undefined => {
+  if (typeof item === 'object' && item !== null) {
+    return {
+      id: item.id || '',
+      name: item.name || '',
+      description: item.description || '',
+      logo: item.logo || '',
+      createdAt: item.createdAt instanceof Timestamp 
+        ? item.createdAt.toDate().toISOString()
+        : (item.createdAt || defaultTimestamp),
+      updatedAt: item.updatedAt instanceof Timestamp
+        ? item.updatedAt.toDate().toISOString()
+        : (item.updatedAt || defaultTimestamp)
+    } as T;
+  }
+  return undefined;
+};
 
-interface RawCondition {
-  id?: string;
-  name?: string;
-  description?: string;
-  logo?: string;
-  createdAt?: Timestamp | string;
-  updatedAt?: Timestamp | string;
-}
-
-interface RawTherapy {
-  id?: string;
-  name?: string;
-  description?: string;
-  logo?: string;
-  createdAt?: Timestamp | string;
-  updatedAt?: Timestamp | string;
-}
-interface RawSubstance {
-  id?: string;
-  name?: string;
-  description?: string;
-  logo?: string;
-  createdAt?: Timestamp | string;
-  updatedAt?: Timestamp | string;
-}
-interface RawAmenity {
-  id?: string;
-  name?: string;
-  description?: string;
-  logo?: string;
-  createdAt?: Timestamp | string;
-  updatedAt?: Timestamp | string;
-}
-
-interface RawLanguage {
-  id?: string;
-  name?: string;
-  description?: string;
-  logo?: string;
-  createdAt?: Timestamp | string;
-  updatedAt?: Timestamp | string;
-}
+// Type guard functions
+const isTreatmentType = (item: TreatmentType | undefined): item is TreatmentType => item !== undefined;
+const isAmenity = (item: Amenity | undefined): item is Amenity => item !== undefined;
+const isLanguage = (item: Language | undefined): item is Language => item !== undefined;
+const isSubstance = (item: Substance | undefined): item is Substance => item !== undefined;
+const isCondition = (item: Condition | undefined): item is Condition => item !== undefined;
+const isTherapy = (item: Therapy | undefined): item is Therapy => item !== undefined;
+const isInsurance = (item: Insurance | undefined): item is Insurance => item !== undefined;
+const isLicense = (item: License | undefined): item is License => item !== undefined;
 
 export const transformFacilityData = (doc: QueryDocumentSnapshot<DocumentData>): Facility => {
   const data = doc.data();
@@ -123,146 +98,47 @@ export const transformFacilityData = (doc: QueryDocumentSnapshot<DocumentData>):
   const city = data.city || '';
   const state = data.state || '';
   
+  const defaultTimestamp = new Date().toISOString();
   const createdAt = data.createdAt instanceof Timestamp 
     ? data.createdAt.toDate().toISOString()
-    : new Date().toISOString();
+    : defaultTimestamp;
     
   const updatedAt = data.updatedAt instanceof Timestamp
     ? data.updatedAt.toDate().toISOString()
-    : new Date().toISOString();
+    : defaultTimestamp;
 
-  // Transform licenses data
-  const licenses = (data.licenses || []).map((license: RawLicense) => {
-    if (typeof license === 'object' && license !== null) {
-      return {
-        id: license.id || '',
-        name: license.name || '',
-        description: license.description || '',
-        logo: license.logo || '',
-        createdAt: license.createdAt instanceof Timestamp 
-          ? license.createdAt.toDate().toISOString()
-          : (license.createdAt || new Date().toISOString()),
-        updatedAt: license.updatedAt instanceof Timestamp
-          ? license.updatedAt.toDate().toISOString()
-          : (license.updatedAt || new Date().toISOString())
-      } as License;
-    }
-    return null;
-  }).filter(Boolean) as License[];
+  // Transform managed types
+  const treatmentTypes = (data.treatmentTypes || [])
+    .map((item: RawManagedType) => transformManagedType<TreatmentType>(item, defaultTimestamp))
+    .filter(isTreatmentType);
 
-  // Transform insurances data
-  const insurances = (data.insurances || []).map((insurance: RawInsurance) => {
-    if (typeof insurance === 'object' && insurance !== null) {
-      return {
-        id: insurance.id || '',
-        name: insurance.name || '',
-        description: insurance.description || '',
-        logo: insurance.logo || '',
-        createdAt: insurance.createdAt instanceof Timestamp 
-          ? insurance.createdAt.toDate().toISOString()
-          : (insurance.createdAt || new Date().toISOString()),
-        updatedAt: insurance.updatedAt instanceof Timestamp
-          ? insurance.updatedAt.toDate().toISOString()
-          : (insurance.updatedAt || new Date().toISOString())
-      } as Insurance;
-    }
-    return null;
-  }).filter(Boolean) as Insurance[];
+  const amenityObjects = (data.amenityObjects || [])
+    .map((item: RawManagedType) => transformManagedType<Amenity>(item, defaultTimestamp))
+    .filter(isAmenity);
 
-  // Transform conditions data
-  const conditions = (data.conditions || []).map((condition: RawCondition) => {
-    if (typeof condition === 'object' && condition !== null) {
-      return {
-        id: condition.id || '',
-        name: condition.name || '',
-        description: condition.description || '',
-        logo: condition.logo || '',
-        createdAt: condition.createdAt instanceof Timestamp 
-          ? condition.createdAt.toDate().toISOString()
-          : (condition.createdAt || new Date().toISOString()),
-        updatedAt: condition.updatedAt instanceof Timestamp
-          ? condition.updatedAt.toDate().toISOString()
-          : (condition.updatedAt || new Date().toISOString())
-      } as Condition;
-    }
-    return null;
-  }).filter(Boolean) as Condition[];
+  const languageObjects = (data.languageObjects || [])
+    .map((item: RawManagedType) => transformManagedType<Language>(item, defaultTimestamp))
+    .filter(isLanguage);
 
-  // Transform therapies data
-  const therapies = (data.therapies || []).map((therapy: RawTherapy) => {
-    if (typeof therapy === 'object' && therapy !== null) {
-      return {
-        id: therapy.id || '',
-        name: therapy.name || '',
-        description: therapy.description || '',
-        logo: therapy.logo || '',
-        createdAt: therapy.createdAt instanceof Timestamp 
-          ? therapy.createdAt.toDate().toISOString()
-          : (therapy.createdAt || new Date().toISOString()),
-        updatedAt: therapy.updatedAt instanceof Timestamp
-          ? therapy.updatedAt.toDate().toISOString()
-          : (therapy.updatedAt || new Date().toISOString())
-      } as Therapy;
-    }
-    return null;
-  }).filter(Boolean) as Therapy[];
+  const substances = (data.substances || [])
+    .map((item: RawManagedType) => transformManagedType<Substance>(item, defaultTimestamp))
+    .filter(isSubstance);
 
-  // Transform substances data
-  const substances = (data.substances || []).map((substance: RawSubstance) => {
-    if (typeof substance === 'object' && substance !== null) {
-      return {
-        id: substance.id || '',
-        name: substance.name || '',
-        description: substance.description || '',
-        logo: substance.logo || '',
-        createdAt: substance.createdAt instanceof Timestamp 
-          ? substance.createdAt.toDate().toISOString()
-          : (substance.createdAt || new Date().toISOString()),
-        updatedAt: substance.updatedAt instanceof Timestamp
-          ? substance.updatedAt.toDate().toISOString()
-          : (substance.updatedAt || new Date().toISOString())
-      } as Substance;
-    }
-    return null;
-  }).filter(Boolean) as Substance[];
+  const conditions = (data.conditions || [])
+    .map((item: RawManagedType) => transformManagedType<Condition>(item, defaultTimestamp))
+    .filter(isCondition);
 
-  // Transform amenities data
-  const amenityObjects = (data.amenityObjects || []).map((amenity: RawAmenity) => {
-    if (typeof amenity === 'object' && amenity !== null) {
-      return {
-        id: amenity.id || '',
-        name: amenity.name || '',
-        description: amenity.description || '',
-        logo: amenity.logo || '',
-        createdAt: amenity.createdAt instanceof Timestamp 
-          ? amenity.createdAt.toDate().toISOString()
-          : (amenity.createdAt || new Date().toISOString()),
-        updatedAt: amenity.updatedAt instanceof Timestamp
-          ? amenity.updatedAt.toDate().toISOString()
-          : (amenity.updatedAt || new Date().toISOString())
-      } as Amenity;
-    }
-    return null;
-  }).filter(Boolean) as Amenity[];
+  const therapies = (data.therapies || [])
+    .map((item: RawManagedType) => transformManagedType<Therapy>(item, defaultTimestamp))
+    .filter(isTherapy);
 
-  // Transform languages data
-  const languageObjects = (data.languageObjects || []).map((language: RawLanguage) => {
-    if (typeof language === 'object' && language !== null) {
-      return {
-        id: language.id || '',
-        name: language.name || '',
-        description: language.description || '',
-        logo: language.logo || '',
-        createdAt: language.createdAt instanceof Timestamp 
-          ? language.createdAt.toDate().toISOString()
-          : (language.createdAt || new Date().toISOString()),
-        updatedAt: language.updatedAt instanceof Timestamp
-          ? language.updatedAt.toDate().toISOString()
-          : (language.updatedAt || new Date().toISOString())
-      } as Language;
-    }
-    return null;
-  }).filter(Boolean) as Language[];
+  const insurances = (data.insurances || [])
+    .map((item: RawManagedType) => transformManagedType<Insurance>(item, defaultTimestamp))
+    .filter(isInsurance);
+
+  const licenses = (data.licenses || [])
+    .map((item: RawManagedType) => transformManagedType<License>(item, defaultTimestamp))
+    .filter(isLicense);
 
   return {
     id: doc.id,
@@ -272,8 +148,7 @@ export const transformFacilityData = (doc: QueryDocumentSnapshot<DocumentData>):
     city,
     state,
     coordinates: data.coordinates,
-    amenities: data.amenities || [],  // Keep for backward compatibility
-    amenityObjects,  // New field for managed amenities
+    amenityObjects,
     images: data.images || [],
     status: data.status || 'pending',
     ownerId: data.ownerId || '',
@@ -285,17 +160,15 @@ export const transformFacilityData = (doc: QueryDocumentSnapshot<DocumentData>):
     subscriptionId: data.subscriptionId,
     phone: data.phone || '',
     email: data.email || '',
-    tags: data.tags || [],
     highlights: data.highlights || [],
     substances,
-    insurance: data.insurance || [],
     insurances,
     accreditation: data.accreditation || [],
-    languages: data.languages || [],  // Keep for backward compatibility
-    languageObjects,  // New field for managed languages
+    languageObjects,
     licenses,
     conditions,
     therapies,
+    treatmentTypes,
     isVerified: Boolean(data.isVerified),
     isFeatured: Boolean(data.isFeatured),
     moderationStatus: data.moderationStatus || 'pending',
@@ -303,5 +176,3 @@ export const transformFacilityData = (doc: QueryDocumentSnapshot<DocumentData>):
     logo: data.logo || undefined
   };
 };
-
-// Previous functions remain the same...

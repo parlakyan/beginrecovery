@@ -65,13 +65,12 @@ export const facilitiesSearch = {
           facility.state,
           facility.email,
           facility.phone,
-          ...facility.tags,  // Legacy treatment types
-          ...(facility.treatmentTypes?.map(t => t.name) || []),  // Managed treatment types
+          ...(facility.treatmentTypes?.map(t => t.name) || []),
           ...facility.highlights,
-          ...(facility.substances?.map(s => s.name) || []),  // Use substance names
-          ...(facility.amenityObjects?.map(a => a.name) || []),  // Use amenity names
-          ...facility.insurance,
-          ...(facility.languageObjects?.map(l => l.name) || []),  // Use language names
+          ...(facility.substances?.map(s => s.name) || []),
+          ...(facility.amenityObjects?.map(a => a.name) || []),
+          ...(facility.insurances?.map(i => i.name) || []),
+          ...(facility.languageObjects?.map(l => l.name) || []),
           ...(facility.conditions?.map(c => c.name) || []),
           ...(facility.therapies?.map(t => t.name) || [])
         ].some(field => 
@@ -85,23 +84,23 @@ export const facilitiesSearch = {
                  facility.state.toLowerCase() === state.toLowerCase();
         });
 
-        // Treatment types - check both legacy and managed types
+        // Treatment types
         const matchesTreatment = treatmentTypes.length === 0 ||
-          treatmentTypes.some(type => 
-            facility.tags.includes(type) || // Check legacy types
-            facility.treatmentTypes?.some(t => t.name === type) // Check managed types
+          treatmentTypes.some(typeId => 
+            facility.treatmentTypes?.some(t => t.id === typeId)
           );
 
-        // Amenities - check both legacy and managed amenities
+        // Amenities
         const matchesAmenities = amenities.length === 0 ||
           amenities.some(amenityId => 
-            facility.amenities.includes(amenityId) || // Check legacy amenities
-            facility.amenityObjects?.some(a => a.id === amenityId) // Check managed amenities
+            facility.amenityObjects?.some(a => a.id === amenityId)
           );
 
         // Insurance
         const matchesInsurance = insurance.length === 0 ||
-          insurance.some(ins => facility.insurance.includes(ins));
+          insurance.some(insuranceId => 
+            facility.insurances?.some(i => i.id === insuranceId)
+          );
 
         // Conditions
         const matchesConditions = conditions.length === 0 ||

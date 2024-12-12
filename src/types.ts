@@ -18,19 +18,15 @@ export interface Facility {
   website?: string;
   images: string[];
   logo?: string;
-  tags: string[];  // Keep as string[] for backward compatibility
-  treatmentTypes?: TreatmentType[];  // New field for managed treatment types
-  amenities: string[];  // Keep as string[] for backward compatibility
-  amenityObjects?: Amenity[];  // New field for managed amenities
+  treatmentTypes?: TreatmentType[];
+  amenityObjects: Amenity[];  // Changed from optional to required
   highlights: string[];
   substances?: Substance[];
   conditions?: Condition[];
   therapies?: Therapy[];
-  insurance: string[];
   insurances?: Insurance[];
   accreditation: string[];
-  languages: string[];  // Keep as string[] for backward compatibility
-  languageObjects?: Language[];  // New field for managed languages
+  languageObjects: Language[];  // Changed from optional to required
   licenses?: License[];
   rating: number;
   reviews: number;

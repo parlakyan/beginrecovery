@@ -123,10 +123,8 @@ export default function RehabCard({ facility, onEdit, showOwnerControls = false 
 
   // Get all tags to display
   const allTags = [
-    // Legacy treatment types
-    ...(facility.tags || []).map(tag => ({ text: tag, type: 'legacy' })),
     // Managed treatment types
-    ...(facility.treatmentTypes || []).map(type => ({ text: type.name, type: 'managed' })),
+    ...(facility.treatmentTypes || []).map(type => ({ text: type.name, type: 'treatmentType' })),
     // Substances
     ...(facility.substances?.map(s => ({ text: s.name, type: 'substance' })) || []),
     // Other tags
@@ -172,37 +170,36 @@ export default function RehabCard({ facility, onEdit, showOwnerControls = false 
             <p className="text-gray-600 text-sm line-clamp-2">{facility.description}</p>
           </div>
 
-      {/* Tags */}
-      <div className="flex flex-wrap gap-2 mb-2">
-        {allTags.slice(0, 3).map((tag, index) => (
-          <Tag 
-            key={index} 
-            variant={
-              tag.type === 'managed' ? 'primary' :
-              tag.type === 'legacy' ? 'secondary' :
-              tag.type === 'substance' ? 'primary' :
-              tag.type === 'condition' ? 'secondary' :
-              'secondary'
-            }
-          >
-            {tag.text}
-          </Tag>
-        ))}
-        {allTags.length > 3 && (
-          <span className="px-3 py-1 bg-gray-50 text-gray-600 rounded-full text-sm">
-            +{allTags.length - 3} more
-          </span>
-        )}
-      </div>
+          {/* Tags */}
+          <div className="flex flex-wrap gap-2 mb-2">
+            {allTags.slice(0, 3).map((tag, index) => (
+              <Tag 
+                key={index} 
+                variant={
+                  tag.type === 'treatmentType' ? 'primary' :
+                  tag.type === 'substance' ? 'secondary' :
+                  tag.type === 'condition' ? 'primary' :
+                  'secondary'
+                }
+              >
+                {tag.text}
+              </Tag>
+            ))}
+            {allTags.length > 3 && (
+              <span className="px-3 py-1 bg-gray-50 text-gray-600 rounded-full text-sm">
+                +{allTags.length - 3} more
+              </span>
+            )}
+          </div>
 
           {/* Amenities */}
           <div className="flex flex-wrap gap-2">
-            {facility.amenities.slice(0, 3).map((amenity, index) => (
-              <Tag key={index} variant="primary">{amenity}</Tag>
+            {facility.amenityObjects?.slice(0, 3).map((amenity) => (
+              <Tag key={amenity.id} variant="primary">{amenity.name}</Tag>
             ))}
-            {facility.amenities.length > 3 && (
+            {(facility.amenityObjects?.length || 0) > 3 && (
               <span className="px-3 py-1 bg-gray-50 text-gray-600 rounded-full text-sm">
-                +{facility.amenities.length - 3} more
+                +{facility.amenityObjects!.length - 3} more
               </span>
             )}
           </div>
