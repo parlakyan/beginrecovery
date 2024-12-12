@@ -19,6 +19,7 @@ export default function SearchResults() {
     conditions: [],
     substances: [],
     therapies: [],
+    languages: [],
     rating: null,
     priceRange: null
   });
@@ -36,13 +37,15 @@ export default function SearchResults() {
     const conditions = new Set<string>();
     const substances = new Set<string>();
     const therapies = new Set<string>();
+    const languages = new Set<string>();
     const counts = {
       locations: {} as { [key: string]: number },
       treatmentTypes: {} as { [key: string]: number },
       amenities: {} as { [key: string]: number },
       conditions: {} as { [key: string]: number },
       substances: {} as { [key: string]: number },
-      therapies: {} as { [key: string]: number }
+      therapies: {} as { [key: string]: number },
+      languages: {} as { [key: string]: number }
     };
 
     facilities.forEach((facility) => {
@@ -82,10 +85,16 @@ export default function SearchResults() {
         therapies.add(therapy.id);
         counts.therapies[therapy.id] = (counts.therapies[therapy.id] || 0) + 1;
       });
+
+      // Language counts
+      facility.languageObjects?.forEach(language => {
+        languages.add(language.id);
+        counts.languages[language.id] = (counts.languages[language.id] || 0) + 1;
+      });
     });
 
     return {
-      filterOptions: { locations, treatmentTypes, amenities, conditions, substances, therapies },
+      filterOptions: { locations, treatmentTypes, amenities, conditions, substances, therapies, languages },
       optionCounts: counts
     };
   };
@@ -104,6 +113,7 @@ export default function SearchResults() {
       conditions: [],
       substances: [],
       therapies: [],
+      languages: [],
       rating: null,
       priceRange: null
     }));
@@ -124,6 +134,7 @@ export default function SearchResults() {
           conditions: filters.conditions,
           substances: filters.substances,
           therapies: filters.therapies,
+          languages: filters.languages,
           rating: filters.rating === 0 ? null : filters.rating
         });
 

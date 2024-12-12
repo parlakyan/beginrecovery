@@ -26,6 +26,7 @@ export const facilitiesSearch = {
     conditions = [],
     substances = [],
     therapies = [],
+    languages = [],  // Added languages with default empty array
     rating
   }: SearchParams): Promise<Facility[]> {
     try {
@@ -38,6 +39,7 @@ export const facilitiesSearch = {
         conditions,
         substances,
         therapies,
+        languages,  // Added languages to logging
         rating
       });
 
@@ -81,7 +83,7 @@ export const facilitiesSearch = {
         const matchesLocation = !location?.length || location.some(loc => {
           const [city, state] = loc.split(',').map(part => part.trim());
           return facility.city.toLowerCase() === city.toLowerCase() &&
-                 facility.state.toLowerCase() === state.toLowerCase();
+                  facility.state.toLowerCase() === state.toLowerCase();
         });
 
         // Treatment types
@@ -123,6 +125,12 @@ export const facilitiesSearch = {
         // Rating
         const matchesRating = !rating || facility.rating >= rating;
 
+        // Languages
+        const matchesLanguages = languages.length === 0 ||
+          languages.some(languageId => 
+            facility.languageObjects?.some(l => l.id === languageId)
+          );
+
         return matchesQuery && 
                matchesLocation &&
                matchesTreatment && 
@@ -131,6 +139,7 @@ export const facilitiesSearch = {
                matchesConditions &&
                matchesSubstances &&
                matchesTherapies &&
+               matchesLanguages &&  // Added languages condition
                matchesRating;
       });
 

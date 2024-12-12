@@ -12,12 +12,6 @@ import ReviewsSection from '../components/ReviewsSection';
 import MapSection from '../components/MapSection';
 import StaffSection from '../components/StaffSection';
 import CertificationsSection from '../components/CertificationsSection';
-import InsurancesSection from '../components/InsurancesSection';
-import ConditionsSection from '../components/ConditionsSection';
-import TherapiesSection from '../components/TherapiesSection';
-import SubstancesSection from '../components/SubstancesSection';
-import AmenitiesSection from '../components/AmenitiesSection';
-import LanguagesSection from '../components/LanguagesSection';
 import { Button, Tag, Breadcrumb } from '../components/ui';
 import EditListingModal from '../components/EditListingModal';
 
@@ -33,6 +27,11 @@ export default function ListingDetail() {
   const canEdit = user && (user.role === 'admin' || (facility && user.id === facility.ownerId));
   // Check if current user is owner
   const isOwner = user && facility && user.id === facility.ownerId;
+
+  // Helper function to safely check array length
+  const hasItems = (arr: any[] | undefined): boolean => {
+    return Array.isArray(arr) && arr.length > 0;
+  };
 
   const fetchFacility = useCallback(async () => {
     try {
@@ -261,20 +260,73 @@ export default function ListingDetail() {
                     {/* Description */}
                     <p className="text-gray-600 mb-6">{facility.description}</p>
 
-                    {/* Tags */}
-                    <div className="flex flex-wrap gap-2 mb-6">
-                      {facility.treatmentTypes?.map((type) => (
-                        <Tag key={type.id} variant="secondary">{type.name}</Tag>
-                      ))}
-                    </div>
-
-                    {/* Amenities Section - Only show if there are managed amenities */}
-                    {facility.amenityObjects && facility.amenityObjects.length > 0 && (
-                      <div>
-                        <h2 className="text-xl font-semibold mb-4">Amenities & Services</h2>
+                    {/* Treatment Types */}
+                    {hasItems(facility.treatmentTypes) && (
+                      <div className="mb-6">
+                        <h3 className="text-lg font-semibold mb-3">Treatment Programs</h3>
                         <div className="flex flex-wrap gap-2">
-                          {facility.amenityObjects.map((amenity) => (
+                          {facility.treatmentTypes?.map((type) => (
+                            <Tag key={type.id} variant="secondary">{type.name}</Tag>
+                          ))}
+                        </div>
+                      </div>
+                    )}
+
+                    {/* Substances */}
+                    {hasItems(facility.substances) && (
+                      <div className="mb-6">
+                        <h3 className="text-lg font-semibold mb-3">Substances We Treat</h3>
+                        <div className="flex flex-wrap gap-2">
+                          {facility.substances?.map((substance) => (
+                            <Tag key={substance.id} variant="primary">{substance.name}</Tag>
+                          ))}
+                        </div>
+                      </div>
+                    )}
+
+                    {/* Conditions */}
+                    {hasItems(facility.conditions) && (
+                      <div className="mb-6">
+                        <h3 className="text-lg font-semibold mb-3">Conditions We Treat</h3>
+                        <div className="flex flex-wrap gap-2">
+                          {facility.conditions?.map((condition) => (
+                            <Tag key={condition.id} variant="primary">{condition.name}</Tag>
+                          ))}
+                        </div>
+                      </div>
+                    )}
+
+                    {/* Therapies */}
+                    {hasItems(facility.therapies) && (
+                      <div className="mb-6">
+                        <h3 className="text-lg font-semibold mb-3">Available Therapies</h3>
+                        <div className="flex flex-wrap gap-2">
+                          {facility.therapies?.map((therapy) => (
+                            <Tag key={therapy.id} variant="primary">{therapy.name}</Tag>
+                          ))}
+                        </div>
+                      </div>
+                    )}
+
+                    {/* Amenities */}
+                    {hasItems(facility.amenityObjects) && (
+                      <div className="mb-6">
+                        <h3 className="text-lg font-semibold mb-3">Amenities & Services</h3>
+                        <div className="flex flex-wrap gap-2">
+                          {facility.amenityObjects?.map((amenity) => (
                             <Tag key={amenity.id} variant="primary">{amenity.name}</Tag>
+                          ))}
+                        </div>
+                      </div>
+                    )}
+
+                    {/* Languages */}
+                    {hasItems(facility.languageObjects) && (
+                      <div className="mb-6">
+                        <h3 className="text-lg font-semibold mb-3">Languages Supported</h3>
+                        <div className="flex flex-wrap gap-2">
+                          {facility.languageObjects?.map((language) => (
+                            <Tag key={language.id} variant="primary">{language.name}</Tag>
                           ))}
                         </div>
                       </div>
@@ -295,39 +347,9 @@ export default function ListingDetail() {
                 </div>
               </div>
 
-              {/* Conditions Section */}
-              {facility.conditions && facility.conditions.length > 0 && (
-                <ConditionsSection conditions={facility.conditions} />
-              )}
-
-              {/* Substances Section */}
-              {facility.substances && facility.substances.length > 0 && (
-                <SubstancesSection substances={facility.substances} isVerified={facility.isVerified} />
-              )}
-
-              {/* Therapies Section */}
-              {facility.therapies && facility.therapies.length > 0 && (
-                <TherapiesSection therapies={facility.therapies} />
-              )}
-
-              {/* Amenities Section */}
-              {facility.amenityObjects && facility.amenityObjects.length > 0 && (
-                <AmenitiesSection amenities={facility.amenityObjects} isVerified={facility.isVerified} />
-              )}
-
-              {/* Languages Section */}
-              {facility.languageObjects && facility.languageObjects.length > 0 && (
-                <LanguagesSection languages={facility.languageObjects} isVerified={facility.isVerified} />
-              )}
-
-              {/* Certifications Section - Only for verified facilities with licenses */}
-              {facility.isVerified && facility.licenses && facility.licenses.length > 0 && (
+              {/* Certifications Section - Only for verified facilities */}
+              {facility.isVerified && (
                 <CertificationsSection licenses={facility.licenses} />
-              )}
-
-              {/* Insurances Section - Only for verified facilities with insurances */}
-              {facility.isVerified && facility.insurances && facility.insurances.length > 0 && (
-                <InsurancesSection insurances={facility.insurances} />
               )}
 
               {/* Staff Section - Only for verified facilities */}

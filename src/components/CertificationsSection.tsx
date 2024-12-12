@@ -3,7 +3,7 @@ import { Award } from 'lucide-react';
 import { License } from '../types';
 
 interface CertificationsSectionProps {
-  licenses: License[];
+  licenses?: License[];
 }
 
 export default function CertificationsSection({ licenses }: CertificationsSectionProps) {

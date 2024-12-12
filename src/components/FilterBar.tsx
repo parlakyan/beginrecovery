@@ -6,6 +6,7 @@ import { treatmentTypesService } from '../services/treatmentTypes';
 import { amenitiesService } from '../services/amenities';
 import { conditionsService } from '../services/conditions';
 import { therapiesService } from '../services/therapies';
+import { languagesService } from '../services/languages';
 
 interface FilterBarProps {
   filters: SearchFiltersState;
@@ -16,6 +17,7 @@ interface FilterBarProps {
     conditions: Set<string>;
     substances: Set<string>;
     therapies: Set<string>;
+    languages: Set<string>;
   };
   optionCounts: {
     locations: { [key: string]: number };
@@ -24,6 +26,7 @@ interface FilterBarProps {
     conditions: { [key: string]: number };
     substances: { [key: string]: number };
     therapies: { [key: string]: number };
+    languages: { [key: string]: number };
   };
   onFilterChange: (type: keyof SearchFiltersState, value: string, clearOthers?: boolean) => void;
 }
@@ -42,22 +45,23 @@ export default function FilterBar({ filters, filterOptions, optionCounts, onFilt
     conditions: '',
     substances: '',
     therapies: '',
+    languages: '',
     rating: ''
   });
-
-  // State for managed options
   const [managedOptions, setManagedOptions] = useState<{
     treatmentTypes: ManagedOption[];
     amenities: ManagedOption[];
     conditions: ManagedOption[];
     substances: ManagedOption[];
     therapies: ManagedOption[];
+    languages: ManagedOption[];
   }>({
     treatmentTypes: [],
     amenities: [],
     conditions: [],
     substances: [],
-    therapies: []
+    therapies: [],
+    languages: []
   });
 
   // Fetch all managed options
@@ -69,13 +73,15 @@ export default function FilterBar({ filters, filterOptions, optionCounts, onFilt
           amenities,
           conditions,
           substances,
-          therapies
+          therapies,
+          languages
         ] = await Promise.all([
           treatmentTypesService.getTreatmentTypes(),
           amenitiesService.getAmenities(),
           conditionsService.getConditions(),
           substancesService.getSubstances(),
-          therapiesService.getTherapies()
+          therapiesService.getTherapies(),
+          languagesService.getLanguages()
         ]);
 
         setManagedOptions({
@@ -83,7 +89,8 @@ export default function FilterBar({ filters, filterOptions, optionCounts, onFilt
           amenities,
           conditions,
           substances,
-          therapies
+          therapies,
+          languages
         });
       } catch (error) {
         console.error('Error fetching managed options:', error);
@@ -122,7 +129,7 @@ export default function FilterBar({ filters, filterOptions, optionCounts, onFilt
   };
 
   const renderDropdown = (
-    type: 'location' | 'treatmentTypes' | 'amenities' | 'conditions' | 'substances' | 'therapies',
+    type: 'location' | 'treatmentTypes' | 'amenities' | 'conditions' | 'substances' | 'therapies' | 'languages',
     title: string,
     options: Set<string>,
     counts: { [key: string]: number }
@@ -226,6 +233,7 @@ export default function FilterBar({ filters, filterOptions, optionCounts, onFilt
         {renderDropdown('conditions', 'Conditions', filterOptions.conditions, optionCounts.conditions)}
         {renderDropdown('substances', 'Substances', filterOptions.substances, optionCounts.substances)}
         {renderDropdown('therapies', 'Therapies', filterOptions.therapies, optionCounts.therapies)}
+        {renderDropdown('languages', 'Languages', filterOptions.languages, optionCounts.languages)}
         {renderDropdown('amenities', 'Amenities', filterOptions.amenities, optionCounts.amenities)}
 
         {/* Rating Filter */}

@@ -16,6 +16,7 @@ export interface SearchParams {
   conditions?: string[];
   substances?: string[];
   therapies?: string[];
+  languages?: string[];  // Added languages
   rating: number | null;
 }
 

@@ -101,6 +101,7 @@ export interface SearchFiltersState {
   conditions: string[];
   substances: string[];
   therapies: string[];
+  languages: string[];  // Added languages
   rating: number | null;
   priceRange: number | null;
 }
