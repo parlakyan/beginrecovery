@@ -56,7 +56,8 @@ const EditListingModal: React.FC<EditListingModalProps> = ({ facility, isOpen, o
   const [error, setError] = useState<string | null>(null);
   const [formData, setFormData] = useState<Partial<Facility>>({
     images: [],
-    logo: undefined
+    logo: undefined,
+    coordinates: facility.coordinates // Initialize with existing coordinates
   });
   const [availableLicenses, setAvailableLicenses] = useState<License[]>([]);
   const [availableInsurances, setAvailableInsurances] = useState<Insurance[]>([]);
@@ -145,10 +146,11 @@ const EditListingModal: React.FC<EditListingModalProps> = ({ facility, isOpen, o
         licenses: facility.licenses?.map(l => l.id) || []
       });
 
-      // Reset form data with existing images and logo
+      // Reset form data with existing images, logo, and coordinates
       setFormData({
         images: facility.images || [],
-        logo: facility.logo || undefined
+        logo: facility.logo || undefined,
+        coordinates: facility.coordinates // Preserve existing coordinates
       });
 
       setError(null);
@@ -191,8 +193,12 @@ const EditListingModal: React.FC<EditListingModalProps> = ({ facility, isOpen, o
       const languageObjects = availableLanguages.filter(l => data.languageObjects.includes(l.id));
       const licenses = availableLicenses.filter(l => data.licenses.includes(l.id));
 
+      // Use coordinates from form data if available, otherwise use existing coordinates
+      const coordinates = data.coordinates || formData.coordinates || facility.coordinates;
+
       console.log('Submitting form with data:', {
         ...data,
+        coordinates,
         treatmentTypes,
         substances,
         conditions,
@@ -209,7 +215,7 @@ const EditListingModal: React.FC<EditListingModalProps> = ({ facility, isOpen, o
         name: data.name,
         description: data.description,
         location: data.location,
-        coordinates: data.coordinates,
+        coordinates, // Use preserved coordinates
         city: data.city,
         state: data.state,
         phone: data.phone,

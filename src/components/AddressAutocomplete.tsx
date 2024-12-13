@@ -117,8 +117,9 @@ export default function AddressAutocomplete({ register, setValue, error }: Addre
         const callbackName = 'initGoogleMapsCallback';
         window[callbackName] = initAutocomplete;
 
+        // Create a script element with proper async loading
         const script = document.createElement('script');
-        script.src = `https://maps.googleapis.com/maps/api/js?key=${GOOGLE_MAPS_API_KEY}&libraries=places&callback=${callbackName}`;
+        script.src = `https://maps.googleapis.com/maps/api/js?key=${GOOGLE_MAPS_API_KEY}&libraries=places&loading=async&callback=${callbackName}`;
         script.async = true;
         script.defer = true;
         script.onerror = () => {
@@ -126,6 +127,8 @@ export default function AddressAutocomplete({ register, setValue, error }: Addre
           setScriptError('Failed to load Google Maps script');
           setIsLoading(false);
         };
+
+        // Add script to document head
         document.head.appendChild(script);
 
         return () => {

@@ -34,6 +34,7 @@ interface CreateListingForm {
   state: string;
   phone: string;
   email: string;
+  website?: string;
   highlights: string[];
   treatmentTypes: TreatmentType[];
   substances: Substance[];
@@ -76,7 +77,8 @@ export default function CreateListing() {
       languageObjects: [],
       licenses: [],
       city: '',
-      state: ''
+      state: '',
+      website: undefined
     }
   });
 
@@ -162,6 +164,7 @@ export default function CreateListing() {
         state: data.state,
         phone: data.phone,
         email: data.email,
+        website: data.website,
         highlights: data.highlights,
         treatmentTypes: data.treatmentTypes,
         substances: data.substances,
@@ -173,6 +176,13 @@ export default function CreateListing() {
         licenses: data.licenses,
         images: photos,
         logo,
+        // Initialize required fields with default values
+        accreditation: [],
+        rating: 0,
+        reviews: 0,
+        reviewCount: 0,
+        isVerified: false,
+        isFeatured: false,
         moderationStatus: 'pending' as const
       };
 
@@ -377,6 +387,18 @@ export default function CreateListing() {
                 {errors.email && (
                   <p className="mt-1 text-sm text-red-600">{errors.email.message}</p>
                 )}
+              </div>
+
+              <div>
+                <label className="block text-sm font-medium text-gray-700 mb-1">
+                  Website (Optional)
+                </label>
+                <input
+                  {...register('website')}
+                  type="url"
+                  placeholder="https://www.example.com"
+                  className="w-full px-4 py-2 border rounded-lg focus:ring-2 focus:ring-blue-500 outline-none"
+                />
               </div>
 
               <div>
