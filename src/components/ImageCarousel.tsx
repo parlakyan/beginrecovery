@@ -1,5 +1,5 @@
 import { useState, useEffect, useCallback } from 'react';
-import { ChevronLeft, ChevronRight } from 'lucide-react';
+import { ChevronLeft, ChevronRight, Image as ImageIcon } from 'lucide-react';
 import { getStreetViewUrl, DEFAULT_FACILITY_IMAGE } from '../utils/images';
 
 interface ImageCarouselProps {
@@ -30,7 +30,8 @@ interface ImageCarouselProps {
  * Fallback order:
  * 1. Facility images
  * 2. Google Street View (if coordinates exist)
- * 3. Default placeholder image
+ * 3. Default facility image
+ * 4. Grey placeholder with icon (if all else fails)
  */
 export default function ImageCarousel({ 
   images = [], 
@@ -62,6 +63,7 @@ export default function ImageCarousel({
   const [isTransitioning, setIsTransitioning] = useState(false);
   const [touchStart, setTouchStart] = useState<number | null>(null);
   const [touchEnd, setTouchEnd] = useState<number | null>(null);
+  const [imageError, setImageError] = useState(false);
 
   const minSwipeDistance = 50;
 
@@ -123,6 +125,15 @@ export default function ImageCarousel({
     elevated: 'bottom-24'
   };
 
+  // If all images fail to load, show placeholder
+  if (imageError || displayImages.length === 0) {
+    return (
+      <div className="relative w-full h-full bg-gray-100 flex items-center justify-center">
+        <ImageIcon className="w-12 h-12 text-gray-400" />
+      </div>
+    );
+  }
+
   return (
     <div 
       className="relative w-full h-full overflow-hidden bg-gray-900"
@@ -149,6 +160,7 @@ export default function ImageCarousel({
               alt={`Slide ${index + 1}`}
               className="w-full h-full object-cover"
               loading="eager"
+              onError={() => setImageError(true)}
             />
           </div>
         ))}
