@@ -102,20 +102,26 @@ export default function SearchResults() {
   // Update filters when URL params change
   useEffect(() => {
     const location = searchParams.get('location');
-    // Always reset filters when location param changes
+    const treatmentTypes = searchParams.get('treatmentTypes');
+    
     setFilters(prev => ({
       ...prev,
-      location: location ? [location] : [],
-      // Reset other filters when location changes
-      treatmentTypes: [],
-      amenities: [],
-      insurance: [],
-      conditions: [],
-      substances: [],
-      therapies: [],
-      languages: [],
-      rating: null,
-      priceRange: null
+      // Only reset other filters when location changes
+      ...(location ? {
+        location: [location],
+        amenities: [],
+        insurance: [],
+        conditions: [],
+        substances: [],
+        therapies: [],
+        languages: [],
+        rating: null,
+        priceRange: null
+      } : {}),
+      // Don't reset other filters when treatment type changes
+      ...(treatmentTypes ? {
+        treatmentTypes: [treatmentTypes]
+      } : {})
     }));
   }, [searchParams]);
 

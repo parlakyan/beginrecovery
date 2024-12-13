@@ -425,6 +425,7 @@ export default function CreateListing() {
                     label: type.name
                   }))}
                   error={errors.treatmentTypes?.message}
+                  useManagedOptions={true}
                 />
 
                 <DropdownSelect

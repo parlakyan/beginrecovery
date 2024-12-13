@@ -366,7 +366,7 @@ const EditListingModal: React.FC<EditListingModalProps> = ({ facility, isOpen, o
               onChange={(values) => setValue('highlights', values)}
               error={errors.highlights?.message}
             />
-
+            
             <DropdownSelect
               label="Treatment Types"
               type="treatmentTypes"
@@ -380,6 +380,7 @@ const EditListingModal: React.FC<EditListingModalProps> = ({ facility, isOpen, o
                 label: type.name
               }))}
               error={errors.treatmentTypes?.message}
+              useManagedOptions={true}
             />
 
             <DropdownSelect
