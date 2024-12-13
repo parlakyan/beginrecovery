@@ -1,5 +1,6 @@
 import { useState, useEffect, useCallback } from 'react';
 import { ChevronLeft, ChevronRight } from 'lucide-react';
+import { getStreetViewUrl, DEFAULT_FACILITY_IMAGE } from '../utils/images';
 
 interface ImageCarouselProps {
   /** Array of image URLs to display */
@@ -12,6 +13,11 @@ interface ImageCarouselProps {
   paginationPosition?: 'bottom' | 'elevated';
   /** Whether the facility is verified. Verified listings show all images in a carousel, unverified show only the first image */
   isVerified?: boolean;
+  /** Facility coordinates for Street View fallback */
+  coordinates?: {
+    lat: number;
+    lng: number;
+  };
 }
 
 /**
@@ -21,44 +27,35 @@ interface ImageCarouselProps {
  * - Verified listings: Shows all images in a carousel with navigation
  * - Unverified listings: Shows only the first image without navigation
  * 
- * Features:
- * - Touch swipe support for mobile
- * - Keyboard navigation (left/right arrows)
- * - Automatic image loading optimization
- * - Responsive design
- * - Smooth transitions between images
- * 
- * Navigation controls (for verified listings with multiple images):
- * - Arrow buttons on desktop
- * - Swipe gestures on mobile
- * - Pagination dots
- * 
- * Usage:
- * ```tsx
- * // For verified listing
- * <ImageCarousel
- *   images={facility.images}
- *   showNavigation={true}
- *   isVerified={true}
- *   onImageClick={handleClick}
- * />
- * 
- * // For unverified listing (shows only first image)
- * <ImageCarousel
- *   images={facility.images}
- *   isVerified={false}
- * />
- * ```
+ * Fallback order:
+ * 1. Facility images
+ * 2. Google Street View (if coordinates exist)
+ * 3. Default placeholder image
  */
 export default function ImageCarousel({ 
   images = [], 
   showNavigation = true, 
   onImageClick,
   paginationPosition = 'bottom',
-  isVerified = false
+  isVerified = false,
+  coordinates
 }: ImageCarouselProps) {
-  // For unverified listings, only use the first image
-  const displayImages = isVerified ? images : [images[0]];
+  // Get fallback images
+  const streetViewUrl = coordinates ? getStreetViewUrl(coordinates.lat, coordinates.lng) : null;
+  
+  // Determine which images to display
+  let displayImages: string[] = [];
+  if (images.length > 0) {
+    // Use facility images if available
+    displayImages = isVerified ? images : [images[0]];
+  } else if (streetViewUrl) {
+    // Use Street View if no facility images but coordinates exist
+    displayImages = [streetViewUrl];
+  } else {
+    // Use default placeholder as last resort
+    displayImages = [DEFAULT_FACILITY_IMAGE];
+  }
+
   const hasMultipleImages = displayImages.length > 1;
   
   const [currentIndex, setCurrentIndex] = useState(0);
@@ -67,18 +64,6 @@ export default function ImageCarousel({
   const [touchEnd, setTouchEnd] = useState<number | null>(null);
 
   const minSwipeDistance = 50;
-
-  // Debug logging
-  useEffect(() => {
-    console.log('ImageCarousel state:', {
-      isVerified,
-      totalImages: images.length,
-      displayImages: displayImages.length,
-      hasMultipleImages,
-      showNavigation,
-      timestamp: new Date().toISOString()
-    });
-  }, [isVerified, images.length, displayImages.length, hasMultipleImages, showNavigation]);
 
   const nextSlide = useCallback((e?: React.MouseEvent) => {
     if (e) {
@@ -132,14 +117,6 @@ export default function ImageCarousel({
       return () => clearTimeout(timer);
     }
   }, [isTransitioning]);
-
-  if (!displayImages.length) {
-    return (
-      <div className="w-full h-full bg-gray-200 flex items-center justify-center">
-        <span className="text-gray-400">No images available</span>
-      </div>
-    );
-  }
 
   const paginationClasses = {
     bottom: 'bottom-4',

@@ -174,8 +174,9 @@ export default function ListingDetail() {
             showNavigation={facility.images.length > 1}
             paginationPosition="elevated"
             isVerified={facility.isVerified}
+            coordinates={facility.coordinates}
           />
-          
+  
           {/* Admin and Owner Controls */}
           {(canEdit || (isOwner && !facility.isVerified)) && (
             <div className="absolute top-4 right-4 flex items-center gap-2 z-10">

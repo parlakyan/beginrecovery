@@ -144,6 +144,7 @@ export default function RehabCard({ facility, onEdit, showOwnerControls = false 
           onImageClick={handleNavigation}
           paginationPosition="bottom"
           isVerified={facility.isVerified}
+          coordinates={facility.coordinates}
         />
         <VerificationBadge />
         <ModerationBadge />
