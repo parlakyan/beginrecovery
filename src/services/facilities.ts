@@ -164,12 +164,20 @@ export const facilitiesService = {
     const searchLower = params.query.toLowerCase();
     
     return facilities.filter(facility => {
-      const matchesSearch = 
+      // Basic search match
+      const matchesSearch = searchLower === '' || 
         facility.name.toLowerCase().includes(searchLower) ||
         (facility.location || '').toLowerCase().includes(searchLower) ||
         (facility.city || '').toLowerCase().includes(searchLower) ||
         (facility.state || '').toLowerCase().includes(searchLower);
 
+      // Location match - handle city, state format
+      const matchesLocation = !params.location?.length || params.location.some(loc => {
+        const [city, state] = loc.split(',').map(s => s.trim().toLowerCase());
+        return (facility.city?.toLowerCase() === city && facility.state?.toLowerCase() === state);
+      });
+
+      // Collection matches
       const matchesTreatmentTypes = !params.treatmentTypes?.length || 
         facility.treatmentTypes?.some(type => params.treatmentTypes?.includes(type.id));
 
@@ -195,6 +203,7 @@ export const facilitiesService = {
         (facility.rating && facility.rating >= (params.rating || 0));
 
       return matchesSearch &&
+        matchesLocation &&
         matchesTreatmentTypes &&
         matchesAmenities &&
         matchesInsurance &&
