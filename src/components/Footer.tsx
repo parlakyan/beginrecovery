@@ -3,27 +3,14 @@ import { Link, useNavigate } from 'react-router-dom';
 import { Building2, MapPin, Tags, Phone } from 'lucide-react';
 import { locationsService } from '../services/locations';
 import { facilitiesService } from '../services/facilities';
-import { Facility } from '../types';
-
-const specializations = [
-  'Eating Disorder Treatment',
-  'Depression Treatment',
-  'Executive Rehab',
-  'Teen Rehab Centers',
-  'Dual Diagnosis Rehabs',
-  'Residential Trauma Treatment',
-  'Sex Addiction Treatment',
-  'Christian Treatment Centers',
-  'PTSD Treatment',
-  'Anxiety Treatment',
-  'Luxury Rehab Centers',
-  'Veterans Treatment'
-];
+import { treatmentTypesService } from '../services/treatmentTypes';
+import { Facility, TreatmentType } from '../types';
 
 export default function Footer() {
   const navigate = useNavigate();
   const [topLocations, setTopLocations] = useState<{ city: string; state: string; totalListings: number }[]>([]);
   const [featuredFacilities, setFeaturedFacilities] = useState<Facility[]>([]);
+  const [topTreatmentTypes, setTopTreatmentTypes] = useState<TreatmentType[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
 
@@ -33,10 +20,11 @@ export default function Footer() {
         setLoading(true);
         setError(null);
         
-        // Fetch both locations and featured facilities in parallel
-        const [locations, featured] = await Promise.all([
+        // Fetch locations, featured facilities, and top treatment types in parallel
+        const [locations, featured, treatments] = await Promise.all([
           locationsService.getTopLocations(10),
-          facilitiesService.getFeaturedFacilities()
+          facilitiesService.getFeaturedFacilities(),
+          treatmentTypesService.getTopTreatmentTypes(10)
         ]);
         
         // Only show locations that have at least one listing
@@ -49,6 +37,7 @@ export default function Footer() {
         setTopLocations(validLocations);
         // Take only first 10 featured facilities
         setFeaturedFacilities(featured.slice(0, 10));
+        setTopTreatmentTypes(treatments);
       } catch (error) {
         console.error('Error fetching data:', error);
         setError('Failed to load data');
@@ -136,20 +125,36 @@ export default function Footer() {
             </ul>
           </div>
 
-          {/* Specializations */}
+          {/* Top Treatment Types */}
           <div>
             <div className="flex items-center gap-2 mb-6">
               <Tags className="w-5 h-5 text-blue-400" />
               <h3 className="text-lg font-semibold text-white">Top Specializations</h3>
             </div>
             <ul className="space-y-3">
-              {specializations.map((specialization, index) => (
-                <li key={index}>
-                  <Link to={`/search?specialization=${encodeURIComponent(specialization)}`} className="hover:text-blue-400 transition-colors">
-                    {specialization}
-                  </Link>
-                </li>
-              ))}
+              {loading ? (
+                // Loading skeleton
+                Array(8).fill(0).map((_, index) => (
+                  <li key={index} className="animate-pulse">
+                    <div className="h-4 bg-gray-700 rounded w-3/4"></div>
+                  </li>
+                ))
+              ) : error ? (
+                <li className="text-gray-400">{error}</li>
+              ) : topTreatmentTypes.length === 0 ? (
+                <li className="text-gray-400">No treatment types available</li>
+              ) : (
+                topTreatmentTypes.map((type) => (
+                  <li key={type.id}>
+                    <Link 
+                      to={`/search?treatmentTypes=${encodeURIComponent(type.id)}`} 
+                      className="hover:text-blue-400 transition-colors"
+                    >
+                      {type.name}
+                    </Link>
+                  </li>
+                ))
+              )}
             </ul>
           </div>
 

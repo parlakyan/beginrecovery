@@ -68,7 +68,7 @@ export default function TreatmentTypesPage() {
       if (editingType) {
         await treatmentTypesService.updateTreatmentType(editingType.id, formData);
       } else {
-        await treatmentTypesService.addTreatmentType(formData);
+        await treatmentTypesService.createTreatmentType(formData);
       }
       await fetchTreatmentTypes();
       setIsModalOpen(false);
