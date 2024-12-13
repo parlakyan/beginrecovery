@@ -31,6 +31,7 @@ export const facilitiesService = {
   rejectFacility: facilitiesModeration.rejectFacility as (id: string) => Promise<Facility>,
   archiveFacility: facilitiesModeration.archiveFacility as (id: string) => Promise<Facility>,
   restoreFacility: facilitiesModeration.restoreFacility as (id: string) => Promise<Facility>,
+  revertToPending: facilitiesModeration.revertToPending as (id: string) => Promise<Facility>,
 
   // Verification Operations
   verifyFacility: facilitiesVerification.verifyFacility as (id: string) => Promise<Facility>,

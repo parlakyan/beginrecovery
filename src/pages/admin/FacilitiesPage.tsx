@@ -14,7 +14,9 @@ import {
   ExternalLink,
   Box,
   CheckSquare,
-  Square
+  Square,
+  RotateCcw,
+  History
 } from 'lucide-react';
 import { useAuthStore } from '../../store/authStore';
 import { facilitiesService } from '../../services/facilities';
@@ -67,6 +69,14 @@ export default function FacilitiesPage(): JSX.Element {
     facilityId: null
   });
   const [deleteDialog, setDeleteDialog] = useState<{ isOpen: boolean; facilityId: string | null }>({
+    isOpen: false,
+    facilityId: null
+  });
+  const [restoreDialog, setRestoreDialog] = useState<{ isOpen: boolean; facilityId: string | null }>({
+    isOpen: false,
+    facilityId: null
+  });
+  const [revertDialog, setRevertDialog] = useState<{ isOpen: boolean; facilityId: string | null }>({
     isOpen: false,
     facilityId: null
   });
@@ -191,6 +201,32 @@ export default function FacilitiesPage(): JSX.Element {
       setDeleteDialog({ isOpen: false, facilityId: null });
     } catch (error) {
       console.error('Error deleting facility:', error);
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  const handleRestore = async (id: string) => {
+    try {
+      setLoading(true);
+      await facilitiesService.restoreFacility(id);
+      await fetchData();
+      setRestoreDialog({ isOpen: false, facilityId: null });
+    } catch (error) {
+      console.error('Error restoring facility:', error);
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  const handleRevertToPending = async (id: string) => {
+    try {
+      setLoading(true);
+      await facilitiesService.revertToPending(id);
+      await fetchData();
+      setRevertDialog({ isOpen: false, facilityId: null });
+    } catch (error) {
+      console.error('Error reverting facility to pending:', error);
     } finally {
       setLoading(false);
     }
@@ -510,6 +546,28 @@ export default function FacilitiesPage(): JSX.Element {
                     </td>
                     <td className="py-4 px-4">
                       <div className="flex items-center gap-2">
+                        {/* Show restore button for archived facilities */}
+                        {facility.moderationStatus === 'archived' && (
+                          <button 
+                            onClick={() => setRestoreDialog({ isOpen: true, facilityId: facility.id })}
+                            className="p-1 text-blue-600 hover:bg-blue-50 rounded" 
+                            title="Restore Listing"
+                          >
+                            <RotateCcw className="w-5 h-5" />
+                          </button>
+                        )}
+
+                        {/* Show revert to pending button for approved facilities */}
+                        {facility.moderationStatus === 'approved' && (
+                          <button 
+                            onClick={() => setRevertDialog({ isOpen: true, facilityId: facility.id })}
+                            className="p-1 text-yellow-600 hover:bg-yellow-50 rounded" 
+                            title="Revert to Pending"
+                          >
+                            <History className="w-5 h-5" />
+                          </button>
+                        )}
+
                         {/* Approval/Rejection buttons - only show for pending facilities */}
                         {facility.moderationStatus === 'pending' && (
                           <>
@@ -646,6 +704,32 @@ export default function FacilitiesPage(): JSX.Element {
         title="Delete Facility"
         message="Are you sure you want to permanently delete this facility? This action cannot be undone."
         type="danger"
+      />
+
+      <ConfirmationDialog
+        isOpen={restoreDialog.isOpen}
+        onClose={() => setRestoreDialog({ isOpen: false, facilityId: null })}
+        onConfirm={() => {
+          if (restoreDialog.facilityId) {
+            handleRestore(restoreDialog.facilityId);
+          }
+        }}
+        title="Restore Facility"
+        message="Are you sure you want to restore this facility? It will be moved back to pending status."
+        type="warning"
+      />
+
+      <ConfirmationDialog
+        isOpen={revertDialog.isOpen}
+        onClose={() => setRevertDialog({ isOpen: false, facilityId: null })}
+        onConfirm={() => {
+          if (revertDialog.facilityId) {
+            handleRevertToPending(revertDialog.facilityId);
+          }
+        }}
+        title="Revert to Pending"
+        message="Are you sure you want to revert this facility to pending status? This will require re-approval."
+        type="warning"
       />
 
       {/* Batch Action Confirmation Dialogs */}

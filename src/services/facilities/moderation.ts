@@ -131,5 +131,21 @@ export const facilitiesModeration = {
       console.error('Error restoring facility:', error);
       throw error;
     }
+  },
+
+  async revertToPending(id: string) {
+    try {
+      const facilityRef = doc(db, FACILITIES_COLLECTION, id);
+      await updateDoc(facilityRef, {
+        moderationStatus: 'pending',
+        updatedAt: serverTimestamp()
+      });
+      
+      const updatedDoc = await getDoc(facilityRef);
+      return transformFacilityData(updatedDoc as QueryDocumentSnapshot<DocumentData>);
+    } catch (error) {
+      console.error('Error reverting facility to pending:', error);
+      throw error;
+    }
   }
 };
