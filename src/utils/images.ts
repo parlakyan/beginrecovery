@@ -8,7 +8,13 @@
 export const getStreetViewUrl = (lat?: number, lng?: number, size: string = '640x480'): string | null => {
   if (!lat || !lng) return null;
 
-  return `https://maps.googleapis.com/maps/api/streetview?size=${size}&location=${lat},${lng}&key=${process.env.VITE_GOOGLE_MAPS_API_KEY}`;
+  const GOOGLE_MAPS_API_KEY = import.meta.env.VITE_GOOGLE_MAPS_API_KEY;
+  if (!GOOGLE_MAPS_API_KEY) {
+    console.error('Google Maps API key is not configured');
+    return null;
+  }
+
+  return `https://maps.googleapis.com/maps/api/streetview?size=${size}&location=${lat},${lng}&key=${GOOGLE_MAPS_API_KEY}`;
 };
 
 /**
