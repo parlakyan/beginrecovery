@@ -14,6 +14,7 @@ import NotFoundPage from './pages/NotFound';
 import PaymentPage from './pages/Payment';
 import SearchResults from './pages/SearchResults';
 import AdminDashboard from './pages/AdminDashboard';
+import AddressReviewPage from './pages/admin/AddressReviewPage';
 import PaymentSuccess from './pages/payment/Success';
 import PaymentCancel from './pages/payment/Cancel';
 
@@ -70,6 +71,7 @@ export default function App() {
       <Route path="/payment/success" element={<PaymentSuccess />} />
       <Route path="/payment/cancel" element={<PaymentCancel />} />
       <Route path="/admin" element={<AdminDashboard />} />
+      <Route path="/admin/address-review" element={<AddressReviewPage />} />
       <Route path="/404" element={<NotFoundPage />} />
       <Route path="/:slug" element={<ListingDetail />} />
       <Route path="/facility/:id" element={<ListingDetail />} />

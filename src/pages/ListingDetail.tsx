@@ -29,6 +29,8 @@ export default function ListingDetail() {
   const canEdit = user && (user.role === 'admin' || (facility && user.id === facility.ownerId));
   // Check if current user is owner
   const isOwner = user && facility && user.id === facility.ownerId;
+  // Check if facility is owned by admin (claimable)
+  const isAdminOwned = facility?.ownerId === 'admin' || !facility?.ownerId;
 
   // Helper function to safely check array length
   const hasItems = (arr: any[] | undefined): boolean => {
@@ -180,8 +182,8 @@ export default function ListingDetail() {
   
           {/* Admin, Owner, and Claim Controls */}
           <div className="absolute top-4 right-4 flex items-center gap-2 z-10">
-            {/* Show claim button if facility is unclaimed */}
-            {(!facility.ownerId || facility.claimStatus === 'unclaimed') && (
+            {/* Show claim button if facility is admin-owned and unclaimed */}
+            {isAdminOwned && facility.claimStatus === 'unclaimed' && (
               <ClaimButton 
                 facilityId={facility.id}
                 claimStatus={facility.claimStatus}

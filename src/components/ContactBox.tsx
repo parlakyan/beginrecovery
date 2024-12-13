@@ -15,6 +15,9 @@ interface ContactBoxProps {
  * - Unverified facilities: Show claim button and website button
  */
 export default function ContactBox({ facility }: ContactBoxProps) {
+  // Check if facility is owned by admin (claimable)
+  const isAdminOwned = facility.ownerId === 'admin' || !facility.ownerId;
+
   return (
     <div className="bg-white rounded-lg shadow-lg overflow-hidden">
       {/* Logo Section - Only for verified facilities */}
@@ -58,8 +61,8 @@ export default function ContactBox({ facility }: ContactBoxProps) {
 
         {/* CTA Buttons */}
         <div className="space-y-3">
-          {/* Claim Button - Show for unclaimed facilities */}
-          {(!facility.ownerId || facility.claimStatus === 'unclaimed') && (
+          {/* Claim Button - Show only for admin-owned facilities */}
+          {isAdminOwned && facility.claimStatus === 'unclaimed' && (
             <ClaimButton 
               facilityId={facility.id}
               claimStatus={facility.claimStatus}

@@ -184,6 +184,10 @@ The project uses a modular service architecture detailed in `docs/SERVICES.md`:
   - `VERIFICATION.md`: Verification system
   - `STORAGE.md`: Storage system
   - `DESIGN_SYSTEM.md`: Design guidelines
+  - `IMPORTS.md`: Facility import system
+  - `CLAIMS.md`: Facility claiming system
+  - `MIGRATIONS.md`: Data migration system
+
 
 ## Setup Instructions
 
@@ -259,3 +263,19 @@ Please read the CONTRIBUTING.md for details on our code of conduct and the proce
 
 ## License
 This project is licensed under the MIT License.
+
+## Import System
+
+The project includes a robust facility import system that allows administrators to:
+- Import facilities from CSV files
+- Process addresses through Google Maps API
+- Review and fix partial address matches
+- Monitor import progress
+
+Key features:
+- Two-phase import process (basic data + geocoding)
+- Batch processing with rate limiting
+- Progress tracking and error handling
+- Address review interface
+- Detailed documentation in `docs/IMPORTS.md`
+
