@@ -12,7 +12,9 @@ import {
   ShieldAlert,
   Star,
   ExternalLink,
-  Box
+  Box,
+  CheckSquare,
+  Square
 } from 'lucide-react';
 import { useAuthStore } from '../../store/authStore';
 import { facilitiesService } from '../../services/facilities';
@@ -20,6 +22,8 @@ import { Facility } from '../../types';
 import EditListingModal from '../../components/EditListingModal';
 import ConfirmationDialog from '../../components/ConfirmationDialog';
 import DropdownSelect from '../../components/ui/DropdownSelect';
+import Pagination from '../../components/ui/Pagination';
+import { Button } from '../../components/ui';
 
 const getStatusColor = (status: string) => {
   switch (status) {
@@ -43,7 +47,21 @@ export default function FacilitiesPage(): JSX.Element {
   const [editingFacility, setEditingFacility] = useState<Facility | null>(null);
   const [showArchived, setShowArchived] = useState(false);
 
-  // Confirmation dialogs
+  // Pagination state
+  const [currentPage, setCurrentPage] = useState(1);
+  const [pageSize, setPageSize] = useState(12);
+
+  // Batch selection state
+  const [selectedFacilities, setSelectedFacilities] = useState<Set<string>>(new Set());
+  const [selectAll, setSelectAll] = useState(false);
+
+  // Batch action confirmation dialogs
+  const [batchArchiveDialog, setBatchArchiveDialog] = useState(false);
+  const [batchDeleteDialog, setBatchDeleteDialog] = useState(false);
+  const [batchVerifyDialog, setBatchVerifyDialog] = useState(false);
+  const [batchUnverifyDialog, setBatchUnverifyDialog] = useState(false);
+
+  // Individual action dialogs
   const [archiveDialog, setArchiveDialog] = useState<{ isOpen: boolean; facilityId: string | null }>({
     isOpen: false,
     facilityId: null
@@ -63,6 +81,9 @@ export default function FacilitiesPage(): JSX.Element {
       ]);
       setFacilities(allListings);
       setArchivedFacilities(archived);
+      // Reset selection when data changes
+      setSelectedFacilities(new Set());
+      setSelectAll(false);
     } catch (error) {
       console.error('Error fetching facilities:', error);
     } finally {
@@ -74,6 +95,7 @@ export default function FacilitiesPage(): JSX.Element {
     fetchData();
   }, []);
 
+  // Individual action handlers
   const handleEdit = (facility: Facility) => {
     setEditingFacility(facility);
   };
@@ -174,16 +196,88 @@ export default function FacilitiesPage(): JSX.Element {
     }
   };
 
+  // Batch action handlers
+  const handleBatchArchive = async () => {
+    try {
+      setLoading(true);
+      await Promise.all(
+        Array.from(selectedFacilities).map(id => facilitiesService.archiveFacility(id))
+      );
+      await fetchData();
+      setBatchArchiveDialog(false);
+    } catch (error) {
+      console.error('Error batch archiving facilities:', error);
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  const handleBatchDelete = async () => {
+    try {
+      setLoading(true);
+      await Promise.all(
+        Array.from(selectedFacilities).map(id => facilitiesService.deleteFacility(id))
+      );
+      await fetchData();
+      setBatchDeleteDialog(false);
+    } catch (error) {
+      console.error('Error batch deleting facilities:', error);
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  const handleBatchVerify = async (verify: boolean) => {
+    try {
+      setLoading(true);
+      await Promise.all(
+        Array.from(selectedFacilities).map(id => 
+          verify 
+            ? facilitiesService.verifyFacility(id)
+            : facilitiesService.unverifyFacility(id)
+        )
+      );
+      await fetchData();
+      setBatchVerifyDialog(false);
+      setBatchUnverifyDialog(false);
+    } catch (error) {
+      console.error('Error batch verifying facilities:', error);
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  // Batch selection handlers
+  const handleSelectAll = () => {
+    if (selectAll) {
+      setSelectedFacilities(new Set());
+    } else {
+      setSelectedFacilities(new Set(paginatedFacilities.map(f => f.id)));
+    }
+    setSelectAll(!selectAll);
+  };
+
+  const handleSelectFacility = (facilityId: string) => {
+    const newSelected = new Set(selectedFacilities);
+    if (newSelected.has(facilityId)) {
+      newSelected.delete(facilityId);
+    } else {
+      newSelected.add(facilityId);
+    }
+    setSelectedFacilities(newSelected);
+    setSelectAll(newSelected.size === paginatedFacilities.length);
+  };
+
   // Filter facilities based on search and filters
   const filteredFacilities = (showArchived ? archivedFacilities : facilities).filter((facility: Facility) => {
     const searchLower = searchTerm.toLowerCase();
     const matchesSearch = searchTerm === '' || 
       facility.name.toLowerCase().includes(searchLower) ||
-      facility.location.toLowerCase().includes(searchLower) ||
-      facility.email?.toLowerCase().includes(searchLower) ||
-      facility.phone?.toLowerCase().includes(searchLower) ||
-      (facility.city && facility.city.toLowerCase().includes(searchLower)) ||
-      (facility.state && facility.state.toLowerCase().includes(searchLower));
+      (facility.location || '').toLowerCase().includes(searchLower) ||
+      (facility.email || '').toLowerCase().includes(searchLower) ||
+      (facility.phone || '').toLowerCase().includes(searchLower) ||
+      (facility.city || '').toLowerCase().includes(searchLower) ||
+      (facility.state || '').toLowerCase().includes(searchLower);
     
     const matchesStatus = statusFilter === 'all' || facility.moderationStatus === statusFilter;
     
@@ -193,6 +287,13 @@ export default function FacilitiesPage(): JSX.Element {
 
     return matchesSearch && matchesStatus && matchesVerification;
   });
+
+  // Pagination calculations
+  const totalPages = Math.ceil(filteredFacilities.length / pageSize);
+  const paginatedFacilities = filteredFacilities.slice(
+    (currentPage - 1) * pageSize,
+    currentPage * pageSize
+  );
 
   return (
     <div className="space-y-6">
@@ -214,7 +315,12 @@ export default function FacilitiesPage(): JSX.Element {
 
         {/* View Toggle */}
         <button
-          onClick={() => setShowArchived(!showArchived)}
+          onClick={() => {
+            setShowArchived(!showArchived);
+            setSelectedFacilities(new Set());
+            setSelectAll(false);
+            setCurrentPage(1);
+          }}
           className={`flex items-center gap-2 px-4 py-2 rounded-lg border ${
             showArchived 
               ? 'bg-gray-100 text-gray-700 hover:bg-gray-200'
@@ -261,6 +367,55 @@ export default function FacilitiesPage(): JSX.Element {
         )}
       </div>
 
+      {/* Batch Actions */}
+      {selectedFacilities.size > 0 && (
+        <div className="flex items-center gap-3 p-4 bg-blue-50 rounded-lg">
+          <span className="text-blue-700 font-medium">
+            {selectedFacilities.size} {selectedFacilities.size === 1 ? 'facility' : 'facilities'} selected
+          </span>
+          <div className="flex gap-2">
+            {!showArchived && (
+              <>
+                <Button
+                  variant="secondary"
+                  onClick={() => setBatchVerifyDialog(true)}
+                  className="text-sm"
+                >
+                  <ShieldCheck className="w-4 h-4" />
+                  Verify
+                </Button>
+                <Button
+                  variant="secondary"
+                  onClick={() => setBatchUnverifyDialog(true)}
+                  className="text-sm"
+                >
+                  <ShieldAlert className="w-4 h-4" />
+                  Unverify
+                </Button>
+                <Button
+                  variant="secondary"
+                  onClick={() => setBatchArchiveDialog(true)}
+                  className="text-sm"
+                >
+                  <Archive className="w-4 h-4" />
+                  Archive
+                </Button>
+              </>
+            )}
+            {showArchived && (
+              <Button
+                variant="secondary"
+                onClick={() => setBatchDeleteDialog(true)}
+                className="text-sm bg-red-50 text-red-700 hover:bg-red-100"
+              >
+                <Trash2 className="w-4 h-4" />
+                Delete
+              </Button>
+            )}
+          </div>
+        </div>
+      )}
+
       {/* Content */}
       <div className="bg-white">
         {loading ? (
@@ -283,6 +438,18 @@ export default function FacilitiesPage(): JSX.Element {
             <table className="w-full">
               <thead>
                 <tr className="border-b">
+                  <th className="py-4 px-4">
+                    <button
+                      onClick={handleSelectAll}
+                      className="p-1 hover:bg-gray-100 rounded"
+                    >
+                      {selectAll ? (
+                        <CheckSquare className="w-5 h-5 text-blue-600" />
+                      ) : (
+                        <Square className="w-5 h-5 text-gray-400" />
+                      )}
+                    </button>
+                  </th>
                   <th className="text-left py-4 px-4 font-semibold">Facility</th>
                   <th className="text-left py-4 px-4 font-semibold">Location</th>
                   <th className="text-left py-4 px-4 font-semibold">Status</th>
@@ -291,8 +458,20 @@ export default function FacilitiesPage(): JSX.Element {
                 </tr>
               </thead>
               <tbody>
-                {filteredFacilities.map((facility) => (
+                {paginatedFacilities.map((facility) => (
                   <tr key={facility.id} className="border-b hover:bg-gray-50">
+                    <td className="py-4 px-4">
+                      <button
+                        onClick={() => handleSelectFacility(facility.id)}
+                        className="p-1 hover:bg-gray-100 rounded"
+                      >
+                        {selectedFacilities.has(facility.id) ? (
+                          <CheckSquare className="w-5 h-5 text-blue-600" />
+                        ) : (
+                          <Square className="w-5 h-5 text-gray-400" />
+                        )}
+                      </button>
+                    </td>
                     <td className="py-4 px-4">
                       <div className="font-medium flex items-center gap-2">
                         {facility.name}
@@ -310,8 +489,8 @@ export default function FacilitiesPage(): JSX.Element {
                     </td>
                     <td className="py-4 px-4 text-gray-600">{facility.location}</td>
                     <td className="py-4 px-4">
-                      <span className={`inline-flex items-center px-3 py-1 rounded-full text-sm font-medium border ${getStatusColor(facility.moderationStatus)}`}>
-                        {facility.moderationStatus.charAt(0).toUpperCase() + facility.moderationStatus.slice(1)}
+                      <span className={`inline-flex items-center px-3 py-1 rounded-full text-sm font-medium border ${getStatusColor(facility.moderationStatus || '')}`}>
+                        {(facility.moderationStatus || '').charAt(0).toUpperCase() + (facility.moderationStatus || '').slice(1)}
                       </span>
                     </td>
                     <td className="py-4 px-4">
@@ -416,6 +595,18 @@ export default function FacilitiesPage(): JSX.Element {
                 ))}
               </tbody>
             </table>
+
+            {/* Pagination */}
+            <Pagination
+              currentPage={currentPage}
+              totalPages={totalPages}
+              pageSize={pageSize}
+              onPageChange={setCurrentPage}
+              onPageSizeChange={(size) => {
+                setPageSize(size);
+                setCurrentPage(1);
+              }}
+            />
           </div>
         )}
       </div>
@@ -430,7 +621,7 @@ export default function FacilitiesPage(): JSX.Element {
         />
       )}
 
-      {/* Archive Confirmation */}
+      {/* Individual Action Confirmation Dialogs */}
       <ConfirmationDialog
         isOpen={archiveDialog.isOpen}
         onClose={() => setArchiveDialog({ isOpen: false, facilityId: null })}
@@ -444,7 +635,6 @@ export default function FacilitiesPage(): JSX.Element {
         type="warning"
       />
 
-      {/* Delete Confirmation */}
       <ConfirmationDialog
         isOpen={deleteDialog.isOpen}
         onClose={() => setDeleteDialog({ isOpen: false, facilityId: null })}
@@ -456,6 +646,43 @@ export default function FacilitiesPage(): JSX.Element {
         title="Delete Facility"
         message="Are you sure you want to permanently delete this facility? This action cannot be undone."
         type="danger"
+      />
+
+      {/* Batch Action Confirmation Dialogs */}
+      <ConfirmationDialog
+        isOpen={batchArchiveDialog}
+        onClose={() => setBatchArchiveDialog(false)}
+        onConfirm={handleBatchArchive}
+        title="Archive Facilities"
+        message={`Are you sure you want to archive ${selectedFacilities.size} facilities? They will be moved to the archived section.`}
+        type="warning"
+      />
+
+      <ConfirmationDialog
+        isOpen={batchDeleteDialog}
+        onClose={() => setBatchDeleteDialog(false)}
+        onConfirm={handleBatchDelete}
+        title="Delete Facilities"
+        message={`Are you sure you want to permanently delete ${selectedFacilities.size} facilities? This action cannot be undone.`}
+        type="danger"
+      />
+
+      <ConfirmationDialog
+        isOpen={batchVerifyDialog}
+        onClose={() => setBatchVerifyDialog(false)}
+        onConfirm={() => handleBatchVerify(true)}
+        title="Verify Facilities"
+        message={`Are you sure you want to verify ${selectedFacilities.size} facilities?`}
+        type="warning"
+      />
+
+      <ConfirmationDialog
+        isOpen={batchUnverifyDialog}
+        onClose={() => setBatchUnverifyDialog(false)}
+        onConfirm={() => handleBatchVerify(false)}
+        title="Remove Verification"
+        message={`Are you sure you want to remove verification from ${selectedFacilities.size} facilities?`}
+        type="warning"
       />
     </div>
   );
