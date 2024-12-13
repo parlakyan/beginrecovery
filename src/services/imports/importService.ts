@@ -136,6 +136,54 @@ export const importService = {
   },
 
   /**
+   * Cancel an import job
+   */
+  async cancelImportJob(jobId: string): Promise<void> {
+    const jobRef = doc(db, IMPORT_JOBS_COLLECTION, jobId);
+    const jobSnap = await getDoc(jobRef);
+    
+    if (!jobSnap.exists()) {
+      throw new Error('Import job not found');
+    }
+
+    const job = jobSnap.data() as ImportJob;
+    
+    // Only allow canceling jobs that are in progress
+    if (job.status !== 'importing' && job.status !== 'geocoding') {
+      throw new Error('Can only cancel jobs that are in progress');
+    }
+
+    // Update job status to failed
+    await updateDoc(jobRef, {
+      status: 'failed' as ImportStatus,
+      error: 'Import cancelled by user',
+      updatedAt: serverTimestamp()
+    });
+
+    // Get all pending facilities for this job
+    const q = query(
+      collection(db, IMPORTED_FACILITIES_COLLECTION),
+      where('importJobId', '==', jobId),
+      where('addressMatchQuality', '==', 'pending')
+    );
+
+    const snapshot = await getDocs(q);
+    const batch = writeBatch(db);
+
+    // Mark all pending facilities as needing review
+    snapshot.docs.forEach(doc => {
+      batch.update(doc.ref, {
+        addressMatchQuality: 'none' as AddressMatchQuality,
+        needsReview: true,
+        geocodingError: 'Import cancelled by user',
+        processedAt: serverTimestamp()
+      });
+    });
+
+    await batch.commit();
+  },
+
+  /**
    * Phase 1: Import basic facility data
    */
   async importBasicData(jobId: string, facilities: FacilityCSVRow[]): Promise<void> {
