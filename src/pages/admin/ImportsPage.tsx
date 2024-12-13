@@ -20,13 +20,29 @@ export default function ImportsPage() {
       try {
         const jobs = await importService.getImportJobs();
         setJobs(jobs);
+
+        // Find any jobs that need geocoding and start the process
+        const geocodingJobs = jobs.filter(job => job.status === 'geocoding');
+        geocodingJobs.forEach(job => {
+          // Start geocoding in the background
+          importService.processAddresses(job.id).catch(err => {
+            console.error('Error processing addresses:', err);
+            // Don't update UI on error - will be handled on next fetch
+          });
+        });
       } catch (err) {
         console.error('Error fetching import jobs:', err);
         setError('Failed to load import jobs');
       }
     };
 
+    // Initial fetch
     fetchJobs();
+
+    // Set up polling for updates
+    const interval = setInterval(fetchJobs, 5000); // Poll every 5 seconds
+
+    return () => clearInterval(interval);
   }, []);
 
   // Handle file selection
@@ -71,8 +87,11 @@ export default function ImportsPage() {
       // Start import process
       await importService.importBasicData(jobId, results.data);
 
-      // Start address processing
-      importService.processAddresses(jobId).catch(console.error);
+      // Start address processing in the background
+      importService.processAddresses(jobId).catch(err => {
+        console.error('Error processing addresses:', err);
+        // Don't update UI on error - will be handled by polling
+      });
 
       // Refresh jobs list
       const updatedJobs = await importService.getImportJobs();

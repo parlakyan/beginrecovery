@@ -20,12 +20,32 @@ export function useLocation(): LocationResult {
         // Try to get location from browser geolocation
         if ('geolocation' in navigator) {
           const position = await new Promise<GeolocationPosition>((resolve, reject) => {
-            navigator.geolocation.getCurrentPosition(resolve, reject, {
-              enableHighAccuracy: true,
-              timeout: 5000,
-              maximumAge: 0
-            });
+            navigator.geolocation.getCurrentPosition(
+              resolve,
+              (err) => {
+                // Handle specific geolocation errors
+                if (err.code === err.PERMISSION_DENIED) {
+                  // User denied location permission - fail silently
+                  resolve(null);
+                } else if (err.code === err.TIMEOUT) {
+                  reject(new Error('Location request timed out'));
+                } else {
+                  reject(err);
+                }
+              },
+              {
+                enableHighAccuracy: false, // Set to false for faster response
+                timeout: 30000, // Increased timeout to 30 seconds
+                maximumAge: 300000 // Cache location for 5 minutes
+              }
+            );
           });
+
+          // If user denied permission or no position available, exit gracefully
+          if (!position) {
+            setLocation(null);
+            return;
+          }
 
           const { latitude, longitude } = position.coords;
 
@@ -65,14 +85,19 @@ export function useLocation(): LocationResult {
               setLocation(result.formatted_address);
             }
           } else {
+            // No results found - fail silently
             setLocation(null);
           }
         } else {
+          // Geolocation not supported - fail silently
           setLocation(null);
         }
       } catch (err) {
         console.error('Error getting location:', err);
-        setError(err instanceof Error ? err.message : 'Failed to get location');
+        // Only set error for network/API failures, not permission denials
+        if (err instanceof Error && !err.message.includes('permission')) {
+          setError(err.message);
+        }
         setLocation(null);
       } finally {
         setLoading(false);
