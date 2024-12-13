@@ -32,8 +32,27 @@ import {
   IMPORTED_FACILITIES_COLLECTION
 } from './types';
 
-const GEOCODING_BATCH_SIZE = 50;
-const GEOCODING_DELAY = 1000; // 1 second between batches
+const GEOCODING_BATCH_SIZE = 25; // Reduced batch size
+const GEOCODING_DELAY = 2000; // Increased delay between batches
+const MAX_RETRIES = 3; // Maximum number of retries for geocoding
+const GEOCODING_TIMEOUT = 30000; // Increased timeout to 30 seconds
+
+/**
+ * Retry a function with exponential backoff
+ */
+async function retryWithBackoff<T>(
+  fn: () => Promise<T>,
+  retries: number = MAX_RETRIES,
+  delay: number = 1000
+): Promise<T> {
+  try {
+    return await fn();
+  } catch (error) {
+    if (retries === 0) throw error;
+    await new Promise(resolve => setTimeout(resolve, delay));
+    return retryWithBackoff(fn, retries - 1, delay * 2);
+  }
+}
 
 /**
  * Create initial facility data with required fields
@@ -262,7 +281,7 @@ export const importService = {
    * Phase 2: Process addresses
    */
   async processAddresses(jobId: string): Promise<void> {
-    const apiKey = process.env.VITE_GOOGLE_MAPS_API_KEY;
+    const apiKey = import.meta.env.VITE_GOOGLE_MAPS_API_KEY;
     if (!apiKey) {
       throw new Error('Google Maps API key not configured');
     }
@@ -290,14 +309,17 @@ export const importService = {
           const facilityRef = doc(db, 'facilities', facility.facilityId);
 
           try {
-            // Geocode address with increased timeout
-            const response = await googleMaps.geocode({
-              params: {
-                address: facility.rawAddress,
-                key: apiKey,
-                region: 'us'
-              },
-              timeout: 10000 // Increase timeout to 10 seconds
+            // Geocode address with retries and increased timeout
+            const response = await retryWithBackoff(async () => {
+              return await googleMaps.geocode({
+                params: {
+                  address: facility.rawAddress,
+                  key: apiKey,
+                  region: 'us',
+                  components: 'country:US' // Restrict to US addresses
+                },
+                timeout: GEOCODING_TIMEOUT
+              });
             });
 
             if (!response.data.results || response.data.results.length === 0) {
@@ -351,11 +373,13 @@ export const importService = {
           } catch (error) {
             console.error('Error geocoding address:', error);
             
-            // Update import record
+            // Update import record with detailed error
             await updateDoc(facilityDoc.ref, {
               addressMatchQuality: 'none' as AddressMatchQuality,
               needsReview: true,
-              geocodingError: error instanceof Error ? error.message : 'Unknown error',
+              geocodingError: error instanceof Error 
+                ? `${error.name}: ${error.message}`
+                : 'Unknown error',
               processedAt: serverTimestamp()
             });
 
@@ -384,7 +408,9 @@ export const importService = {
       console.error('Error in address processing:', error);
       await updateDoc(jobRef, {
         status: 'failed' as ImportStatus,
-        error: error instanceof Error ? error.message : 'Unknown error',
+        error: error instanceof Error 
+          ? `${error.name}: ${error.message}`
+          : 'Unknown error',
         updatedAt: serverTimestamp()
       });
       throw error;
