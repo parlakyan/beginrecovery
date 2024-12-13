@@ -1,5 +1,5 @@
 import React, { useState, useEffect, useRef } from 'react';
-import { Upload, FileSpreadsheet, AlertTriangle, MapPin } from 'lucide-react';
+import { Upload, FileSpreadsheet, AlertTriangle, MapPin, XCircle } from 'lucide-react';
 import { Link } from 'react-router-dom';
 import { importService } from '../../services/imports/importService';
 import { ImportJob, ImportedFacility } from '../../services/imports/types';
@@ -11,6 +11,7 @@ export default function ImportsPage() {
   const [selectedFile, setSelectedFile] = useState<File | null>(null);
   const [uploading, setUploading] = useState(false);
   const [error, setError] = useState<string | null>(null);
+  const [cancelling, setCancelling] = useState<string | null>(null);
   const fileInputRef = useRef<HTMLInputElement>(null);
 
   // Fetch import jobs
@@ -88,6 +89,21 @@ export default function ImportsPage() {
       setError(err instanceof Error ? err.message : 'Failed to import facilities');
     } finally {
       setUploading(false);
+    }
+  };
+
+  // Handle job cancellation
+  const handleCancel = async (jobId: string) => {
+    try {
+      setCancelling(jobId);
+      await importService.cancelImportJob(jobId);
+      const updatedJobs = await importService.getImportJobs();
+      setJobs(updatedJobs);
+    } catch (err) {
+      console.error('Error cancelling import:', err);
+      setError(err instanceof Error ? err.message : 'Failed to cancel import');
+    } finally {
+      setCancelling(null);
     }
   };
 
@@ -193,13 +209,26 @@ export default function ImportsPage() {
                     Started: {formatDate(job.createdAt)}
                   </p>
                 </div>
-                <span className={`px-3 py-1 rounded-full text-sm ${
-                  job.status === 'completed' ? 'bg-green-100 text-green-800' :
-                  job.status === 'failed' ? 'bg-red-100 text-red-800' :
-                  'bg-blue-100 text-blue-800'
-                }`}>
-                  {job.status.charAt(0).toUpperCase() + job.status.slice(1)}
-                </span>
+                <div className="flex items-center gap-3">
+                  <span className={`px-3 py-1 rounded-full text-sm ${
+                    job.status === 'completed' ? 'bg-green-100 text-green-800' :
+                    job.status === 'failed' ? 'bg-red-100 text-red-800' :
+                    'bg-blue-100 text-blue-800'
+                  }`}>
+                    {job.status.charAt(0).toUpperCase() + job.status.slice(1)}
+                  </span>
+                  {(job.status === 'importing' || job.status === 'geocoding') && (
+                    <Button
+                      variant="secondary"
+                      disabled={cancelling === job.id}
+                      onClick={() => handleCancel(job.id)}
+                      className="flex items-center gap-1 bg-red-50 text-red-700 hover:bg-red-100 px-3 py-1.5 text-sm"
+                    >
+                      <XCircle className="w-4 h-4" />
+                      {cancelling === job.id ? 'Cancelling...' : 'Cancel'}
+                    </Button>
+                  )}
+                </div>
               </div>
 
               {/* Progress Bar */}
