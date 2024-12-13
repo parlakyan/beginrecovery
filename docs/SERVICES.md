@@ -28,57 +28,84 @@ Located in `src/services/facilities/`, split into modular components:
   - Combined search capabilities
 - Moderation workflow
 - Verification status management
+- Archived facilities management
 - License and insurance integration
 - Photo and logo management
-- Automated migrations
-  - Slug generation for existing facilities
-  - Data structure updates
 
-#### Migration System
-The facilities service includes an automated migration system to handle data structure updates:
-
-##### Slug Migration
-Ensures all facilities have URL-friendly slugs:
+#### Return Types
+All facility-fetching methods now return direct arrays:
 ```typescript
-// Run slug migration
-await facilitiesService.migrateExistingSlugs();
+// Get all active facilities (excludes archived)
+const facilities: Facility[] = await facilitiesService.getFacilities();
+
+// Get featured facilities (limited to 6)
+const featured: Facility[] = await facilitiesService.getFeaturedFacilities();
+
+// Get user's facilities
+const userListings: Facility[] = await facilitiesService.getUserListings(userId);
+
+// Search facilities
+const searchResults: Facility[] = await facilitiesService.searchFacilities({
+  query: 'rehab',
+  location: ['Phoenix, AZ'],
+  treatmentTypes: ['inpatient']
+});
 ```
 
-This will:
-1. Find all facilities without slugs
-2. Generate slugs from facility names and locations
-3. Update the facilities with new slugs
-4. Handle duplicate slugs by appending unique identifiers
+#### Archived Facilities
+Archived facilities are handled separately:
+```typescript
+// Admin view - get all non-archived facilities
+const active: Facility[] = await facilitiesService.getAllListingsForAdmin();
+
+// Admin view - get archived facilities
+const archived: Facility[] = await facilitiesService.getArchivedListings();
+
+// Archive a facility
+await facilitiesService.archiveFacility(facilityId);
+
+// Note: Archived facilities are automatically excluded from:
+// - Public search results
+// - Featured facilities
+// - Homepage listings
+```
 
 #### Example Usage
 ```typescript
 import { facilitiesService } from '../services/facilities';
 
 // Create facility
-const { id } = await facilitiesService.createFacility(data);
+const { id } = await facilitiesService.createFacility({
+  name: 'Recovery Center',
+  description: 'Treatment facility',
+  location: '123 Main St',
+  city: 'Phoenix',
+  state: 'AZ',
+  // ... other fields
+});
 
 // Search facilities with location
 const results = await facilitiesService.searchFacilities({
   query: searchText,
   location: ['Los Angeles, CA'],  // City, State format
-  treatmentTypes,
-  amenities,
-  insurance,
-  rating
-});
-
-// Search with multiple filters
-const filteredResults = await facilitiesService.searchFacilities({
-  query: '',
-  location: ['Phoenix, AZ', 'Tucson, AZ'],
-  treatmentTypes: ['Inpatient', 'Outpatient'],
-  amenities: ['Pool', 'Gym'],
-  insurance: ['Medicare', 'Blue Cross'],
+  treatmentTypes: ['inpatient'],
+  amenities: ['pool', 'gym'],
+  insurance: ['medicare'],
   rating: 4
 });
 
-// Run migrations if needed
-await facilitiesService.migrateExistingSlugs();
+// Moderation actions
+await facilitiesService.approveFacility(id);
+await facilitiesService.rejectFacility(id);
+await facilitiesService.archiveFacility(id);
+
+// Verification actions
+await facilitiesService.verifyFacility(id);
+await facilitiesService.unverifyFacility(id);
+
+// Feature actions
+await facilitiesService.featureFacility(id);
+await facilitiesService.unfeatureFacility(id);
 ```
 
 #### Search Parameters
@@ -86,10 +113,14 @@ await facilitiesService.migrateExistingSlugs();
 interface SearchParams {
   query: string;           // General search text
   location?: string[];     // Array of "City, State" strings
-  treatmentTypes: string[];
-  amenities: string[];
-  insurance: string[];
-  rating: number | null;
+  treatmentTypes?: string[];
+  amenities?: string[];
+  insurance?: string[];
+  conditions?: string[];
+  substances?: string[];
+  therapies?: string[];
+  languages?: string[];
+  rating?: number | null;
 }
 ```
 
@@ -222,24 +253,6 @@ graph TD
     B --> F[Show Staff Section]
 ```
 
-### Search Implementation
-1. Filter Management
-   - Clear filter interfaces
-   - Efficient filtering
-   - Proper type handling
-   - Case-insensitive matching
-
-2. Location Handling
-   - City, State format
-   - Case-insensitive matching
-   - Multiple location support
-   - Proper string parsing
-
-3. Performance
-   - Efficient filtering
-   - Proper indexing
-   - Result caching
-   - Query optimization
 ## Testing
 
 ### Unit Tests
@@ -253,47 +266,11 @@ describe('facilitiesService', () => {
     // Test verification flow
   });
 
-  it('migrates existing slugs correctly', async () => {
-    await facilitiesService.migrateExistingSlugs();
-    const facilities = await facilitiesService.getFacilities();
-    expect(facilities.facilities.every(f => f.slug)).toBe(true);
-  });
-
-  it('handles duplicate slugs during migration', async () => {
-    const facilities = await facilitiesService.getFacilities();
-    const slugs = new Set(facilities.facilities.map(f => f.slug));
-    expect(slugs.size).toBe(facilities.facilities.length);
-  });
-});
-
-describe('licensesService', () => {
-  it('manages licenses correctly', async () => {
-    // Test license management
-  });
-});
-```
-
-### Search Tests
-```typescript
-describe('facilitiesService.search', () => {
-  it('filters by location correctly', async () => {
+  it('excludes archived facilities from search', async () => {
     const results = await facilitiesService.searchFacilities({
-      query: '',
-      location: ['Phoenix, AZ']
+      query: ''
     });
-    expect(results.every(f => 
-      f.city.toLowerCase() === 'phoenix' && 
-      f.state.toLowerCase() === 'az'
-    )).toBe(true);
-  });
-
-  it('combines multiple filters', async () => {
-    const results = await facilitiesService.searchFacilities({
-      location: ['Los Angeles, CA'],
-      treatmentTypes: ['Inpatient'],
-      rating: 4
-    });
-    // Test combined filters
+    expect(results.every(f => f.moderationStatus !== 'archived')).toBe(true);
   });
 });
 ```
@@ -343,45 +320,24 @@ describe('Service Interactions', () => {
    - Access control
    - URL management
 
-### Migration Handling
-1. Data Integrity
-   - Backup before migration
-   - Validate results
-   - Handle errors gracefully
-
-2. Performance
-   - Batch updates
-   - Progress tracking
-   - Resumable operations
-
 ## Future Improvements
-1. Enhanced caching
-2. Offline support
-3. Real-time updates
-4. Better search optimization
-5. Enhanced validation
-6. Automated cleanup
-7. Performance monitoring
-8. Enhanced security
-9. Better error handling
-10. Documentation updates
-11. Enhanced search capabilities
-    - Fuzzy matching
-    - Relevance scoring
-    - Search suggestions
-12. Location improvements
-    - Radius search
-    - Map integration
-    - Location autocomplete
-13. Filter enhancements
-    - Saved filters
-    - Filter combinations
-    - Custom filters
-14. Performance optimization
-    - Query caching
-    - Partial results
-    - Progressive loading
-15. Analytics integration
-    - Search patterns
-    - Popular locations
-    - Filter usage
+1. Enhanced search capabilities
+   - Fuzzy matching
+   - Relevance scoring
+   - Search suggestions
+2. Location improvements
+   - Radius search
+   - Map integration
+   - Location autocomplete
+3. Filter enhancements
+   - Saved filters
+   - Filter combinations
+   - Custom filters
+4. Performance optimization
+   - Query caching
+   - Partial results
+   - Progressive loading
+5. Analytics integration
+   - Search patterns
+   - Popular locations
+   - Filter usage

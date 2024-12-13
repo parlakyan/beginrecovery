@@ -5,313 +5,275 @@ This document details the search and filter system implementation in the Recover
 ## Overview
 
 The search system provides:
-- Full-text search across all fields
+- Full-text search across all facility fields
 - Multi-criteria filtering
-- Location-based search
+- Location-based search with city/state matching
+- Collection-based filtering (treatments, amenities, etc.)
+- Automatic exclusion of archived facilities
 - Sort by relevance, rating, and verification status
-- Real-time updates
+- Real-time updates with debouncing
 
 ## Implementation
 
 ### Search Parameters
 
 ```typescript
-// src/services/facilities/types.ts
 export interface SearchParams {
-  query: string;          // Text search query
-  location: string[];     // Array of "city,state" strings
-  treatmentTypes: string[]; // Treatment type IDs
-  amenityObjects: string[]; // Amenity IDs
-  insurances: string[];   // Insurance IDs
-  conditions: string[];   // Condition IDs
-  substances: string[];   // Substance IDs
-  therapies: string[];    // Therapy IDs
-  languageObjects: string[]; // Language IDs
-  rating: number | null;  // Minimum rating filter
+  query: string;           // Text search query
+  location?: string[];     // Array of "city, state" strings
+  treatmentTypes?: string[]; // Treatment type IDs
+  amenities?: string[];    // Amenity IDs
+  insurance?: string[];    // Insurance IDs
+  conditions?: string[];   // Condition IDs
+  substances?: string[];   // Substance IDs
+  therapies?: string[];    // Therapy IDs
+  languages?: string[];    // Language IDs
+  rating?: number | null;  // Minimum rating filter
 }
 ```
 
-### Search Function
+### Facilities Service Search
+
+The facilities service handles the core search functionality:
 
 ```typescript
-// src/services/facilities/search.ts
-export const facilitiesSearch = {
-  async searchFacilities(params: SearchParams): Promise<Facility[]> {
-    try {
-      // Get base query for approved facilities
-      const facilitiesRef = collection(db, FACILITIES_COLLECTION);
-      const q = query(
-        facilitiesRef,
-        where('moderationStatus', '==', 'approved')
-      );
+async searchFacilities(params: SearchParams): Promise<Facility[]> {
+  // Get only approved, non-archived facilities
+  const facilities = await this.getFacilities();
+  const searchLower = params.query.toLowerCase();
+  
+  return facilities.filter(facility => {
+    // Basic search match
+    const matchesSearch = searchLower === '' || 
+      facility.name.toLowerCase().includes(searchLower) ||
+      (facility.location || '').toLowerCase().includes(searchLower) ||
+      (facility.city || '').toLowerCase().includes(searchLower) ||
+      (facility.state || '').toLowerCase().includes(searchLower);
 
-      // Get facilities and filter in memory
-      const snapshot = await getDocs(q);
-      let facilities = snapshot.docs.map(doc => transformFacilityData(doc));
-
-      // Apply filters
-      facilities = facilities.filter(facility => {
-        // Text search across all fields
-        const matchesQuery = this.matchesTextSearch(facility, params.query);
-
-        // Location filter
-        const matchesLocation = this.matchesLocation(facility, params.location);
-
-        // Field-specific filters using managed fields
-        const matchesTreatment = this.matchesFieldFilter(
-          facility.treatmentTypes,
-          params.treatmentTypes
-        );
-
-        const matchesAmenities = this.matchesFieldFilter(
-          facility.amenityObjects,
-          params.amenityObjects
-        );
-
-        const matchesInsurance = this.matchesFieldFilter(
-          facility.insurances,
-          params.insurances
-        );
-
-        const matchesConditions = this.matchesFieldFilter(
-          facility.conditions,
-          params.conditions
-        );
-
-        const matchesSubstances = this.matchesFieldFilter(
-          facility.substances,
-          params.substances
-        );
-
-        const matchesTherapies = this.matchesFieldFilter(
-          facility.therapies,
-          params.therapies
-        );
-
-        const matchesLanguages = this.matchesFieldFilter(
-          facility.languageObjects,
-          params.languageObjects
-        );
-
-        return matchesQuery && 
-               matchesLocation && 
-               matchesTreatment && 
-               matchesAmenities &&
-               matchesInsurance &&
-               matchesConditions &&
-               matchesSubstances &&
-               matchesTherapies &&
-               matchesLanguages;
-      });
-
-      // Apply sorting
-      return this.sortResults(facilities, params.query);
-    } catch (error) {
-      console.error('Search error:', error);
-      return [];
-    }
-  },
-
-  private matchesTextSearch(facility: Facility, query: string): boolean {
-    if (!query) return true;
-
-    const searchText = query.toLowerCase();
-    const searchableFields = [
-      facility.name,
-      facility.description,
-      facility.location,
-      facility.city,
-      facility.state,
-      facility.email,
-      facility.phone,
-      ...(facility.treatmentTypes?.map(t => t.name) || []),
-      ...(facility.substances?.map(s => s.name) || []),
-      ...(facility.amenityObjects?.map(a => a.name) || []),
-      ...(facility.insurances?.map(i => i.name) || []),
-      ...(facility.languageObjects?.map(l => l.name) || []),
-      ...(facility.conditions?.map(c => c.name) || []),
-      ...(facility.therapies?.map(t => t.name) || [])
-    ];
-
-    return searchableFields.some(field => 
-      field && field.toString().toLowerCase().includes(searchText)
-    );
-  },
-
-  private matchesLocation(facility: Facility, locations: string[]): boolean {
-    if (!locations?.length) return true;
-
-    return locations.some(loc => {
-      const [city, state] = loc.split(',').map(part => part.trim());
-      return facility.city.toLowerCase() === city.toLowerCase() &&
-             facility.state.toLowerCase() === state.toLowerCase();
+    // Location match - handle city, state format
+    const matchesLocation = !params.location?.length || params.location.some(loc => {
+      const [city, state] = loc.split(',').map(s => s.trim().toLowerCase());
+      return (facility.city?.toLowerCase() === city && facility.state?.toLowerCase() === state);
     });
-  },
 
-  private matchesFieldFilter<T extends { id: string }>(
-    facilityFields: T[] | undefined,
-    filterIds: string[]
-  ): boolean {
-    if (!filterIds?.length) return true;
-    return filterIds.some(id => 
-      facilityFields?.some(field => field.id === id)
-    );
-  },
+    // Collection matches with proper null handling
+    const matchesTreatmentTypes = !params.treatmentTypes?.length || 
+      facility.treatmentTypes?.some(type => params.treatmentTypes?.includes(type.id));
 
-  private sortResults(facilities: Facility[], query: string): Facility[] {
-    return facilities.sort((a, b) => {
-      // Sort by exact name match
-      const aNameMatch = a.name.toLowerCase().includes(query.toLowerCase());
-      const bNameMatch = b.name.toLowerCase().includes(query.toLowerCase());
-      if (aNameMatch && !bNameMatch) return -1;
-      if (!aNameMatch && bNameMatch) return 1;
+    const matchesAmenities = !params.amenities?.length ||
+      facility.amenityObjects?.some(amenity => params.amenities?.includes(amenity.id));
 
-      // Then by rating
-      if (b.rating !== a.rating) return b.rating - a.rating;
+    const matchesInsurance = !params.insurance?.length ||
+      facility.insurances?.some(ins => params.insurance?.includes(ins.id));
 
-      // Then by verification status
-      if (a.isVerified && !b.isVerified) return -1;
-      if (!a.isVerified && b.isVerified) return 1;
+    const matchesConditions = !params.conditions?.length ||
+      facility.conditions?.some(condition => params.conditions?.includes(condition.id));
 
-      // Finally by name
-      return a.name.localeCompare(b.name);
-    });
-  }
-};
+    const matchesSubstances = !params.substances?.length ||
+      facility.substances?.some(substance => params.substances?.includes(substance.id));
+
+    const matchesTherapies = !params.therapies?.length ||
+      facility.therapies?.some(therapy => params.therapies?.includes(therapy.id));
+
+    const matchesLanguages = !params.languages?.length ||
+      facility.languageObjects?.some(lang => params.languages?.includes(lang.id));
+
+    const matchesRating = !params.rating ||
+      (facility.rating && facility.rating >= (params.rating || 0));
+
+    return matchesSearch &&
+      matchesLocation &&
+      matchesTreatmentTypes &&
+      matchesAmenities &&
+      matchesInsurance &&
+      matchesConditions &&
+      matchesSubstances &&
+      matchesTherapies &&
+      matchesLanguages &&
+      matchesRating;
+  });
+}
 ```
 
 ### Search Hook
 
+The useSearch hook provides a simple interface for components to use the search functionality:
+
 ```typescript
-// src/hooks/useSearch.ts
-export function useSearch() {
-  const [searchParams, setSearchParams] = useSearchParams();
+export function useSearch(query: string, filters: Partial<Omit<SearchParams, 'query'>>) {
   const [results, setResults] = useState<Facility[]>([]);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
 
   useEffect(() => {
-    const search = async () => {
-      setLoading(true);
-      setError(null);
+    const searchFacilities = async () => {
       try {
-        const params = {
-          query: searchParams.get('q') || '',
-          location: searchParams.getAll('location'),
-          treatmentTypes: searchParams.getAll('treatmentTypes'),
-          amenityObjects: searchParams.getAll('amenities'),
-          insurances: searchParams.getAll('insurances'),
-          conditions: searchParams.getAll('conditions'),
-          substances: searchParams.getAll('substances'),
-          therapies: searchParams.getAll('therapies'),
-          languageObjects: searchParams.getAll('languages'),
-          rating: searchParams.get('rating') 
-            ? Number(searchParams.get('rating')) 
-            : null
-        };
-
-        const facilities = await facilitiesSearch.searchFacilities(params);
+        setLoading(true);
+        setError(null);
+        
+        const facilities = await facilitiesService.searchFacilities({
+          query,
+          treatmentTypes: filters.treatmentTypes || [],
+          amenities: filters.amenities || [],
+          insurance: filters.insurance || [],
+          conditions: filters.conditions || [],
+          substances: filters.substances || [],
+          therapies: filters.therapies || [],
+          location: filters.location,
+          rating: filters.rating || null
+        });
+        
         setResults(facilities);
-      } catch (error) {
-        console.error('Search error:', error);
-        setError('Failed to perform search');
+      } catch (err) {
+        console.error('Error searching facilities:', err);
+        setError('Failed to fetch results');
+        setResults([]);
       } finally {
         setLoading(false);
       }
     };
 
-    search();
-  }, [searchParams]);
+    // Debounce search to prevent too many requests
+    const timeoutId = setTimeout(searchFacilities, 300);
+    return () => clearTimeout(timeoutId);
+  }, [query, filters]);
 
-  const updateSearch = useCallback((updates: Partial<SearchParams>) => {
-    const newParams = new URLSearchParams(searchParams);
-    Object.entries(updates).forEach(([key, value]) => {
-      newParams.delete(key);
-      if (Array.isArray(value)) {
-        value.forEach(v => newParams.append(key, v));
-      } else if (value) {
-        newParams.set(key, value.toString());
-      }
-    });
-    setSearchParams(newParams);
-  }, [searchParams, setSearchParams]);
-
-  return { results, loading, error, updateSearch };
+  return { results, loading, error };
 }
 ```
 
-## Filter Components
+### Filter Bar Component
 
-### Filter Bar
+The FilterBar component handles all search filters:
 
 ```typescript
-// src/components/FilterBar.tsx
-export default function FilterBar() {
-  const [searchParams, setSearchParams] = useSearchParams();
-
-  const handleFilterChange = (type: string, values: string[]) => {
-    const newParams = new URLSearchParams(searchParams);
-    newParams.delete(type);
-    values.forEach(value => newParams.append(type, value));
-    setSearchParams(newParams);
+interface FilterBarProps {
+  filters: SearchFiltersState;
+  filterOptions: {
+    locations: Set<string>;
+    treatmentTypes: Set<string>;
+    amenities: Set<string>;
+    conditions: Set<string>;
+    substances: Set<string>;
+    therapies: Set<string>;
+    languages: Set<string>;
   };
+  optionCounts: {
+    locations: { [key: string]: number };
+    treatmentTypes: { [key: string]: number };
+    amenities: { [key: string]: number };
+    conditions: { [key: string]: number };
+    substances: { [key: string]: number };
+    therapies: { [key: string]: number };
+    languages: { [key: string]: number };
+  };
+  onFilterChange: (type: keyof SearchFiltersState, value: string, clearOthers?: boolean) => void;
+}
 
-  return (
-    <div className="space-y-4">
-      <DropdownSelect
-        label="Treatment Types"
-        type="treatmentTypes"
-        value={(treatmentTypes || []).map(t => t.id)}
-        onChange={(values) => {
-          const selected = availableTreatmentTypes.filter(t => values.includes(t.id));
-          setValue('treatmentTypes', selected);
-        }}
-        options={availableTreatmentTypes.map(type => ({
-          value: type.id,
-          label: type.name
-        }))}
-      />
-      {/* Other filters follow same pattern */}
-    </div>
-  );
+export default function FilterBar({ 
+  filters, 
+  filterOptions, 
+  optionCounts, 
+  onFilterChange 
+}: FilterBarProps) {
+  // Implementation details...
 }
 ```
 
-## Performance Considerations
+## Key Features
 
-1. **Query Optimization**
-   - Use compound queries where possible
-   - Filter in memory for complex queries
-   - Cache frequently accessed data
+1. **Archived Facilities**
+   - Automatically excluded from search results
+   - Only visible in admin view when specifically requested
+   - Separate query for archived facilities
 
-2. **Search Debouncing**
-   ```typescript
-   const debouncedSearch = useCallback(
-     debounce((query: string) => {
-       updateSearch({ query });
-     }, 300),
-     []
-   );
-   ```
+2. **Location Handling**
+   - Proper city/state format parsing
+   - Case-insensitive matching
+   - Multiple location support
+   - Exact city/state matching
 
-3. **Result Caching**
-   ```typescript
-   const searchCache = new Map<string, Facility[]>();
-   
-   const getCachedResults = (key: string) => {
-     const cached = searchCache.get(key);
-     if (cached) {
-       const CACHE_TIME = 5 * 60 * 1000; // 5 minutes
-       if (Date.now() - cached.timestamp < CACHE_TIME) {
-         return cached.results;
-       }
-     }
-     return null;
-   };
-   ```
+3. **Collection Filtering**
+   - ID-based matching for all collections
+   - Proper handling of optional fields
+   - Support for multiple selections
+   - Count tracking for each option
+
+4. **Performance Optimizations**
+   - Search debouncing (300ms)
+   - Efficient filtering
+   - Proper null checks
+   - Optional chaining for safety
+   - Minimal re-renders
+
+## Best Practices
+
+1. **Type Safety**
+   - Use proper interfaces for all parameters
+   - Handle null/undefined cases
+   - Validate input data
+   - Proper error handling
+
+2. **Performance**
+   - Debounce search requests
+   - Filter in memory when possible
+   - Use proper indexes in Firestore
+   - Batch updates when needed
+
+3. **User Experience**
+   - Clear filter labels
+   - Count indicators
+   - Loading states
+   - Error handling
+   - Clear filters option
+
+4. **Code Organization**
+   - Separate concerns (service, hook, components)
+   - Clear interfaces
+   - Consistent error handling
+   - Proper documentation
+
+## Testing
+
+```typescript
+describe('facilitiesService.searchFacilities', () => {
+  it('filters by location correctly', async () => {
+    const results = await facilitiesService.searchFacilities({
+      query: '',
+      location: ['Phoenix, AZ']
+    });
+    expect(results.every(f => 
+      f.city.toLowerCase() === 'phoenix' && 
+      f.state.toLowerCase() === 'az'
+    )).toBe(true);
+  });
+
+  it('combines multiple filters', async () => {
+    const results = await facilitiesService.searchFacilities({
+      location: ['Los Angeles, CA'],
+      treatmentTypes: ['inpatient'],
+      rating: 4
+    });
+    expect(results.every(f => 
+      f.city.toLowerCase() === 'los angeles' &&
+      f.state.toLowerCase() === 'ca' &&
+      f.treatmentTypes.some(t => t.id === 'inpatient') &&
+      f.rating >= 4
+    )).toBe(true);
+  });
+
+  it('excludes archived facilities', async () => {
+    const results = await facilitiesService.searchFacilities({
+      query: ''
+    });
+    expect(results.every(f => f.moderationStatus !== 'archived')).toBe(true);
+  });
+});
+```
 
 ## Related Documentation
 
-- [Overview](./overview.md)
-- [Collections](./collections.md)
+- [Services Documentation](../SERVICES.md)
+- [Components Documentation](../components/README.md)
 - [Implementation Guide](./implementation.md)
+- [Collections Documentation](./collections.md)
