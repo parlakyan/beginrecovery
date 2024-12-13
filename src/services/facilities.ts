@@ -332,67 +332,93 @@ export const facilitiesService = {
   /**
    * Moderation actions
    */
-  async approveFacility(id: string): Promise<void> {
+  async approveFacility(id: string): Promise<Facility> {
     const docRef = doc(db, 'facilities', id);
     await updateDoc(docRef, {
       moderationStatus: 'approved',
       updatedAt: serverTimestamp()
     });
+    return this.getFacility(id) as Promise<Facility>;
   },
 
-  async rejectFacility(id: string): Promise<void> {
+  async rejectFacility(id: string): Promise<Facility> {
     const docRef = doc(db, 'facilities', id);
     await updateDoc(docRef, {
       moderationStatus: 'rejected',
       updatedAt: serverTimestamp()
     });
+    return this.getFacility(id) as Promise<Facility>;
   },
 
-  async archiveFacility(id: string): Promise<void> {
+  async archiveFacility(id: string): Promise<Facility> {
     const docRef = doc(db, 'facilities', id);
     await updateDoc(docRef, {
       moderationStatus: 'archived',
       updatedAt: serverTimestamp()
     });
+    return this.getFacility(id) as Promise<Facility>;
+  },
+
+  async restoreFacility(id: string): Promise<Facility> {
+    const docRef = doc(db, 'facilities', id);
+    await updateDoc(docRef, {
+      moderationStatus: 'pending',
+      updatedAt: serverTimestamp()
+    });
+    return this.getFacility(id) as Promise<Facility>;
+  },
+
+  async revertToPending(id: string): Promise<Facility> {
+    const docRef = doc(db, 'facilities', id);
+    await updateDoc(docRef, {
+      moderationStatus: 'pending',
+      updatedAt: serverTimestamp()
+    });
+    return this.getFacility(id) as Promise<Facility>;
   },
 
   /**
    * Verification actions
    */
-  async verifyFacility(id: string): Promise<void> {
+  async verifyFacility(id: string): Promise<Facility> {
     const docRef = doc(db, 'facilities', id);
     await updateDoc(docRef, {
       isVerified: true,
       updatedAt: serverTimestamp()
     });
+    return this.getFacility(id) as Promise<Facility>;
   },
 
-  async unverifyFacility(id: string): Promise<void> {
+  async unverifyFacility(id: string): Promise<Facility> {
     const docRef = doc(db, 'facilities', id);
     await updateDoc(docRef, {
       isVerified: false,
       updatedAt: serverTimestamp()
     });
+    return this.getFacility(id) as Promise<Facility>;
   },
 
   /**
    * Feature actions
    */
-  async featureFacility(id: string): Promise<void> {
+  async featureFacility(id: string): Promise<Facility> {
     const docRef = doc(db, 'facilities', id);
     await updateDoc(docRef, {
       isFeatured: true,
       updatedAt: serverTimestamp()
     });
+    return this.getFacility(id) as Promise<Facility>;
   },
 
-  async unfeatureFacility(id: string): Promise<void> {
+  async unfeatureFacility(id: string): Promise<Facility> {
     const docRef = doc(db, 'facilities', id);
     await updateDoc(docRef, {
       isFeatured: false,
       updatedAt: serverTimestamp()
     });
+    return this.getFacility(id) as Promise<Facility>;
   },
+
 
   /**
    * Migration helpers
