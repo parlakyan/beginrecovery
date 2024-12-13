@@ -36,22 +36,41 @@ const GEOCODING_BATCH_SIZE = 50;
 const GEOCODING_DELAY = 1000; // 1 second between batches
 
 /**
- * Extract address components from Google Maps result
+ * Create initial facility data with required fields
  */
-function extractAddressComponents(components: AddressComponent[]): { city: string; state: string } {
-  let city = '';
-  let state = '';
+function createInitialFacilityData(row: FacilityCSVRow): Omit<Facility, 'id'> {
+  const now = new Date().toISOString();
+  const emptySlug = generateSlug(row['Facility Name'], '');
+  
+  const facilityData: Omit<Facility, 'id'> = {
+    name: row['Facility Name'],
+    ownerId: 'admin',
+    slug: emptySlug,
+    description: '',
+    location: '',
+    city: '',
+    state: '',
+    coordinates: { lat: 0, lng: 0 },
+    phone: '',
+    email: '',
+    website: row['Facility Website'],
+    images: [],
+    amenityObjects: [],
+    highlights: [],
+    accreditation: [],
+    languageObjects: [],
+    rating: 0,
+    reviews: 0,
+    reviewCount: 0,
+    isVerified: false,
+    isFeatured: false,
+    moderationStatus: 'approved',
+    claimStatus: 'unclaimed',
+    createdAt: now,
+    updatedAt: now
+  };
 
-  for (const component of components) {
-    if (component.types.includes(AddressType.locality)) {
-      city = component.long_name;
-    }
-    if (component.types.includes(AddressType.administrative_area_level_1)) {
-      state = component.short_name;
-    }
-  }
-
-  return { city, state };
+  return facilityData;
 }
 
 /**
@@ -137,30 +156,10 @@ export const importService = {
           const facilityRef = doc(collection(db, 'facilities'));
           
           // Prepare facility data
-          const facilityData: Partial<Facility> = {
-            name: row['Facility Name'],
-            website: row['Facility Website'],
-            ownerId: 'admin',
-            claimStatus: 'unclaimed',
-            moderationStatus: 'approved',
-            isVerified: false,
-            isFeatured: false,
-            rating: 0,
-            reviews: 0,
-            reviewCount: 0,
-            images: [],
-            amenityObjects: [],
-            highlights: [],
-            accreditation: [],
-            languageObjects: []
-          };
+          const facilityData = createInitialFacilityData(row);
 
           // Add facility to batch
-          batch.set(facilityRef, {
-            ...facilityData,
-            createdAt: serverTimestamp(),
-            updatedAt: serverTimestamp()
-          });
+          batch.set(facilityRef, facilityData);
 
           // Create import record
           const importedFacility: ImportedFacility = {
@@ -215,7 +214,7 @@ export const importService = {
    * Phase 2: Process addresses
    */
   async processAddresses(jobId: string): Promise<void> {
-    const apiKey = process.env.GOOGLE_MAPS_API_KEY;
+    const apiKey = process.env.VITE_GOOGLE_MAPS_API_KEY;
     if (!apiKey) {
       throw new Error('Google Maps API key not configured');
     }
@@ -243,15 +242,17 @@ export const importService = {
           const facilityRef = doc(db, 'facilities', facility.facilityId);
 
           try {
-            // Geocode address
+            // Geocode address with increased timeout
             const response = await googleMaps.geocode({
               params: {
                 address: facility.rawAddress,
-                key: apiKey
-              }
+                key: apiKey,
+                region: 'us'
+              },
+              timeout: 10000 // Increase timeout to 10 seconds
             });
 
-            if (response.data.results.length === 0) {
+            if (!response.data.results || response.data.results.length === 0) {
               throw new Error('Address not found');
             }
 
@@ -263,14 +264,23 @@ export const importService = {
               result.partial_match ? 'partial' : 'exact';
 
             // Extract city and state
-            const { city, state } = extractAddressComponents(result.address_components);
+            let city = '';
+            let state = '';
+            for (const component of result.address_components) {
+              if (component.types.includes(AddressType.locality)) {
+                city = component.long_name;
+              }
+              if (component.types.includes(AddressType.administrative_area_level_1)) {
+                state = component.short_name;
+              }
+            }
 
-            // Update facility
+            // Update facility with required location fields
             await updateDoc(facilityRef, {
               location: result.formatted_address,
               coordinates: { lat, lng },
-              city,
-              state,
+              city: city || '',
+              state: state || '',
               slug: generateSlug(facility.name, result.formatted_address)
             });
 

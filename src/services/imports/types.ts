@@ -1,25 +1,18 @@
-/**
- * Import job status
- */
+import { Timestamp } from 'firebase/firestore';
+
 export type ImportStatus = 
-  | 'pending'      // Initial CSV upload
-  | 'importing'    // Basic data import in progress
-  | 'geocoding'    // Address processing in progress
-  | 'completed'    // All processing done
-  | 'failed';      // Error occurred
+  | 'pending'
+  | 'importing'
+  | 'geocoding'
+  | 'completed'
+  | 'failed';
 
-/**
- * Address match quality
- */
 export type AddressMatchQuality = 
-  | 'exact'        // Perfect match
-  | 'partial'      // Some components matched
-  | 'none'         // No match found
-  | 'pending';     // Not yet processed
+  | 'pending'
+  | 'exact'
+  | 'partial'
+  | 'none';
 
-/**
- * Import job statistics
- */
 export interface ImportStats {
   totalFacilities: number;
   processedFacilities: number;
@@ -31,9 +24,6 @@ export interface ImportStats {
   completedAt?: string;
 }
 
-/**
- * Import job record
- */
 export interface ImportJob {
   id: string;
   fileName: string;
@@ -45,51 +35,57 @@ export interface ImportJob {
   error?: string;
 }
 
-/**
- * Facility import record
- */
 export interface ImportedFacility {
   importJobId: string;
   facilityId: string;
   name: string;
-  website: string;
+  website?: string;
   rawAddress: string;
   addressMatchQuality: AddressMatchQuality;
-  geocodingError?: string;
   needsReview: boolean;
-  processedAt?: string;
+  geocodingError?: string;
+  processedAt?: string | Timestamp;
 }
 
-/**
- * CSV row format
- */
 export interface FacilityCSVRow {
   'Facility Name': string;
-  'Facility Website': string;
+  'Facility Website'?: string;
   'Facility Address': string;
 }
 
-/**
- * Progress update event
- */
-export interface ImportProgress {
-  jobId: string;
-  status: ImportStatus;
-  stats: ImportStats;
-  currentOperation?: string;
-}
-
-/**
- * Import job creation options
- */
 export interface CreateImportJobOptions {
   fileName: string;
   userId: string;
   totalFacilities: number;
 }
 
-/**
- * Collections
- */
+export interface InitialFacilityData {
+  name: string;
+  website?: string;
+  ownerId: string;
+  description: string;
+  location: string;
+  city: string;
+  state: string;
+  coordinates: { lat: number; lng: number };
+  phone: string;
+  email: string;
+  images: string[];
+  amenityObjects: any[];
+  highlights: string[];
+  accreditation: string[];
+  languageObjects: any[];
+  rating: number;
+  reviews: number;
+  reviewCount: number;
+  isVerified: boolean;
+  isFeatured: boolean;
+  claimStatus: string;
+  moderationStatus: string;
+  slug: string;
+  createdAt: string;
+  updatedAt: string;
+}
+
 export const IMPORT_JOBS_COLLECTION = 'import_jobs';
 export const IMPORTED_FACILITIES_COLLECTION = 'imported_facilities';
