@@ -6,38 +6,122 @@ service cloud.firestore {
       return get(/databases/$(database)/documents/users/$(request.auth.uid)).data.role == 'admin';
     }
 
+    function isOwner(facilityId) {
+      let facility = get(/databases/$(database)/documents/facilities/$(facilityId));
+      return request.auth.uid == facility.data.ownerId;
+    }
+
+    function isValidClaimData() {
+      let data = request.resource.data;
+      return data.name is string &&
+             data.position is string &&
+             data.website is string &&
+             data.email is string &&
+             data.phone is string;
+    }
+
+    // Facilities collection
     match /facilities/{facilityId} {
       allow read: if true;
-      // Allow write if user is authenticated and owns the facility
+      // Allow create if user is authenticated
       allow create: if request.auth != null;
-      allow update, delete: if request.auth != null && 
-        (request.auth.uid == resource.data.ownerId || isAdmin());
+      // Allow update if user is admin or facility owner
+      allow update: if request.auth != null && 
+        (isAdmin() || isOwner(facilityId));
+      // Only admins can delete
+      allow delete: if request.auth != null && isAdmin();
     }
     
+    // Users collection
     match /users/{userId} {
       allow read, write: if request.auth != null && 
         request.auth.uid == userId;
     }
     
-    match /payments/{paymentId} {
-      allow read: if request.auth != null;
-      allow write: if request.auth != null;
-    }
-
+    // Claims collection
     match /claims/{claimId} {
       // Anyone can read claims
       allow read: if true;
       
       // Authenticated users can create claims
-      allow create: if request.auth != null;
+      allow create: if request.auth != null && 
+        isValidClaimData();
       
-      // Only claim owner can update their own claim
-      // Admins can update any claim
+      // Only claim owner or admin can update
       allow update: if request.auth != null &&
         (request.auth.uid == resource.data.userId || isAdmin());
       
       // Only admins can delete claims
       allow delete: if request.auth != null && isAdmin();
+    }
+
+    // Treatment Types collection (formerly treatmentOptions)
+    match /treatmentTypes/{typeId} {
+      allow read: if true;
+      allow write: if request.auth != null && isAdmin();
+    }
+
+    // Amenities collection
+    match /amenities/{amenityId} {
+      allow read: if true;
+      allow write: if request.auth != null && isAdmin();
+    }
+
+    // Languages collection
+    match /languages/{languageId} {
+      allow read: if true;
+      allow write: if request.auth != null && isAdmin();
+    }
+
+    // Licenses collection
+    match /licenses/{licenseId} {
+      allow read: if true;
+      allow write: if request.auth != null && isAdmin();
+    }
+
+    // Insurance collection
+    match /insurances/{insuranceId} {
+      allow read: if true;
+      allow write: if request.auth != null && isAdmin();
+    }
+
+    // Conditions collection
+    match /conditions/{conditionId} {
+      allow read: if true;
+      allow write: if request.auth != null && isAdmin();
+    }
+
+    // Substances collection
+    match /substances/{substanceId} {
+      allow read: if true;
+      allow write: if request.auth != null && isAdmin();
+    }
+
+    // Therapies collection
+    match /therapies/{therapyId} {
+      allow read: if true;
+      allow write: if request.auth != null && isAdmin();
+    }
+
+    // Featured Locations collection
+    match /featuredLocations/{locationId} {
+      allow read: if true;
+      allow write: if request.auth != null && isAdmin();
+    }
+
+    // Payments collection
+    match /payments/{paymentId} {
+      allow read: if request.auth != null;
+      allow write: if request.auth != null;
+    }
+
+    // Prevent access to legacy collections
+    match /pending_facilities/{document=**} {
+      allow read, write: if false;
+    }
+
+    match /treatmentOptions/{document=**} {
+      allow read, write: if false;
     }
   }
 }

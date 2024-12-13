@@ -2,6 +2,7 @@ import { useEffect } from 'react';
 import { Routes, Route, useLocation } from 'react-router-dom';
 import { useAuthStore } from './store/authStore';
 import { facilitiesService } from './services/facilities';
+import { migrateLegacyCollections } from './scripts/migrateLegacyCollections';
 import HomePage from './pages/HomePage';
 import ListingDetail from './pages/ListingDetail';
 import CreateListing from './pages/CreateListing';
@@ -40,14 +41,21 @@ export default function App() {
   useEffect(() => {
     const runMigrations = async () => {
       try {
+        // Run existing migrations
         await facilitiesService.migrateExistingSlugs();
+
+        // Run legacy collections migration
+        if (user?.role === 'admin') {
+          console.log('Running legacy collections migration...');
+          await migrateLegacyCollections();
+        }
       } catch (error) {
         console.error('Error running migrations:', error);
       }
     };
 
     runMigrations();
-  }, []);
+  }, [user]);
 
   return (
     <Routes>
