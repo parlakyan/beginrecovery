@@ -1,8 +1,9 @@
 import React, { useState, useEffect } from 'react';
-import { Plus, Edit2, Trash2, Image as ImageIcon } from 'lucide-react';
+import { Plus } from 'lucide-react';
 import { licensesService } from '../../services/licenses';
 import { License } from '../../types';
 import AdminLogoUpload from '../../components/AdminLogoUpload';
+import { AdminEntryCard } from '../../components/ui';
 
 export default function LicensesPage() {
   const [licenses, setLicenses] = useState<License[]>([]);
@@ -37,24 +38,27 @@ export default function LicensesPage() {
     setIsModalOpen(true);
   };
 
-  const handleEdit = (license: License) => {
-    setEditingLicense(license);
-    setFormData({
-      name: license.name,
-      description: license.description,
-      logo: license.logo
-    });
-    setIsModalOpen(true);
+  const handleEdit = (id: string) => {
+    const license = licenses.find(l => l.id === id);
+    if (license) {
+      setEditingLicense(license);
+      setFormData({
+        name: license.name,
+        description: license.description,
+        logo: license.logo || ''
+      });
+      setIsModalOpen(true);
+    }
   };
 
   const handleDelete = async (id: string) => {
-    if (window.confirm('Are you sure you want to delete this license?')) {
-      try {
-        await licensesService.deleteLicense(id);
-        await fetchLicenses();
-      } catch (error) {
-        console.error('Error deleting license:', error);
-      }
+    if (!window.confirm('Are you sure you want to delete this license?')) return;
+    
+    try {
+      await licensesService.deleteLicense(id);
+      await fetchLicenses();
+    } catch (error) {
+      console.error('Error deleting license:', error);
     }
   };
 
@@ -103,48 +107,22 @@ export default function LicensesPage() {
       {/* Licenses Grid */}
       <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
         {licenses.map((license) => (
-          <div key={license.id} className="bg-white rounded-xl shadow-sm border border-gray-100 p-6">
-            <div className="flex items-start justify-between mb-4">
-              <div className="flex-1">
-                <h3 className="text-lg font-semibold text-gray-900">{license.name}</h3>
-                <p className="text-sm text-gray-600 mt-1">{license.description}</p>
-              </div>
-              <div className="flex items-center gap-2">
-                <button
-                  onClick={() => handleEdit(license)}
-                  className="p-1 text-gray-500 hover:text-blue-600 transition-colors"
-                >
-                  <Edit2 className="w-4 h-4" />
-                </button>
-                <button
-                  onClick={() => handleDelete(license.id)}
-                  className="p-1 text-gray-500 hover:text-red-600 transition-colors"
-                >
-                  <Trash2 className="w-4 h-4" />
-                </button>
-              </div>
-            </div>
-            <div className="aspect-[3/2] rounded-lg overflow-hidden bg-gray-100">
-              {license.logo ? (
-                <img
-                  src={license.logo}
-                  alt={license.name}
-                  className="w-full h-full object-contain"
-                />
-              ) : (
-                <div className="w-full h-full flex items-center justify-center">
-                  <ImageIcon className="w-8 h-8 text-gray-400" />
-                </div>
-              )}
-            </div>
-          </div>
+          <AdminEntryCard
+            key={license.id}
+            id={license.id}
+            name={license.name}
+            description={license.description}
+            logo={license.logo}
+            onEdit={handleEdit}
+            onDelete={handleDelete}
+          />
         ))}
       </div>
 
       {/* Modal */}
       {isModalOpen && (
-        <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50">
-          <div className="bg-white rounded-xl p-6 max-w-md w-full mx-4">
+        <div className="fixed inset-0 bg-black bg-opacity-50 flex items-start justify-center pt-20 z-50">
+          <div className="bg-white rounded-xl p-6 max-w-md w-full mx-4 max-h-[calc(100vh-100px)] overflow-y-auto">
             <h2 className="text-xl font-bold mb-4">
               {editingLicense ? 'Edit License' : 'Add License'}
             </h2>

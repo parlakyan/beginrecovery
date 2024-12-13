@@ -37,14 +37,14 @@ interface EditListingForm {
   phone: string;
   email: string;
   highlights: string[];
-  treatmentTypes: TreatmentType[];
-  substances: Substance[];
-  conditions: Condition[];
-  therapies: Therapy[];
-  amenityObjects: Amenity[];
-  insurances: Insurance[];
-  languageObjects: Language[];
-  licenses: License[];
+  treatmentTypes: string[];
+  substances: string[];
+  conditions: string[];
+  therapies: string[];
+  amenityObjects: string[];
+  insurances: string[];
+  languageObjects: string[];
+  licenses: string[];
 }
 
 const emailRegex = /^[A-Z0-9._%+-]+@[A-Z0-9.-]+\.[A-Z]{2,}$/i;
@@ -110,14 +110,14 @@ const EditListingModal: React.FC<EditListingModalProps> = ({ facility, isOpen, o
 
   // Watch form values for DropdownSelect components
   const highlights = watch('highlights', []);
-  const treatmentTypes = watch('treatmentTypes', []);
-  const substances = watch('substances', []);
-  const amenityObjects = watch('amenityObjects', []);
-  const languageObjects = watch('languageObjects', []);
-  const selectedLicenses = watch('licenses', []);
-  const selectedInsurances = watch('insurances', []);
-  const selectedConditions = watch('conditions', []);
-  const selectedTherapies = watch('therapies', []);
+  const treatmentTypeIds = watch('treatmentTypes', []);
+  const substanceIds = watch('substances', []);
+  const amenityIds = watch('amenityObjects', []);
+  const languageIds = watch('languageObjects', []);
+  const licenseIds = watch('licenses', []);
+  const insuranceIds = watch('insurances', []);
+  const conditionIds = watch('conditions', []);
+  const therapyIds = watch('therapies', []);
 
   // Reset form when modal opens or facility changes
   useEffect(() => {
@@ -135,14 +135,14 @@ const EditListingModal: React.FC<EditListingModalProps> = ({ facility, isOpen, o
         phone: facility.phone || '',
         email: facility.email || '',
         highlights: facility.highlights || [],
-        treatmentTypes: facility.treatmentTypes || [],
-        substances: facility.substances || [],
-        conditions: facility.conditions || [],
-        therapies: facility.therapies || [],
-        amenityObjects: facility.amenityObjects || [],
-        insurances: facility.insurances || [],
-        languageObjects: facility.languageObjects || [],
-        licenses: facility.licenses || []
+        treatmentTypes: facility.treatmentTypes?.map(t => t.id) || [],
+        substances: facility.substances?.map(s => s.id) || [],
+        conditions: facility.conditions?.map(c => c.id) || [],
+        therapies: facility.therapies?.map(t => t.id) || [],
+        amenityObjects: facility.amenityObjects?.map(a => a.id) || [],
+        insurances: facility.insurances?.map(i => i.id) || [],
+        languageObjects: facility.languageObjects?.map(l => l.id) || [],
+        licenses: facility.licenses?.map(l => l.id) || []
       });
 
       // Reset form data with existing images and logo
@@ -180,8 +180,27 @@ const EditListingModal: React.FC<EditListingModalProps> = ({ facility, isOpen, o
     try {
       setLoading(true);
       setError(null);
+
+      // Convert IDs to full objects
+      const treatmentTypes = availableTreatmentTypes.filter(t => data.treatmentTypes.includes(t.id));
+      const substances = availableSubstances.filter(s => data.substances.includes(s.id));
+      const conditions = availableConditions.filter(c => data.conditions.includes(c.id));
+      const therapies = availableTherapies.filter(t => data.therapies.includes(t.id));
+      const amenityObjects = availableAmenities.filter(a => data.amenityObjects.includes(a.id));
+      const insurances = availableInsurances.filter(i => data.insurances.includes(i.id));
+      const languageObjects = availableLanguages.filter(l => data.languageObjects.includes(l.id));
+      const licenses = availableLicenses.filter(l => data.licenses.includes(l.id));
+
       console.log('Submitting form with data:', {
         ...data,
+        treatmentTypes,
+        substances,
+        conditions,
+        therapies,
+        amenityObjects,
+        insurances,
+        languageObjects,
+        licenses,
         images: formData.images,
         logo: formData.logo
       });
@@ -196,14 +215,14 @@ const EditListingModal: React.FC<EditListingModalProps> = ({ facility, isOpen, o
         phone: data.phone,
         email: data.email,
         highlights: data.highlights,
-        treatmentTypes: data.treatmentTypes,
-        substances: data.substances,
-        conditions: data.conditions,
-        therapies: data.therapies,
-        amenityObjects: data.amenityObjects,
-        insurances: data.insurances,
-        languageObjects: data.languageObjects,
-        licenses: data.licenses,
+        treatmentTypes,
+        substances,
+        conditions,
+        therapies,
+        amenityObjects,
+        insurances,
+        languageObjects,
+        licenses,
         images: formData.images,
         logo: formData.logo
       });
@@ -220,8 +239,8 @@ const EditListingModal: React.FC<EditListingModalProps> = ({ facility, isOpen, o
 
   if (!canEdit) {
     return (
-      <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center p-4 z-50">
-        <div className="bg-white rounded-xl p-6 max-w-md w-full">
+      <div className="fixed inset-0 bg-black bg-opacity-50 flex items-start justify-center pt-20 z-50">
+        <div className="bg-white rounded-xl p-6 max-w-md w-full mx-4">
           <h2 className="text-xl font-bold mb-4">Permission Denied</h2>
           <p className="text-gray-600 mb-6">You do not have permission to edit this facility.</p>
           <div className="flex justify-end">
@@ -238,7 +257,7 @@ const EditListingModal: React.FC<EditListingModalProps> = ({ facility, isOpen, o
   }
 
   return (
-    <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center p-4 z-50">
+    <div className="fixed inset-0 bg-black bg-opacity-50 flex items-start justify-center pt-20 z-50">
       <div className="bg-white rounded-xl max-w-3xl w-full max-h-[90vh] overflow-y-auto">
         <div className="p-6 border-b sticky top-0 bg-white z-10">
           <div className="flex justify-between items-center">
@@ -370,27 +389,20 @@ const EditListingModal: React.FC<EditListingModalProps> = ({ facility, isOpen, o
             <DropdownSelect
               label="Treatment Types"
               type="treatmentTypes"
-              value={(treatmentTypes || []).map(t => t.id)}
-              onChange={(values) => {
-                const selected = availableTreatmentTypes.filter(t => values.includes(t.id));
-                setValue('treatmentTypes', selected);
-              }}
+              value={treatmentTypeIds}
+              onChange={(values) => setValue('treatmentTypes', values)}
               options={availableTreatmentTypes.map(type => ({
                 value: type.id,
                 label: type.name
               }))}
               error={errors.treatmentTypes?.message}
-              useManagedOptions={true}
             />
 
             <DropdownSelect
               label="Substances We Treat"
               type="substances"
-              value={(substances || []).map(s => s.id)}
-              onChange={(values) => {
-                const selected = availableSubstances.filter(s => values.includes(s.id));
-                setValue('substances', selected);
-              }}
+              value={substanceIds}
+              onChange={(values) => setValue('substances', values)}
               options={availableSubstances.map(substance => ({
                 value: substance.id,
                 label: substance.name
@@ -401,11 +413,8 @@ const EditListingModal: React.FC<EditListingModalProps> = ({ facility, isOpen, o
             <DropdownSelect
               label="Conditions We Treat"
               type="conditions"
-              value={(selectedConditions || []).map(c => c.id)}
-              onChange={(values) => {
-                const selected = availableConditions.filter(c => values.includes(c.id));
-                setValue('conditions', selected);
-              }}
+              value={conditionIds}
+              onChange={(values) => setValue('conditions', values)}
               options={availableConditions.map(condition => ({
                 value: condition.id,
                 label: condition.name
@@ -416,11 +425,8 @@ const EditListingModal: React.FC<EditListingModalProps> = ({ facility, isOpen, o
             <DropdownSelect
               label="Therapies"
               type="therapies"
-              value={(selectedTherapies || []).map(t => t.id)}
-              onChange={(values) => {
-                const selected = availableTherapies.filter(t => values.includes(t.id));
-                setValue('therapies', selected);
-              }}
+              value={therapyIds}
+              onChange={(values) => setValue('therapies', values)}
               options={availableTherapies.map(therapy => ({
                 value: therapy.id,
                 label: therapy.name
@@ -431,11 +437,8 @@ const EditListingModal: React.FC<EditListingModalProps> = ({ facility, isOpen, o
             <DropdownSelect
               label="Amenities"
               type="amenities"
-              value={(amenityObjects || []).map(a => a.id)}
-              onChange={(values) => {
-                const selected = availableAmenities.filter(a => values.includes(a.id));
-                setValue('amenityObjects', selected);
-              }}
+              value={amenityIds}
+              onChange={(values) => setValue('amenityObjects', values)}
               options={availableAmenities.map(amenity => ({
                 value: amenity.id,
                 label: amenity.name
@@ -446,11 +449,8 @@ const EditListingModal: React.FC<EditListingModalProps> = ({ facility, isOpen, o
             <DropdownSelect
               label="Insurance Providers"
               type="insurances"
-              value={selectedInsurances.map(i => i.id)}
-              onChange={(values) => {
-                const selected = availableInsurances.filter(i => values.includes(i.id));
-                setValue('insurances', selected);
-              }}
+              value={insuranceIds}
+              onChange={(values) => setValue('insurances', values)}
               options={availableInsurances.map(insurance => ({
                 value: insurance.id,
                 label: insurance.name
@@ -461,11 +461,8 @@ const EditListingModal: React.FC<EditListingModalProps> = ({ facility, isOpen, o
             <DropdownSelect
               label="Languages"
               type="languages"
-              value={(languageObjects || []).map(l => l.id)}
-              onChange={(values) => {
-                const selected = availableLanguages.filter(l => values.includes(l.id));
-                setValue('languageObjects', selected);
-              }}
+              value={languageIds}
+              onChange={(values) => setValue('languageObjects', values)}
               options={availableLanguages.map(language => ({
                 value: language.id,
                 label: language.name
@@ -476,11 +473,8 @@ const EditListingModal: React.FC<EditListingModalProps> = ({ facility, isOpen, o
             <DropdownSelect
               label="Certifications & Licenses"
               type="licenses"
-              value={selectedLicenses.map(l => l.id)}
-              onChange={(values) => {
-                const selected = availableLicenses.filter(l => values.includes(l.id));
-                setValue('licenses', selected);
-              }}
+              value={licenseIds}
+              onChange={(values) => setValue('licenses', values)}
               options={availableLicenses.map(license => ({
                 value: license.id,
                 label: license.name

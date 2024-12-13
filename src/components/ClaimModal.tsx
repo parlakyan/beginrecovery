@@ -40,8 +40,8 @@ export default function ClaimModal({ facilityId, onClose }: ClaimModalProps) {
   };
 
   return (
-    <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50">
-      <div className="bg-white rounded-xl shadow-xl max-w-lg w-full mx-4 max-h-[90vh] overflow-y-auto">
+    <div className="fixed inset-0 bg-black/50 flex items-start justify-center pt-20 z-[60]">
+      <div className="bg-white rounded-xl shadow-xl max-w-lg w-full mx-4 max-h-[calc(100vh-100px)] overflow-y-auto">
         <div className="p-6 border-b border-gray-100">
           <div className="flex items-center justify-between">
             <h2 className="text-xl font-semibold">Claim This Listing</h2>

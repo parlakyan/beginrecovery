@@ -5,6 +5,7 @@ This project uses various Google Maps APIs for location-based features:
 - Maps Embed API: For displaying maps on facility detail pages
 - Places API: For address autocomplete
 - Maps JavaScript API: Required for Places API functionality
+- Geocoding API: For batch address processing
 
 ## API Key Setup
 
@@ -19,6 +20,7 @@ In "APIs & Services" > "Library", enable these APIs:
 1. Maps Embed API
 2. Places API
 3. Maps JavaScript API
+4. Geocoding API
 
 ### 3. Configure API Key Restrictions
 
@@ -36,6 +38,7 @@ In "APIs & Services" > "Library", enable these APIs:
    - Maps Embed API
    - Places API
    - Maps JavaScript API
+   - Geocoding API
 
 ### 4. Environment Setup
 
@@ -74,32 +77,6 @@ Provides address suggestions with form integration:
 - Error handling
 - Loading states
 
-#### Error Handling
-The component includes robust error handling for:
-- Missing place data
-- Incomplete address components
-- API loading failures
-- Initialization errors
-
-#### Address Component Processing
-```typescript
-// Example of address component extraction
-if (place.address_components?.length) {
-  try {
-    const addressComponents = {};
-    place.address_components.forEach((component) => {
-      const type = component.types[0];
-      if (type) {
-        addressComponents[type] = component.long_name;
-      }
-    });
-    // Process components...
-  } catch (err) {
-    console.warn('Error processing address components:', err);
-  }
-}
-```
-
 ### MapSection
 Displays a map for a facility location:
 
@@ -117,45 +94,96 @@ Displays a map for a facility location:
 - Error handling
 - Responsive design
 
-## Data Flow
+## Batch Geocoding Implementation
 
-### Address Selection
-1. User enters address in AddressAutocomplete
-2. Google Places API returns place data
-3. Component extracts:
-   - Formatted address
-   - Coordinates
-   - Address components
-4. Data is saved to form state
+### Direct API Integration
+We use direct fetch calls to the Geocoding API for better control and reliability:
 
-### Map Display
-1. MapSection receives location data
-2. Attempts to use coordinates first
-3. Falls back to address if coordinates unavailable
-4. Displays loading state during initialization
-5. Shows error message if map fails to load
+```typescript
+async function geocodeAddress(address: string, apiKey: string) {
+  const controller = new AbortController();
+  const timeoutId = setTimeout(() => controller.abort(), 30000); // 30s timeout
+
+  try {
+    const url = `https://maps.googleapis.com/maps/api/geocode/json?address=${encodeURIComponent(address)}&key=${apiKey}&region=us&components=country:US`;
+    const response = await fetch(url, { signal: controller.signal });
+    
+    if (!response.ok) {
+      throw new Error(`Geocoding failed: ${response.statusText}`);
+    }
+
+    const data = await response.json();
+    if (data.status !== 'OK') {
+      throw new Error(`Geocoding error: ${data.status}`);
+    }
+
+    return data.results[0];
+  } finally {
+    clearTimeout(timeoutId);
+  }
+}
+```
+
+### Rate Limiting and Optimization
+- Batch size: 25 addresses per batch
+- Delay between batches: 2 seconds
+- Request timeout: 30 seconds
+- Maximum retries: 3 attempts
+- Exponential backoff between retries
+
+### Error Handling
+```typescript
+async function retryWithBackoff<T>(
+  fn: () => Promise<T>,
+  retries: number = 3,
+  delay: number = 1000
+): Promise<T> {
+  try {
+    return await fn();
+  } catch (error) {
+    if (retries === 0) throw error;
+    await new Promise(resolve => setTimeout(resolve, delay));
+    return retryWithBackoff(fn, retries - 1, delay * 2);
+  }
+}
+```
+
+### Address Component Processing
+```typescript
+// Extract city and state from address components
+let city = '';
+let state = '';
+for (const component of result.address_components) {
+  if (component.types.includes('locality')) {
+    city = component.long_name;
+  }
+  if (component.types.includes('administrative_area_level_1')) {
+    state = component.short_name;
+  }
+}
+```
 
 ## Error Handling
 
 ### Common Issues
 
-#### "Cannot read properties of undefined"
-- Cause: Incomplete place data from Places API
-- Solution: Added null checks and try-catch blocks
-- Fallback: Continue with available data
-- Impact: Non-critical, functionality preserved
+#### API Timeouts
+- Cause: Slow network or API response
+- Solution: 30-second timeout with AbortController
+- Fallback: Automatic retry with backoff
+- Impact: Address marked for review if all retries fail
 
-#### API Loading Failures
-- Cause: Network issues or API restrictions
-- Solution: Loading states and error messages
-- Fallback: Display user-friendly error
-- Recovery: Automatic retry on next interaction
+#### Invalid Addresses
+- Cause: Malformed or non-existent addresses
+- Solution: Validation and error handling
+- Fallback: Mark for manual review
+- Impact: Address needs manual verification
 
-#### Missing Address Components
-- Cause: Partial data from Places API
-- Solution: Validation before processing
-- Fallback: Use available components
-- Impact: Some fields may be incomplete
+#### Rate Limiting
+- Cause: Too many requests
+- Solution: Batch processing with delays
+- Fallback: Exponential backoff
+- Impact: Slower processing but reliable
 
 ### Best Practices
 

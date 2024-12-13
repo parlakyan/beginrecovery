@@ -39,8 +39,8 @@ Facility Name,Facility Website,Facility Address
    - Pending geocoding status
 
 ### Phase 2: Address Processing
-1. Process addresses in batches (50 at a time)
-2. Geocode using Google Maps API
+1. Process addresses in batches (25 at a time)
+2. Geocode using Google Maps API directly
 3. Handle match quality:
    - Exact matches: Update facility
    - Partial matches: Flag for review
@@ -118,6 +118,7 @@ The system tracks:
 - API limits
 - Network issues
 - Partial matches
+- Timeout errors (30s limit)
 
 ### Recovery Steps
 1. Review error logs
@@ -125,19 +126,28 @@ The system tracks:
 3. Re-import failed records
 4. Update addresses manually if needed
 
+### Automatic Retry
+The system includes automatic retry with exponential backoff:
+- 3 retry attempts per address
+- Increasing delay between retries
+- Detailed error tracking
+- Graceful failure handling
+
 ## Rate Limits
 
 ### Google Maps API
-- Standard plan: 50 requests per second
-- Batch processing with delays
+- Batch size: 25 addresses per batch
+- 2-second delay between batches
+- 30-second timeout per request
 - Automatic retry on failure
-- Error tracking per address
+- US-only address restriction
 
 ### Import Processing
-- 50 addresses per batch
-- 1 second delay between batches
 - Background processing
 - Progress monitoring
+- Batch processing with delays
+- Error tracking per address
+- Automatic job recovery
 
 ## Security
 
@@ -164,16 +174,19 @@ Monitor through admin dashboard:
    - Check format
    - Verify existence
    - Try alternative format
+   - Check for timeout issues
 
 2. Partial matches
    - Review suggested matches
    - Check for typos
    - Verify with facility
+   - Consider manual review
 
 3. Import failures
    - Check file format
    - Verify data integrity
    - Review error logs
+   - Check network connectivity
 
 ### Support Steps
 1. Check import job logs
@@ -185,6 +198,14 @@ Monitor through admin dashboard:
 ## API Integration
 
 The system uses:
-- Google Maps Geocoding API
+- Google Maps Geocoding API (direct fetch)
 - Firebase Firestore
 - CSV parsing library
+
+### Geocoding Implementation
+- Direct API calls using fetch
+- Timeout handling with AbortController
+- Retry mechanism with exponential backoff
+- Detailed error reporting
+- US-only address restriction
+- Proper error handling for all API responses
