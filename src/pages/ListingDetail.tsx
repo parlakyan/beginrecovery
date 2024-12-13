@@ -15,6 +15,7 @@ import CertificationsSection from '../components/CertificationsSection';
 import { Button, Tag, Breadcrumb } from '../components/ui';
 import EditListingModal from '../components/EditListingModal';
 import InsurancesSection from '../components/InsurancesSection';
+import ClaimButton from '../components/ClaimButton';
 
 export default function ListingDetail() {
   const { slug, id } = useParams<{ slug?: string; id?: string }>();
@@ -177,58 +178,62 @@ export default function ListingDetail() {
             coordinates={facility.coordinates}
           />
   
-          {/* Admin and Owner Controls */}
-          {(canEdit || (isOwner && !facility.isVerified)) && (
-            <div className="absolute top-4 right-4 flex items-center gap-2 z-10">
-              {canEdit && (
-                <Button
-                  variant="secondary"
-                  onClick={() => setIsEditModalOpen(true)}
-                  className="flex items-center gap-2"
-                >
-                  <Edit2 className="w-4 h-4" />
-                  Edit Facility
-                </Button>
-              )}
+          {/* Admin, Owner, and Claim Controls */}
+          <div className="absolute top-4 right-4 flex items-center gap-2 z-10">
+            {/* Show claim button if facility is unclaimed */}
+            {(!facility.ownerId || facility.claimStatus === 'unclaimed') && (
+              <ClaimButton 
+                facilityId={facility.id}
+                claimStatus={facility.claimStatus}
+              />
+            )}
 
-              {isOwner && !facility.isVerified && (
-                <Button
-                  variant="primary"
-                  onClick={handleUpgrade}
-                  className="flex items-center gap-2"
-                >
-                  <CreditCard className="w-4 h-4" />
-                  Upgrade to Verified
-                </Button>
-              )}
+            {canEdit && (
+              <Button
+                variant="secondary"
+                onClick={() => setIsEditModalOpen(true)}
+                className="flex items-center gap-2"
+              >
+                <Edit2 className="w-4 h-4" />
+                Edit Facility
+              </Button>
+            )}
 
-              {user.role === 'admin' && (
-                <>
-                  <Button
-                    variant="secondary"
-                    onClick={handleVerificationToggle}
-                    className={`flex items-center gap-2 ${
-                      facility.isVerified 
-                        ? 'bg-green-50 text-green-700 hover:bg-green-100' 
-                        : 'bg-gray-50 text-gray-700 hover:bg-gray-100'
-                    }`}
-                  >
-                    {facility.isVerified ? (
-                      <>
-                        <ShieldCheck className="w-4 h-4" />
-                        Verified
-                      </>
-                    ) : (
-                      <>
-                        <ShieldAlert className="w-4 h-4" />
-                        Unverified
-                      </>
-                    )}
-                  </Button>
-                </>
-              )}
-            </div>
-          )}
+            {isOwner && !facility.isVerified && (
+              <Button
+                variant="primary"
+                onClick={handleUpgrade}
+                className="flex items-center gap-2"
+              >
+                <CreditCard className="w-4 h-4" />
+                Upgrade to Verified
+              </Button>
+            )}
+
+            {user?.role === 'admin' && (
+              <Button
+                variant="secondary"
+                onClick={handleVerificationToggle}
+                className={`flex items-center gap-2 ${
+                  facility.isVerified 
+                    ? 'bg-green-50 text-green-700 hover:bg-green-100' 
+                    : 'bg-gray-50 text-gray-700 hover:bg-gray-100'
+                }`}
+              >
+                {facility.isVerified ? (
+                  <>
+                    <ShieldCheck className="w-4 h-4" />
+                    Verified
+                  </>
+                ) : (
+                  <>
+                    <ShieldAlert className="w-4 h-4" />
+                    Unverified
+                  </>
+                )}
+              </Button>
+            )}
+          </div>
         </div>
 
         <div className="relative max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 -mt-20">

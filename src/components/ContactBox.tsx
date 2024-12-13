@@ -1,6 +1,8 @@
 import { Building2, ShieldCheck, Phone, Globe, MessageCircle } from 'lucide-react';
 import { Facility } from '../types';
 import { Button } from './ui';
+import ClaimButton from './ClaimButton';
+import DisputeButton from './DisputeButton';
 
 interface ContactBoxProps {
   facility: Facility;
@@ -10,7 +12,7 @@ interface ContactBoxProps {
  * ContactBox component displays facility contact information and actions
  * Features vary based on verification status:
  * - Verified facilities: Show logo, call button, message button, website button, and status
- * - Unverified facilities: Show only website button
+ * - Unverified facilities: Show claim button and website button
  */
 export default function ContactBox({ facility }: ContactBoxProps) {
   return (
@@ -54,8 +56,17 @@ export default function ContactBox({ facility }: ContactBoxProps) {
           </p>
         </div>
 
-        {/* CTA Buttons - Call and Message only shown for verified facilities */}
+        {/* CTA Buttons */}
         <div className="space-y-3">
+          {/* Claim Button - Show for unclaimed facilities */}
+          {(!facility.ownerId || facility.claimStatus === 'unclaimed') && (
+            <ClaimButton 
+              facilityId={facility.id}
+              claimStatus={facility.claimStatus}
+            />
+          )}
+
+          {/* Call and Message - Only for verified facilities */}
           {facility.isVerified && facility.phone && (
             <Button
               variant="primary"
@@ -81,15 +92,17 @@ export default function ContactBox({ facility }: ContactBoxProps) {
           )}
 
           {/* Website button shown for all facilities */}
-          <Button
-            variant="secondary"
-            fullWidth
-            onClick={() => window.open(`https://${facility.name.toLowerCase().replace(/\s+/g, '')}.com`, '_blank')}
-            className="flex items-center justify-center gap-2"
-          >
-            <Globe className="w-5 h-5" />
-            <span>Visit Website</span>
-          </Button>
+          {facility.website && (
+            <Button
+              variant="secondary"
+              fullWidth
+              onClick={() => window.open(facility.website, '_blank')}
+              className="flex items-center justify-center gap-2"
+            >
+              <Globe className="w-5 h-5" />
+              <span>Visit Website</span>
+            </Button>
+          )}
         </div>
 
         {/* Facility Status - Only for verified facilities */}
@@ -100,6 +113,34 @@ export default function ContactBox({ facility }: ContactBoxProps) {
               <div className="h-2 w-2 bg-green-500 rounded-full"></div>
               <span>Currently accepting patients</span>
             </div>
+          </div>
+        )}
+
+        {/* Claim Status and Dispute Section */}
+        {facility.claimStatus && (
+          <div className="pt-6 border-t border-gray-200 space-y-4">
+            {/* Status Display */}
+            {facility.claimStatus === 'claimed' && (
+              <div className="flex items-center gap-2 text-gray-600">
+                <ShieldCheck className="w-5 h-5" />
+                <span className="text-sm">This facility has been claimed</span>
+              </div>
+            )}
+            {facility.claimStatus === 'disputed' && (
+              <div className="flex items-center gap-2 text-yellow-600">
+                <ShieldCheck className="w-5 h-5" />
+                <span className="text-sm">Ownership under review</span>
+              </div>
+            )}
+
+            {/* Dispute Button - Show for claimed facilities */}
+            {facility.claimStatus === 'claimed' && facility.activeClaimId && (
+              <DisputeButton
+                claimId={facility.activeClaimId}
+                facilityName={facility.name}
+                claimStatus={facility.claimStatus}
+              />
+            )}
           </div>
         )}
       </div>

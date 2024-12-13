@@ -1,5 +1,3 @@
-// Previous interfaces remain the same...
-
 export interface Facility {
   id: string;
   ownerId: string;
@@ -19,14 +17,14 @@ export interface Facility {
   images: string[];
   logo?: string;
   treatmentTypes?: TreatmentType[];
-  amenityObjects: Amenity[];  // Changed from optional to required
+  amenityObjects: Amenity[];
   highlights: string[];
   substances?: Substance[];
   conditions?: Condition[];
   therapies?: Therapy[];
   insurances?: Insurance[];
   accreditation: string[];
-  languageObjects: Language[];  // Changed from optional to required
+  languageObjects: Language[];
   licenses?: License[];
   rating: number;
   reviews: number;
@@ -35,6 +33,8 @@ export interface Facility {
   isFeatured: boolean;
   subscriptionId?: string;
   moderationStatus?: 'pending' | 'approved' | 'rejected' | 'archived';
+  claimStatus?: 'unclaimed' | 'claimed' | 'disputed';
+  activeClaimId?: string; // ID of the current active claim
   status?: string;
   createdAt: string;
   updatedAt: string;
@@ -101,7 +101,7 @@ export interface SearchFiltersState {
   conditions: string[];
   substances: string[];
   therapies: string[];
-  languages: string[];  // Added languages
+  languages: string[];
   rating: number | null;
   priceRange: number | null;
 }
@@ -178,4 +178,72 @@ export interface Language {
   logo: string;
   createdAt: string;
   updatedAt: string;
+}
+
+/**
+ * Status of a facility claim
+ */
+export type ClaimStatus = 
+  | 'pending'      // Awaiting admin review or email verification
+  | 'approved'     // Claim approved (auto or manual)
+  | 'rejected'     // Claim rejected by admin
+  | 'disputed'     // Another user has disputed this claim
+  | 'resolved';    // Dispute resolved by admin
+
+/**
+ * A claim on a facility
+ */
+export interface FacilityClaim {
+  id: string;
+  facilityId: string;
+  userId: string;
+  status: ClaimStatus;
+  createdAt: string;
+  updatedAt: string;
+  
+  // Claim details
+  name: string;
+  position: string;
+  website: string;
+  email: string;
+  phone: string;
+
+  // Auto-verification
+  emailVerified: boolean;
+  emailMatchesDomain: boolean;
+
+  // Admin fields
+  adminNotes?: string;
+  reviewedBy?: string;
+  reviewedAt?: string;
+
+  // Dispute
+  disputedBy?: string;
+  disputeReason?: string;
+  disputeResolvedBy?: string;
+  disputeResolvedAt?: string;
+}
+
+/**
+ * Form data for submitting a claim
+ */
+export interface ClaimFormData {
+  name: string;
+  position: string;
+  website: string;
+  email: string;
+  phone: string;
+}
+
+/**
+ * Stats for claims dashboard
+ */
+export interface ClaimStats {
+  totalClaims: number;
+  pendingClaims: number;
+  approvedClaims: number;
+  rejectedClaims: number;
+  disputedClaims: number;
+  autoApproved: number;
+  manuallyApproved: number;
 }

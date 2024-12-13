@@ -15,6 +15,8 @@ import TherapiesPage from './admin/TherapiesPage';
 import TreatmentTypesPage from './admin/TreatmentTypesPage';
 import AmenitiesPage from './admin/AmenitiesPage';
 import LanguagesPage from './admin/LanguagesPage';
+import ClaimsPage from './admin/ClaimsPage';
+import DisputesPage from './admin/DisputesPage';
 
 export default function AdminDashboard() {
   const [searchParams, setSearchParams] = useSearchParams();
@@ -47,6 +49,16 @@ export default function AdminDashboard() {
       id: 'facilities',
       label: 'Facilities',
       content: <FacilitiesPage />
+    },
+    {
+      id: 'claims',
+      label: 'Claims',
+      content: <ClaimsPage />
+    },
+    {
+      id: 'disputes',
+      label: 'Disputes',
+      content: <DisputesPage />
     },
     {
       id: 'locations',
@@ -114,7 +126,7 @@ export default function AdminDashboard() {
           <div className="p-6 border-b">
             <h1 className="text-2xl font-bold">Admin Dashboard</h1>
             <p className="text-gray-600 mt-2">
-              Manage facilities, locations, users, licenses, insurance, conditions, substances, therapies, treatment types, amenities, and languages
+              Manage facilities, claims, disputes, locations, users, licenses, insurance, conditions, substances, therapies, treatment types, amenities, and languages
             </p>
           </div>
 
