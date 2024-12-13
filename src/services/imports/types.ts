@@ -59,33 +59,5 @@ export interface CreateImportJobOptions {
   totalFacilities: number;
 }
 
-export interface InitialFacilityData {
-  name: string;
-  website?: string;
-  ownerId: string;
-  description: string;
-  location: string;
-  city: string;
-  state: string;
-  coordinates: { lat: number; lng: number };
-  phone: string;
-  email: string;
-  images: string[];
-  amenityObjects: any[];
-  highlights: string[];
-  accreditation: string[];
-  languageObjects: any[];
-  rating: number;
-  reviews: number;
-  reviewCount: number;
-  isVerified: boolean;
-  isFeatured: boolean;
-  claimStatus: string;
-  moderationStatus: string;
-  slug: string;
-  createdAt: string;
-  updatedAt: string;
-}
-
 export const IMPORT_JOBS_COLLECTION = 'import_jobs';
 export const IMPORTED_FACILITIES_COLLECTION = 'imported_facilities';
