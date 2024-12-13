@@ -37,18 +37,13 @@ interface EditListingForm {
   phone: string;
   email: string;
   highlights: string[];
-  treatmentTypes: string[];  // For backward compatibility
-  managedTreatmentTypes: string[];  // For new managed treatment types
+  treatmentTypes: TreatmentType[];
   substances: Substance[];
   conditions: Condition[];
   therapies: Therapy[];
-  amenities: string[];  // For backward compatibility
-  amenityObjects: Amenity[];  // For managed amenities
-  insurance: string[];
+  amenityObjects: Amenity[];
   insurances: Insurance[];
-  accreditation: string[];
-  languages: string[];  // For backward compatibility
-  languageObjects: Language[];  // For managed languages
+  languageObjects: Language[];
   licenses: License[];
 }
 
@@ -116,13 +111,8 @@ const EditListingModal: React.FC<EditListingModalProps> = ({ facility, isOpen, o
   // Watch form values for DropdownSelect components
   const highlights = watch('highlights', []);
   const treatmentTypes = watch('treatmentTypes', []);
-  const managedTreatmentTypes = watch('managedTreatmentTypes', []);
   const substances = watch('substances', []);
-  const amenities = watch('amenities', []);
   const amenityObjects = watch('amenityObjects', []);
-  const insurance = watch('insurance', []);
-  const accreditation = watch('accreditation', []);
-  const languages = watch('languages', []);
   const languageObjects = watch('languageObjects', []);
   const selectedLicenses = watch('licenses', []);
   const selectedInsurances = watch('insurances', []);
@@ -132,13 +122,7 @@ const EditListingModal: React.FC<EditListingModalProps> = ({ facility, isOpen, o
   // Reset form when modal opens or facility changes
   useEffect(() => {
     if (isOpen && facility) {
-      console.log('Resetting form with facility data:', {
-        ...facility,
-        canEdit,
-        userRole: user?.role,
-        userId: user?.id,
-        facilityOwnerId: facility.ownerId
-      });
+      console.log('Resetting form with facility data:', facility);
       
       // Reset form fields
       reset({
@@ -151,18 +135,13 @@ const EditListingModal: React.FC<EditListingModalProps> = ({ facility, isOpen, o
         phone: facility.phone || '',
         email: facility.email || '',
         highlights: facility.highlights || [],
-        treatmentTypes: facility.tags || [],  // For backward compatibility
-        managedTreatmentTypes: facility.treatmentTypes?.map(t => t.id) || [],  // For new managed treatment types
+        treatmentTypes: facility.treatmentTypes || [],
         substances: facility.substances || [],
         conditions: facility.conditions || [],
         therapies: facility.therapies || [],
-        amenities: facility.amenities || [],  // For backward compatibility
-        amenityObjects: facility.amenityObjects || [],  // For managed amenities
-        insurance: facility.insurance || [],
+        amenityObjects: facility.amenityObjects || [],
         insurances: facility.insurances || [],
-        accreditation: facility.accreditation || [],
-        languages: facility.languages || [],  // For backward compatibility
-        languageObjects: facility.languageObjects || [],  // For managed languages
+        languageObjects: facility.languageObjects || [],
         licenses: facility.licenses || []
       });
 
@@ -172,10 +151,9 @@ const EditListingModal: React.FC<EditListingModalProps> = ({ facility, isOpen, o
         logo: facility.logo || undefined
       });
 
-      console.log('Form data reset with logo:', facility.logo);
       setError(null);
     }
-  }, [facility, isOpen, reset, user, canEdit]);
+  }, [facility, isOpen, reset]);
 
   const handlePhotosChange = useCallback((photos: string[]) => {
     console.log('Photos changed:', photos);
@@ -208,11 +186,6 @@ const EditListingModal: React.FC<EditListingModalProps> = ({ facility, isOpen, o
         logo: formData.logo
       });
 
-      // Convert IDs back to full objects for treatment types
-      const treatmentTypes = data.managedTreatmentTypes.map(id =>
-        availableTreatmentTypes.find(t => t.id === id)
-      ).filter((t): t is TreatmentType => t !== undefined);
-
       await onSave({
         name: data.name,
         description: data.description,
@@ -223,18 +196,13 @@ const EditListingModal: React.FC<EditListingModalProps> = ({ facility, isOpen, o
         phone: data.phone,
         email: data.email,
         highlights: data.highlights,
-        tags: data.treatmentTypes,  // For backward compatibility
-        treatmentTypes,  // New managed treatment types
+        treatmentTypes: data.treatmentTypes,
         substances: data.substances,
         conditions: data.conditions,
         therapies: data.therapies,
-        amenities: data.amenities,  // For backward compatibility
-        amenityObjects: data.amenityObjects,  // For managed amenities
-        insurance: data.insurance,
+        amenityObjects: data.amenityObjects,
         insurances: data.insurances,
-        accreditation: data.accreditation,
-        languages: data.languages,  // For backward compatibility
-        languageObjects: data.languageObjects,  // For managed languages
+        languageObjects: data.languageObjects,
         licenses: data.licenses,
         images: formData.images,
         logo: formData.logo
@@ -291,6 +259,7 @@ const EditListingModal: React.FC<EditListingModalProps> = ({ facility, isOpen, o
             </div>
           )}
 
+          {/* Basic Information */}
           <div>
             <label className="block text-sm font-medium text-gray-700 mb-1">
               Facility Name
@@ -401,22 +370,16 @@ const EditListingModal: React.FC<EditListingModalProps> = ({ facility, isOpen, o
             <DropdownSelect
               label="Treatment Types"
               type="treatmentTypes"
-              value={treatmentTypes}
-              onChange={(values) => setValue('treatmentTypes', values)}
-              error={errors.treatmentTypes?.message}
-            />
-
-            <DropdownSelect
-              label="Managed Treatment Types"
-              type="treatmentTypes"
-              value={managedTreatmentTypes}
-              onChange={(values) => setValue('managedTreatmentTypes', values)}
-              useManagedOptions={true}
+              value={(treatmentTypes || []).map(t => t.id)}
+              onChange={(values) => {
+                const selected = availableTreatmentTypes.filter(t => values.includes(t.id));
+                setValue('treatmentTypes', selected);
+              }}
               options={availableTreatmentTypes.map(type => ({
                 value: type.id,
                 label: type.name
               }))}
-              error={errors.managedTreatmentTypes?.message}
+              error={errors.treatmentTypes?.message}
             />
 
             <DropdownSelect
@@ -464,16 +427,6 @@ const EditListingModal: React.FC<EditListingModalProps> = ({ facility, isOpen, o
               error={errors.therapies?.message}
             />
 
-            {/* Legacy Amenities */}
-            <DropdownSelect
-              label="Legacy Amenities"
-              type="amenities"
-              value={amenities}
-              onChange={(values) => setValue('amenities', values)}
-              error={errors.amenities?.message}
-            />
-
-            {/* Managed Amenities */}
             <DropdownSelect
               label="Amenities"
               type="amenities"
@@ -487,15 +440,6 @@ const EditListingModal: React.FC<EditListingModalProps> = ({ facility, isOpen, o
                 label: amenity.name
               }))}
               error={errors.amenityObjects?.message}
-              useManagedOptions={true}
-            />
-
-            <DropdownSelect
-              label="Insurance Accepted"
-              type="insurance"
-              value={insurance}
-              onChange={(values) => setValue('insurance', values)}
-              error={errors.insurance?.message}
             />
 
             <DropdownSelect
@@ -514,24 +458,6 @@ const EditListingModal: React.FC<EditListingModalProps> = ({ facility, isOpen, o
             />
 
             <DropdownSelect
-              label="Accreditation"
-              type="accreditation"
-              value={accreditation}
-              onChange={(values) => setValue('accreditation', values)}
-              error={errors.accreditation?.message}
-            />
-
-            {/* Legacy Languages */}
-            <DropdownSelect
-              label="Legacy Languages"
-              type="languages"
-              value={languages}
-              onChange={(values) => setValue('languages', values)}
-              error={errors.languages?.message}
-            />
-
-            {/* Managed Languages */}
-            <DropdownSelect
               label="Languages"
               type="languages"
               value={(languageObjects || []).map(l => l.id)}
@@ -544,7 +470,6 @@ const EditListingModal: React.FC<EditListingModalProps> = ({ facility, isOpen, o
                 label: language.name
               }))}
               error={errors.languageObjects?.message}
-              useManagedOptions={true}
             />
 
             <DropdownSelect

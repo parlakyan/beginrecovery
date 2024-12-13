@@ -11,7 +11,9 @@ import { conditionsService } from '../services/conditions';
 import { therapiesService } from '../services/therapies';
 import { treatmentTypesService } from '../services/treatmentTypes';
 import { storageService } from '../services/storage';
-import { Facility, License, Insurance, Condition, Therapy, TreatmentType, Substance } from '../types';
+import { amenitiesService } from '../services/amenities';
+import { languagesService } from '../services/languages';
+import { Facility, License, Insurance, Condition, Therapy, TreatmentType, Substance, Amenity, Language } from '../types';
 import Header from '../components/Header';
 import Footer from '../components/Footer';
 import PhotoUpload from '../components/PhotoUpload';
@@ -33,16 +35,13 @@ interface CreateListingForm {
   phone: string;
   email: string;
   highlights: string[];
-  treatmentTypes: string[];  // For backward compatibility
-  managedTreatmentTypes: string[];  // For new managed treatment types
-  substances: Substance[];  // Changed from string[] to Substance[]
+  treatmentTypes: TreatmentType[];
+  substances: Substance[];
   conditions: Condition[];
   therapies: Therapy[];
-  amenities: string[];
-  insurance: string[];
+  amenityObjects: Amenity[];
   insurances: Insurance[];
-  accreditation: string[];
-  languages: string[];
+  languageObjects: Language[];
   licenses: License[];
 }
 
@@ -62,20 +61,19 @@ export default function CreateListing() {
   const [availableTherapies, setAvailableTherapies] = useState<Therapy[]>([]);
   const [availableTreatmentTypes, setAvailableTreatmentTypes] = useState<TreatmentType[]>([]);
   const [availableSubstances, setAvailableSubstances] = useState<Substance[]>([]);
+  const [availableAmenities, setAvailableAmenities] = useState<Amenity[]>([]);
+  const [availableLanguages, setAvailableLanguages] = useState<Language[]>([]);
 
   const { register, handleSubmit, formState: { errors }, setValue, watch } = useForm<CreateListingForm>({
     defaultValues: {
       highlights: [],
       treatmentTypes: [],
-      managedTreatmentTypes: [],
       substances: [],
-      conditions: [],  // Initialize as empty array
-      therapies: [],   // Initialize as empty array
-      amenities: [],
-      insurance: [],
+      conditions: [],
+      therapies: [],
+      amenityObjects: [],
       insurances: [],
-      accreditation: [],
-      languages: [],
+      languageObjects: [],
       licenses: [],
       city: '',
       state: ''
@@ -85,16 +83,13 @@ export default function CreateListing() {
   // Watch form values for DropdownSelect components
   const highlights = watch('highlights');
   const treatmentTypes = watch('treatmentTypes');
-  const managedTreatmentTypes = watch('managedTreatmentTypes');
   const substances = watch('substances');
-  const conditions = watch('conditions', []);  // Add default empty array
-  const therapies = watch('therapies', []);    // Add default empty array
-  const amenities = watch('amenities');
-  const insurance = watch('insurance');
-  const accreditation = watch('accreditation');
-  const languages = watch('languages');
+  const conditions = watch('conditions');
+  const therapies = watch('therapies');
+  const amenityObjects = watch('amenityObjects');
   const selectedLicenses = watch('licenses');
   const selectedInsurances = watch('insurances');
+  const languageObjects = watch('languageObjects');
 
   // Generate a temporary ID for photo uploads
   const tempId = React.useMemo(() => 'temp-' + Date.now(), []);
@@ -102,13 +97,24 @@ export default function CreateListing() {
   // Fetch available options
   React.useEffect(() => {
     const fetchData = async () => {
-      const [licenses, insurances, conditions, therapies, treatmentTypes, substances] = await Promise.all([
+      const [
+        licenses,
+        insurances,
+        conditions,
+        therapies,
+        treatmentTypes,
+        substances,
+        amenities,
+        languages
+      ] = await Promise.all([
         licensesService.getLicenses(),
         insurancesService.getInsurances(),
         conditionsService.getConditions(),
         therapiesService.getTherapies(),
         treatmentTypesService.getTreatmentTypes(),
-        substancesService.getSubstances()
+        substancesService.getSubstances(),
+        amenitiesService.getAmenities(),
+        languagesService.getLanguages()
       ]);
       setAvailableLicenses(licenses);
       setAvailableInsurances(insurances);
@@ -116,6 +122,8 @@ export default function CreateListing() {
       setAvailableTherapies(therapies);
       setAvailableTreatmentTypes(treatmentTypes);
       setAvailableSubstances(substances);
+      setAvailableAmenities(amenities);
+      setAvailableLanguages(languages);
     };
     fetchData();
   }, []);
@@ -144,11 +152,6 @@ export default function CreateListing() {
       // Refresh auth token first
       await refreshToken();
 
-      // Convert IDs to full objects for treatment types
-      const selectedTreatmentTypes = data.managedTreatmentTypes.map(id =>
-        availableTreatmentTypes.find(t => t.id === id)
-      ).filter((t): t is TreatmentType => t !== undefined);
-
       // Process form data
       const formattedData: Partial<Facility> = {
         name: data.name,
@@ -160,16 +163,13 @@ export default function CreateListing() {
         phone: data.phone,
         email: data.email,
         highlights: data.highlights,
-        tags: data.treatmentTypes,  // For backward compatibility
-        treatmentTypes: selectedTreatmentTypes,  // New managed treatment types
+        treatmentTypes: data.treatmentTypes,
         substances: data.substances,
-        conditions: data.conditions,  // Already full objects
-        therapies: data.therapies,   // Already full objects
-        amenities: data.amenities,
-        insurance: data.insurance,
+        conditions: data.conditions,
+        therapies: data.therapies,
+        amenityObjects: data.amenityObjects,
         insurances: data.insurances,
-        accreditation: data.accreditation,
-        languages: data.languages,
+        languageObjects: data.languageObjects,
         licenses: data.licenses,
         images: photos,
         logo,
@@ -300,6 +300,7 @@ export default function CreateListing() {
             )}
 
             <form onSubmit={handleSubmit(onSubmit)} className="space-y-6">
+              {/* Basic Information */}
               <div>
                 <label className="block text-sm font-medium text-gray-700 mb-1">
                   Facility Name
@@ -414,38 +415,32 @@ export default function CreateListing() {
                 <DropdownSelect
                   label="Treatment Types"
                   type="treatmentTypes"
-                  value={treatmentTypes}
-                  onChange={(values) => setValue('treatmentTypes', values)}
-                  error={errors.treatmentTypes?.message}
-                />
-
-                <DropdownSelect
-                  label="Managed Treatment Types"
-                  type="treatmentTypes"
-                  value={managedTreatmentTypes}
-                  onChange={(values) => setValue('managedTreatmentTypes', values)}
-                  useManagedOptions={true}
+                  value={(treatmentTypes || []).map(t => t.id)}
+                  onChange={(values) => {
+                    const selected = availableTreatmentTypes.filter(t => values.includes(t.id));
+                    setValue('treatmentTypes', selected);
+                  }}
                   options={availableTreatmentTypes.map(type => ({
                     value: type.id,
                     label: type.name
                   }))}
-                  error={errors.managedTreatmentTypes?.message}
+                  error={errors.treatmentTypes?.message}
                 />
 
-  <DropdownSelect
-    label="Substances We Treat"
-    type="substances"
-    value={(substances || []).map(s => s.id)}
-    onChange={(values) => {
-      const selected = availableSubstances.filter(s => values.includes(s.id));
-      setValue('substances', selected);
-    }}
-    options={availableSubstances.map(substance => ({
-      value: substance.id,
-      label: substance.name
-    }))}
-    error={errors.substances?.message}
-  />
+                <DropdownSelect
+                  label="Substances We Treat"
+                  type="substances"
+                  value={(substances || []).map(s => s.id)}
+                  onChange={(values) => {
+                    const selected = availableSubstances.filter(s => values.includes(s.id));
+                    setValue('substances', selected);
+                  }}
+                  options={availableSubstances.map(substance => ({
+                    value: substance.id,
+                    label: substance.name
+                  }))}
+                  error={errors.substances?.message}
+                />
 
                 <DropdownSelect
                   label="Conditions We Treat"
@@ -480,17 +475,16 @@ export default function CreateListing() {
                 <DropdownSelect
                   label="Amenities"
                   type="amenities"
-                  value={amenities}
-                  onChange={(values) => setValue('amenities', values)}
-                  error={errors.amenities?.message}
-                />
-
-                <DropdownSelect
-                  label="Insurance Accepted"
-                  type="insurance"
-                  value={insurance}
-                  onChange={(values) => setValue('insurance', values)}
-                  error={errors.insurance?.message}
+                  value={(amenityObjects || []).map(a => a.id)}
+                  onChange={(values) => {
+                    const selected = availableAmenities.filter(a => values.includes(a.id));
+                    setValue('amenityObjects', selected);
+                  }}
+                  options={availableAmenities.map(amenity => ({
+                    value: amenity.id,
+                    label: amenity.name
+                  }))}
+                  error={errors.amenityObjects?.message}
                 />
 
                 <DropdownSelect
@@ -509,19 +503,18 @@ export default function CreateListing() {
                 />
 
                 <DropdownSelect
-                  label="Accreditation"
-                  type="accreditation"
-                  value={accreditation}
-                  onChange={(values) => setValue('accreditation', values)}
-                  error={errors.accreditation?.message}
-                />
-
-                <DropdownSelect
                   label="Languages"
                   type="languages"
-                  value={languages}
-                  onChange={(values) => setValue('languages', values)}
-                  error={errors.languages?.message}
+                  value={(languageObjects || []).map(l => l.id)}
+                  onChange={(values) => {
+                    const selected = availableLanguages.filter(l => values.includes(l.id));
+                    setValue('languageObjects', selected);
+                  }}
+                  options={availableLanguages.map(language => ({
+                    value: language.id,
+                    label: language.name
+                  }))}
+                  error={errors.languageObjects?.message}
                 />
 
                 <DropdownSelect
