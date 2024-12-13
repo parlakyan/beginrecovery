@@ -12,12 +12,7 @@ import {
   increment,
   writeBatch
 } from 'firebase/firestore';
-import { 
-  Client, 
-  AddressType, 
-  GeocodeResult, 
-  AddressComponent 
-} from '@googlemaps/google-maps-services-js';
+import { AddressType } from '@googlemaps/google-maps-services-js';
 import { db } from '../../lib/firebase';
 import { Facility } from '../../types';
 import { generateSlug } from '../facilities/utils';
@@ -51,6 +46,32 @@ async function retryWithBackoff<T>(
     if (retries === 0) throw error;
     await new Promise(resolve => setTimeout(resolve, delay));
     return retryWithBackoff(fn, retries - 1, delay * 2);
+  }
+}
+
+/**
+ * Geocode an address using Google Maps API
+ */
+async function geocodeAddress(address: string, apiKey: string) {
+  const controller = new AbortController();
+  const timeoutId = setTimeout(() => controller.abort(), GEOCODING_TIMEOUT);
+
+  try {
+    const url = `https://maps.googleapis.com/maps/api/geocode/json?address=${encodeURIComponent(address)}&key=${apiKey}&region=us&components=country:US`;
+    const response = await fetch(url, { signal: controller.signal });
+    
+    if (!response.ok) {
+      throw new Error(`Geocoding failed: ${response.statusText}`);
+    }
+
+    const data = await response.json();
+    if (data.status !== 'OK') {
+      throw new Error(`Geocoding error: ${data.status} - ${data.error_message || 'Unknown error'}`);
+    }
+
+    return data.results[0];
+  } finally {
+    clearTimeout(timeoutId);
   }
 }
 
@@ -286,7 +307,6 @@ export const importService = {
       throw new Error('Google Maps API key not configured');
     }
 
-    const googleMaps = new Client({});
     const jobRef = doc(db, IMPORT_JOBS_COLLECTION, jobId);
 
     try {
@@ -310,23 +330,10 @@ export const importService = {
 
           try {
             // Geocode address with retries and increased timeout
-            const response = await retryWithBackoff(async () => {
-              return await googleMaps.geocode({
-                params: {
-                  address: facility.rawAddress,
-                  key: apiKey,
-                  region: 'us',
-                  components: 'country:US' // Restrict to US addresses
-                },
-                timeout: GEOCODING_TIMEOUT
-              });
+            const result = await retryWithBackoff(async () => {
+              return await geocodeAddress(facility.rawAddress, apiKey);
             });
 
-            if (!response.data.results || response.data.results.length === 0) {
-              throw new Error('Address not found');
-            }
-
-            const result = response.data.results[0];
             const { lat, lng } = result.geometry.location;
 
             // Determine match quality
