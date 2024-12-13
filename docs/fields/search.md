@@ -21,11 +21,12 @@ export interface SearchParams {
   query: string;          // Text search query
   location: string[];     // Array of "city,state" strings
   treatmentTypes: string[]; // Treatment type IDs
-  amenities: string[];    // Amenity IDs
-  insurance: string[];    // Insurance IDs
+  amenityObjects: string[]; // Amenity IDs
+  insurances: string[];   // Insurance IDs
   conditions: string[];   // Condition IDs
   substances: string[];   // Substance IDs
   therapies: string[];    // Therapy IDs
+  languageObjects: string[]; // Language IDs
   rating: number | null;  // Minimum rating filter
 }
 ```
@@ -56,7 +57,7 @@ export const facilitiesSearch = {
         // Location filter
         const matchesLocation = this.matchesLocation(facility, params.location);
 
-        // Field-specific filters
+        // Field-specific filters using managed fields
         const matchesTreatment = this.matchesFieldFilter(
           facility.treatmentTypes,
           params.treatmentTypes
@@ -64,15 +65,43 @@ export const facilitiesSearch = {
 
         const matchesAmenities = this.matchesFieldFilter(
           facility.amenityObjects,
-          params.amenities
+          params.amenityObjects
         );
 
-        // ... other field filters
+        const matchesInsurance = this.matchesFieldFilter(
+          facility.insurances,
+          params.insurances
+        );
+
+        const matchesConditions = this.matchesFieldFilter(
+          facility.conditions,
+          params.conditions
+        );
+
+        const matchesSubstances = this.matchesFieldFilter(
+          facility.substances,
+          params.substances
+        );
+
+        const matchesTherapies = this.matchesFieldFilter(
+          facility.therapies,
+          params.therapies
+        );
+
+        const matchesLanguages = this.matchesFieldFilter(
+          facility.languageObjects,
+          params.languageObjects
+        );
 
         return matchesQuery && 
                matchesLocation && 
                matchesTreatment && 
-               matchesAmenities;
+               matchesAmenities &&
+               matchesInsurance &&
+               matchesConditions &&
+               matchesSubstances &&
+               matchesTherapies &&
+               matchesLanguages;
       });
 
       // Apply sorting
@@ -170,11 +199,12 @@ export function useSearch() {
           query: searchParams.get('q') || '',
           location: searchParams.getAll('location'),
           treatmentTypes: searchParams.getAll('treatmentTypes'),
-          amenities: searchParams.getAll('amenities'),
-          insurance: searchParams.getAll('insurance'),
+          amenityObjects: searchParams.getAll('amenities'),
+          insurances: searchParams.getAll('insurances'),
           conditions: searchParams.getAll('conditions'),
           substances: searchParams.getAll('substances'),
           therapies: searchParams.getAll('therapies'),
+          languageObjects: searchParams.getAll('languages'),
           rating: searchParams.get('rating') 
             ? Number(searchParams.get('rating')) 
             : null
@@ -231,10 +261,17 @@ export default function FilterBar() {
       <DropdownSelect
         label="Treatment Types"
         type="treatmentTypes"
-        value={searchParams.getAll('treatmentTypes')}
-        onChange={(values) => handleFilterChange('treatmentTypes', values)}
+        value={(treatmentTypes || []).map(t => t.id)}
+        onChange={(values) => {
+          const selected = availableTreatmentTypes.filter(t => values.includes(t.id));
+          setValue('treatmentTypes', selected);
+        }}
+        options={availableTreatmentTypes.map(type => ({
+          value: type.id,
+          label: type.name
+        }))}
       />
-      {/* Other filters... */}
+      {/* Other filters follow same pattern */}
     </div>
   );
 }

@@ -1,6 +1,6 @@
 # Implementation Guide
 
-This guide provides step-by-step instructions for adding new fields to the Recovery Directory system.
+This guide provides step-by-step instructions for adding new managed fields to the Recovery Directory system.
 
 ## Prerequisites
 
@@ -16,7 +16,7 @@ Before implementing a new field:
 In `src/types.ts`:
 
 ```typescript
-// Field type definition
+// Field type definition - follows managed field structure
 export interface NewFieldType {
   id: string;
   name: string;
@@ -29,7 +29,7 @@ export interface NewFieldType {
 // Update Facility interface
 export interface Facility {
   // ... existing fields ...
-  newFieldObjects: NewFieldType[];  // Use Objects suffix for consistency
+  newFieldObjects: NewFieldType[];  // Use Objects suffix for managed fields
 }
 
 // Update search parameters
@@ -150,6 +150,7 @@ Create `src/components/NewFieldSection.tsx`:
 ```typescript
 import React from 'react';
 import { NewFieldType } from '../types';
+import { Tag } from './ui';
 
 interface NewFieldSectionProps {
   items: NewFieldType[];
@@ -162,21 +163,11 @@ export default function NewFieldSection({ items, isVerified }: NewFieldSectionPr
   return (
     <div className="bg-white rounded-lg shadow-lg p-6">
       <h2 className="text-xl font-semibold mb-6">New Field Title</h2>
-      <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-6">
+      <div className="flex flex-wrap gap-2">
         {items.map((item) => (
-          <div key={item.id} className="flex flex-col items-center text-center">
-            {isVerified && item.logo && (
-              <img
-                src={item.logo}
-                alt={item.name}
-                className="w-16 h-16 object-contain mb-3"
-              />
-            )}
-            <h3 className="font-medium text-gray-900">{item.name}</h3>
-            {isVerified && item.description && (
-              <p className="text-sm text-gray-600 mt-1">{item.description}</p>
-            )}
-          </div>
+          <Tag key={item.id} variant="primary">
+            {item.name}
+          </Tag>
         ))}
       </div>
     </div>
@@ -281,9 +272,16 @@ In `src/components/FilterBar.tsx`:
 <DropdownSelect
   label="New Field"
   type="newField"
-  value={searchParams.getAll('newField')}
-  onChange={(values) => handleFilterChange('newField', values)}
-  options={newFieldOptions}
+  value={(newFieldObjects || []).map(f => f.id)}
+  onChange={(values) => {
+    const selected = availableNewField.filter(f => values.includes(f.id));
+    setValue('newFieldObjects', selected);
+  }}
+  options={availableNewField.map(field => ({
+    value: field.id,
+    label: field.name
+  }))}
+  error={errors.newFieldObjects?.message}
 />
 ```
 
@@ -310,17 +308,17 @@ useEffect(() => {
 // Add form field
 <DropdownSelect
   label="New Field"
-  value={watch('newFieldObjects')?.map(f => f.id) || []}
+  type="newField"
+  value={(newFieldObjects || []).map(f => f.id)}
   onChange={(values) => {
-    const selected = availableNewField.filter(f => 
-      values.includes(f.id)
-    );
+    const selected = availableNewField.filter(f => values.includes(f.id));
     setValue('newFieldObjects', selected);
   }}
-  options={availableNewField.map(f => ({
-    value: f.id,
-    label: f.name
+  options={availableNewField.map(field => ({
+    value: field.id,
+    label: field.name
   }))}
+  error={errors.newFieldObjects?.message}
 />
 ```
 
@@ -377,13 +375,13 @@ In `src/App.tsx`:
 
 ## Testing Checklist
 
-1. [ ] Type definitions are complete
+1. [ ] Type definitions follow managed field structure
 2. [ ] Service CRUD operations work
 3. [ ] Admin page functions correctly
-4. [ ] Display component renders properly
+4. [ ] Display component uses Tag component
 5. [ ] Search integration works
-6. [ ] Filters function correctly
-7. [ ] Form integration works
+6. [ ] Filters use managed field structure
+7. [ ] Form integration uses managed fields
 8. [ ] Security rules are effective
 9. [ ] Navigation works
 10. [ ] Routes are protected
@@ -391,18 +389,18 @@ In `src/App.tsx`:
 ## Common Issues
 
 1. **Type Errors**
-   - Ensure all interfaces are properly defined
-   - Check for optional fields
+   - Ensure field follows managed structure
+   - Check for proper Objects suffix
    - Verify type imports
 
 2. **Search Issues**
-   - Verify field is included in searchable fields
+   - Verify field uses managed structure
    - Check filter implementation
    - Test sort functionality
 
 3. **Display Problems**
+   - Use Tag component for consistency
    - Check null handling
-   - Verify CSS classes
    - Test responsive behavior
 
 4. **Security Issues**

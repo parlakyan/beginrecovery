@@ -32,7 +32,7 @@ The Recovery Directory uses a managed field system that provides:
 
 ### 1. Base Field Structure
 
-All managed fields follow this structure:
+All fields follow this managed structure:
 ```typescript
 interface ManagedField {
   id: string;
@@ -96,9 +96,7 @@ The system supports two facility types with different feature sets:
 ### 1. Unverified (Free) Facilities
 
 #### Display Features
-- Basic field names only
-- No field descriptions
-- No field logos
+- Basic field information
 - Limited section access
 
 #### Available Sections
@@ -120,8 +118,6 @@ The system supports two facility types with different feature sets:
 
 #### Display Features
 - Full field information
-- Field descriptions
-- Field logos
 - Complete section access
 
 #### Additional Features
@@ -190,8 +186,8 @@ The system supports two facility types with different feature sets:
    - Subscription management
 
 3. **Facility Forms**
-   - Field selection
-   - Verification-based fields
+   - Field selection with managed fields
+   - Verification-based features
    - Data validation
 
 4. **Display Components**
