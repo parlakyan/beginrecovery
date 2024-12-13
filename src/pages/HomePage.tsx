@@ -37,19 +37,19 @@ export default function HomePage() {
       setLoading(true);
       
       // Fetch facilities and featured facilities in parallel
-      const [facilitiesResponse, featured] = await Promise.all([
+      const [facilities, featured] = await Promise.all([
         facilitiesService.getFacilities(),
         facilitiesService.getFeaturedFacilities()
       ]);
       
       console.log('Fetched facilities:', {
-        total: facilitiesResponse.facilities.length,
+        total: facilities.length,
         featured: featured.length,
         filters: currentFilters,
         userLocation
       });
       
-      setFacilities(facilitiesResponse.facilities);
+      setFacilities(facilities);
       setFeaturedFacilities(featured);
     } catch (error) {
       console.error('Error fetching facilities:', error);
