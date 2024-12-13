@@ -14,6 +14,7 @@ import StaffSection from '../components/StaffSection';
 import CertificationsSection from '../components/CertificationsSection';
 import { Button, Tag, Breadcrumb } from '../components/ui';
 import EditListingModal from '../components/EditListingModal';
+import InsurancesSection from '../components/InsurancesSection';
 
 export default function ListingDetail() {
   const { slug, id } = useParams<{ slug?: string; id?: string }>();
@@ -351,6 +352,9 @@ export default function ListingDetail() {
               {facility.isVerified && (
                 <CertificationsSection licenses={facility.licenses} />
               )}
+
+              {/* Insurance Section - Show for all facilities */}
+              <InsurancesSection insurances={facility.insurances} />
 
               {/* Staff Section - Only for verified facilities */}
               {facility.isVerified && <StaffSection />}

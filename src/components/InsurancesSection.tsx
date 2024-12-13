@@ -3,11 +3,11 @@ import { Shield } from 'lucide-react';
 import { Insurance } from '../types';
 
 interface InsurancesSectionProps {
-  insurances: Insurance[];
+  insurances: Insurance[] | undefined;
 }
 
 export default function InsurancesSection({ insurances }: InsurancesSectionProps) {
-  if (!insurances || insurances.length === 0) {
+  if (!insurances?.length) {
     return null;
   }
 
