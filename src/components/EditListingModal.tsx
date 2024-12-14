@@ -55,9 +55,8 @@ const EditListingModal: React.FC<EditListingModalProps> = ({ facility, isOpen, o
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [formData, setFormData] = useState<Partial<Facility>>({
-    images: [],
-    logo: undefined,
-    coordinates: facility.coordinates // Initialize with existing coordinates
+    images: facility.images || [],
+    logo: facility.logo
   });
   const [availableLicenses, setAvailableLicenses] = useState<License[]>([]);
   const [availableInsurances, setAvailableInsurances] = useState<Insurance[]>([]);
@@ -146,11 +145,10 @@ const EditListingModal: React.FC<EditListingModalProps> = ({ facility, isOpen, o
         licenses: facility.licenses?.map(l => l.id) || []
       });
 
-      // Reset form data with existing images, logo, and coordinates
+      // Reset form data with existing images and logo
       setFormData({
         images: facility.images || [],
-        logo: facility.logo || undefined,
-        coordinates: facility.coordinates // Preserve existing coordinates
+        logo: facility.logo
       });
 
       setError(null);
@@ -169,7 +167,7 @@ const EditListingModal: React.FC<EditListingModalProps> = ({ facility, isOpen, o
     console.log('Logo changed:', logo);
     setFormData(prev => ({
       ...prev,
-      logo
+      logo: logo
     }));
   }, []);
 
@@ -193,12 +191,12 @@ const EditListingModal: React.FC<EditListingModalProps> = ({ facility, isOpen, o
       const languageObjects = availableLanguages.filter(l => data.languageObjects.includes(l.id));
       const licenses = availableLicenses.filter(l => data.licenses.includes(l.id));
 
-      // Use coordinates from form data if available, otherwise use existing coordinates
-      const coordinates = data.coordinates || formData.coordinates || facility.coordinates;
+      // Preserve existing logo if not changed
+      const logo = formData.logo !== undefined ? formData.logo : facility.logo;
 
       console.log('Submitting form with data:', {
         ...data,
-        coordinates,
+        logo,
         treatmentTypes,
         substances,
         conditions,
@@ -207,19 +205,19 @@ const EditListingModal: React.FC<EditListingModalProps> = ({ facility, isOpen, o
         insurances,
         languageObjects,
         licenses,
-        images: formData.images,
-        logo: formData.logo
+        images: formData.images
       });
 
       await onSave({
         name: data.name,
         description: data.description,
         location: data.location,
-        coordinates, // Use preserved coordinates
+        coordinates: data.coordinates,
         city: data.city,
         state: data.state,
         phone: data.phone,
         email: data.email,
+        logo,
         highlights: data.highlights,
         treatmentTypes,
         substances,
@@ -229,8 +227,7 @@ const EditListingModal: React.FC<EditListingModalProps> = ({ facility, isOpen, o
         insurances,
         languageObjects,
         licenses,
-        images: formData.images,
-        logo: formData.logo
+        images: formData.images
       });
       onClose();
     } catch (err) {

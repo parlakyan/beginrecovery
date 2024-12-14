@@ -143,13 +143,16 @@ export const facilitiesCrud = {
     }
   },
 
-  async updateFacility(id: string, data: Partial<Facility>) {
+  async updateFacility(id: string, data: Partial<Facility>): Promise<Facility> {
     try {
       console.log('Updating facility:', { id, data });
       const facilityRef = doc(db, FACILITIES_COLLECTION, id);
       
       // Get current facility data
       const facilityDoc = await getDoc(facilityRef);
+      if (!facilityDoc.exists()) {
+        throw new Error('Facility not found');
+      }
       const currentData = facilityDoc.data();
 
       // Handle logo removal
@@ -206,6 +209,9 @@ export const facilitiesCrud = {
       
       // Fetch and return updated facility
       const updatedDoc = await getDoc(facilityRef);
+      if (!updatedDoc.exists()) {
+        throw new Error('Failed to fetch updated facility');
+      }
       return transformFacilityData(updatedDoc as QueryDocumentSnapshot<DocumentData>);
     } catch (error) {
       console.error('Error updating facility:', error);
