@@ -131,21 +131,14 @@ export default function FacilitiesPage(): JSX.Element {
       setLoading(true);
       setError(null);
       
-      // Call update and await it without checking return value
+      // Update the facility
       await facilitiesService.updateFacility(editingFacility.id, data);
       
-      // Update local state optimistically
-      const updatedFacility = { ...editingFacility, ...data } as Facility;
-      setFacilities(prevFacilities => 
-        prevFacilities.map(facility => 
-          facility.id === editingFacility.id ? updatedFacility : facility
-        )
-      );
-      
-      setEditingFacility(null);
-      
-      // Refresh data to ensure consistency
+      // Refresh the data
       await fetchData();
+      
+      // Close the modal
+      setEditingFacility(null);
     } catch (error) {
       if (error instanceof Error) {
         setError(error.message);
@@ -162,11 +155,8 @@ export default function FacilitiesPage(): JSX.Element {
     try {
       setLoading(true);
       setError(null);
-      const result = await facilitiesService.archiveFacility(id);
-      if (!result) {
-        throw new Error('Failed to archive facility');
-      }
-      void fetchData();
+      await facilitiesService.archiveFacility(id);
+      await fetchData();
       setArchiveDialog({ isOpen: false, facilityId: null });
     } catch (error) {
       if (error instanceof Error) {
@@ -185,7 +175,7 @@ export default function FacilitiesPage(): JSX.Element {
       setLoading(true);
       setError(null);
       await facilitiesService.deleteFacility(id);
-      void fetchData();
+      await fetchData();
       setDeleteDialog({ isOpen: false, facilityId: null });
     } catch (error) {
       if (error instanceof Error) {
@@ -203,11 +193,8 @@ export default function FacilitiesPage(): JSX.Element {
     try {
       setLoading(true);
       setError(null);
-      const result = await facilitiesService.restoreFacility(id);
-      if (!result) {
-        throw new Error('Failed to restore facility');
-      }
-      void fetchData();
+      await facilitiesService.restoreFacility(id);
+      await fetchData();
       setRestoreDialog({ isOpen: false, facilityId: null });
     } catch (error) {
       if (error instanceof Error) {
@@ -225,11 +212,8 @@ export default function FacilitiesPage(): JSX.Element {
     try {
       setLoading(true);
       setError(null);
-      const result = await facilitiesService.revertToPending(id);
-      if (!result) {
-        throw new Error('Failed to revert facility');
-      }
-      void fetchData();
+      await facilitiesService.revertToPending(id);
+      await fetchData();
       setRevertDialog({ isOpen: false, facilityId: null });
     } catch (error) {
       if (error instanceof Error) {
@@ -247,11 +231,8 @@ export default function FacilitiesPage(): JSX.Element {
     try {
       setLoading(true);
       setError(null);
-      const result = await facilitiesService.approveFacility(id);
-      if (!result) {
-        throw new Error('Failed to approve facility');
-      }
-      void fetchData();
+      await facilitiesService.approveFacility(id);
+      await fetchData();
     } catch (error) {
       if (error instanceof Error) {
         setError(error.message);
@@ -268,11 +249,8 @@ export default function FacilitiesPage(): JSX.Element {
     try {
       setLoading(true);
       setError(null);
-      const result = await facilitiesService.rejectFacility(id);
-      if (!result) {
-        throw new Error('Failed to reject facility');
-      }
-      void fetchData();
+      await facilitiesService.rejectFacility(id);
+      await fetchData();
     } catch (error) {
       if (error instanceof Error) {
         setError(error.message);
@@ -289,13 +267,10 @@ export default function FacilitiesPage(): JSX.Element {
     try {
       setLoading(true);
       setError(null);
-      const result = isVerified
-        ? await facilitiesService.unverifyFacility(id)
-        : await facilitiesService.verifyFacility(id);
-      if (!result) {
-        throw new Error('Failed to update verification status');
-      }
-      void fetchData();
+      await (isVerified
+        ? facilitiesService.unverifyFacility(id)
+        : facilitiesService.verifyFacility(id));
+      await fetchData();
     } catch (error) {
       if (error instanceof Error) {
         setError(error.message);
@@ -312,13 +287,10 @@ export default function FacilitiesPage(): JSX.Element {
     try {
       setLoading(true);
       setError(null);
-      const result = isFeatured
-        ? await facilitiesService.unfeatureFacility(id)
-        : await facilitiesService.featureFacility(id);
-      if (!result) {
-        throw new Error('Failed to update feature status');
-      }
-      void fetchData();
+      await (isFeatured
+        ? facilitiesService.unfeatureFacility(id)
+        : facilitiesService.featureFacility(id));
+      await fetchData();
     } catch (error) {
       if (error instanceof Error) {
         setError(error.message);
@@ -331,18 +303,14 @@ export default function FacilitiesPage(): JSX.Element {
     }
   };
 
-  // Batch action handlers
   const handleBatchArchive = async () => {
     try {
       setLoading(true);
       setError(null);
-      const results = await Promise.all(
+      await Promise.all(
         Array.from(selectedFacilities).map(id => facilitiesService.archiveFacility(id))
       );
-      if (results.some(result => !result)) {
-        throw new Error('Failed to archive some facilities');
-      }
-      void fetchData();
+      await fetchData();
       setBatchArchiveDialog(false);
     } catch (error) {
       if (error instanceof Error) {
@@ -363,7 +331,7 @@ export default function FacilitiesPage(): JSX.Element {
       await Promise.all(
         Array.from(selectedFacilities).map(id => facilitiesService.deleteFacility(id))
       );
-      void fetchData();
+      await fetchData();
       setBatchDeleteDialog(false);
     } catch (error) {
       if (error instanceof Error) {
@@ -381,17 +349,14 @@ export default function FacilitiesPage(): JSX.Element {
     try {
       setLoading(true);
       setError(null);
-      const results = await Promise.all(
+      await Promise.all(
         Array.from(selectedFacilities).map(id => 
           verify 
             ? facilitiesService.verifyFacility(id)
             : facilitiesService.unverifyFacility(id)
         )
       );
-      if (results.some(result => !result)) {
-        throw new Error('Failed to update verification status for some facilities');
-      }
-      void fetchData();
+      await fetchData();
       setBatchVerifyDialog(false);
       setBatchUnverifyDialog(false);
     } catch (error) {
