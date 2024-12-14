@@ -167,7 +167,7 @@ const EditListingModal: React.FC<EditListingModalProps> = ({ facility, isOpen, o
     console.log('Logo changed:', logo);
     setFormData(prev => ({
       ...prev,
-      logo // Keep as undefined when logo is removed
+      logo: logo // If undefined, it will be filtered out in onSubmit
     }));
   }, []);
 
@@ -191,24 +191,8 @@ const EditListingModal: React.FC<EditListingModalProps> = ({ facility, isOpen, o
       const languageObjects = availableLanguages.filter(l => data.languageObjects.includes(l.id));
       const licenses = availableLicenses.filter(l => data.licenses.includes(l.id));
 
-      // Use formData.logo directly since it's already string | undefined
-      const logo = formData.logo;
-
-      console.log('Submitting form with data:', {
-        ...data,
-        logo,
-        treatmentTypes,
-        substances,
-        conditions,
-        therapies,
-        amenityObjects,
-        insurances,
-        languageObjects,
-        licenses,
-        images: formData.images
-      });
-
-      await onSave({
+      // Create update data, filtering out undefined values
+      const updateData: Partial<Facility> = {
         name: data.name,
         description: data.description,
         location: data.location,
@@ -217,7 +201,6 @@ const EditListingModal: React.FC<EditListingModalProps> = ({ facility, isOpen, o
         state: data.state,
         phone: data.phone,
         email: data.email,
-        logo,
         highlights: data.highlights,
         treatmentTypes,
         substances,
@@ -228,7 +211,16 @@ const EditListingModal: React.FC<EditListingModalProps> = ({ facility, isOpen, o
         languageObjects,
         licenses,
         images: formData.images
-      });
+      };
+
+      // Only include logo if it's not undefined
+      if (formData.logo !== undefined) {
+        updateData.logo = formData.logo;
+      }
+
+      console.log('Submitting form with data:', updateData);
+
+      await onSave(updateData);
       onClose();
     } catch (err) {
       console.error('Error saving facility:', err);

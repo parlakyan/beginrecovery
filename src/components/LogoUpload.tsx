@@ -226,7 +226,7 @@ export default function LogoUpload({
         console.log('Logo removed successfully');
       }
       setLogo(undefined);
-      onLogoChange(undefined);
+      onLogoChange(undefined); // Send undefined instead of empty string
     } catch (err) {
       console.error('Error removing logo:', err);
       setError('Failed to remove logo. Please try again.');

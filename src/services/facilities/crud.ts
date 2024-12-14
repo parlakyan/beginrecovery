@@ -187,9 +187,9 @@ export const facilitiesCrud = {
         }
       }
 
-      // Create a clean update object without undefined values
+      // Create a clean update object by removing undefined values
       const cleanData = Object.entries(data).reduce((acc, [key, value]) => {
-        // Only exclude undefined values, allow null values
+        // Only include non-undefined values
         if (value !== undefined) {
           acc[key] = value;
         }
@@ -206,6 +206,7 @@ export const facilitiesCrud = {
         cleanData.slug = generateSlug(name, location);
       }
 
+      console.log('Updating with clean data:', cleanData);
       await updateDoc(facilityRef, cleanData);
       
       // Fetch and return updated facility
