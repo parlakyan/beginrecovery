@@ -1,6 +1,6 @@
 import React, { useCallback, useState, useEffect } from 'react';
 import { Upload, X, Loader2, AlertCircle } from 'lucide-react';
-import { storageService, UploadResult, UploadError } from '../services/storage';
+import { storageService } from '../services/storage';
 import { useAuthStore } from '../store/authStore';
 
 interface LogoUploadProps {

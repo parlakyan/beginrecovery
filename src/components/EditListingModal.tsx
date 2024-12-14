@@ -167,7 +167,7 @@ const EditListingModal: React.FC<EditListingModalProps> = ({ facility, isOpen, o
     console.log('Logo changed:', logo);
     setFormData(prev => ({
       ...prev,
-      logo: logo
+      logo // Keep as undefined when logo is removed
     }));
   }, []);
 
@@ -191,8 +191,8 @@ const EditListingModal: React.FC<EditListingModalProps> = ({ facility, isOpen, o
       const languageObjects = availableLanguages.filter(l => data.languageObjects.includes(l.id));
       const licenses = availableLicenses.filter(l => data.licenses.includes(l.id));
 
-      // Preserve existing logo if not changed
-      const logo = formData.logo !== undefined ? formData.logo : facility.logo;
+      // Use formData.logo directly since it's already string | undefined
+      const logo = formData.logo;
 
       console.log('Submitting form with data:', {
         ...data,

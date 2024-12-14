@@ -189,6 +189,7 @@ export const facilitiesCrud = {
 
       // Create a clean update object without undefined values
       const cleanData = Object.entries(data).reduce((acc, [key, value]) => {
+        // Only exclude undefined values, allow null values
         if (value !== undefined) {
           acc[key] = value;
         }
