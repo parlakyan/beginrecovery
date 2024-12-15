@@ -54,10 +54,10 @@ const EditListingModal: React.FC<EditListingModalProps> = ({ facility, isOpen, o
   const { register, handleSubmit, formState: { errors }, setValue, watch, reset } = useForm<EditListingForm>();
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
-  const [formData, setFormData] = useState<Partial<Facility>>({
+  const [formData, setFormData] = useState<Partial<Facility>>(() => ({
     images: facility.images || [],
     logo: facility.logo
-  });
+  }));
   const [availableLicenses, setAvailableLicenses] = useState<License[]>([]);
   const [availableInsurances, setAvailableInsurances] = useState<Insurance[]>([]);
   const [availableConditions, setAvailableConditions] = useState<Condition[]>([]);
@@ -213,8 +213,8 @@ const EditListingModal: React.FC<EditListingModalProps> = ({ facility, isOpen, o
         images: formData.images
       };
 
-      // Only include logo if it's not undefined
-      if (formData.logo !== undefined) {
+      // Only include logo if it's explicitly in formData
+      if ('logo' in formData) {
         updateData.logo = formData.logo;
       }
 
