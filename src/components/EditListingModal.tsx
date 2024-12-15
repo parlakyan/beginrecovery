@@ -55,7 +55,6 @@ const EditListingModal: React.FC<EditListingModalProps> = ({ facility, isOpen, o
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [photos, setPhotos] = useState<string[]>(facility.images || []);
-  // Keep logo as string | undefined to match Facility type
   const [logo, setLogo] = useState<string | undefined>(facility.logo);
   const [availableLicenses, setAvailableLicenses] = useState<License[]>([]);
   const [availableInsurances, setAvailableInsurances] = useState<Insurance[]>([]);
@@ -187,7 +186,6 @@ const EditListingModal: React.FC<EditListingModalProps> = ({ facility, isOpen, o
         name: data.name,
         description: data.description,
         location: data.location,
-        coordinates: data.coordinates,
         city: data.city,
         state: data.state,
         phone: data.phone,
@@ -202,9 +200,13 @@ const EditListingModal: React.FC<EditListingModalProps> = ({ facility, isOpen, o
         languageObjects,
         licenses,
         images: photos,
-        // Convert undefined to empty string for logo removal
         logo: logo === undefined ? '' : logo
       };
+
+      // Only include coordinates if they exist and have valid lat/lng
+      if (data.coordinates?.lat && data.coordinates?.lng) {
+        updateData.coordinates = data.coordinates;
+      }
 
       console.log('Submitting form with data:', updateData);
 
