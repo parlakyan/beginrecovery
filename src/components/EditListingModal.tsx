@@ -202,8 +202,8 @@ const EditListingModal: React.FC<EditListingModalProps> = ({ facility, isOpen, o
         languageObjects,
         licenses,
         images: photos,
-        // Pass logo directly since it's already string | undefined
-        logo
+        // Convert undefined to empty string for logo removal
+        logo: logo === undefined ? '' : logo
       };
 
       console.log('Submitting form with data:', updateData);
