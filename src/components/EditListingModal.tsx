@@ -54,10 +54,8 @@ const EditListingModal: React.FC<EditListingModalProps> = ({ facility, isOpen, o
   const { register, handleSubmit, formState: { errors }, setValue, watch, reset } = useForm<EditListingForm>();
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
-  const [formData, setFormData] = useState<Partial<Facility>>(() => ({
-    images: facility.images || [],
-    logo: facility.logo
-  }));
+  const [photos, setPhotos] = useState<string[]>(facility.images || []);
+  const [logo, setLogo] = useState<string | undefined>(facility.logo || undefined);
   const [availableLicenses, setAvailableLicenses] = useState<License[]>([]);
   const [availableInsurances, setAvailableInsurances] = useState<Insurance[]>([]);
   const [availableConditions, setAvailableConditions] = useState<Condition[]>([]);
@@ -145,30 +143,22 @@ const EditListingModal: React.FC<EditListingModalProps> = ({ facility, isOpen, o
         licenses: facility.licenses?.map(l => l.id) || []
       });
 
-      // Reset form data with existing images and logo
-      setFormData({
-        images: facility.images || [],
-        logo: facility.logo
-      });
+      // Reset photos and logo
+      setPhotos(facility.images || []);
+      setLogo(facility.logo || undefined);
 
       setError(null);
     }
   }, [facility, isOpen, reset]);
 
-  const handlePhotosChange = useCallback((photos: string[]) => {
-    console.log('Photos changed:', photos);
-    setFormData(prev => ({
-      ...prev,
-      images: photos
-    }));
+  const handlePhotosChange = useCallback((newPhotos: string[]) => {
+    console.log('Photos changed:', newPhotos);
+    setPhotos(newPhotos);
   }, []);
 
-  const handleLogoChange = useCallback((logo: string | undefined) => {
-    console.log('Logo changed:', logo);
-    setFormData(prev => ({
-      ...prev,
-      logo
-    }));
+  const handleLogoChange = useCallback((newLogo: string | undefined) => {
+    console.log('Logo changed:', newLogo);
+    setLogo(newLogo);
   }, []);
 
   const onSubmit = async (data: EditListingForm) => {
@@ -210,13 +200,9 @@ const EditListingModal: React.FC<EditListingModalProps> = ({ facility, isOpen, o
         insurances,
         languageObjects,
         licenses,
-        images: formData.images
+        images: photos,
+        logo
       };
-
-      // Only include logo if it's explicitly in formData
-      if ('logo' in formData) {
-        updateData.logo = formData.logo;
-      }
 
       console.log('Submitting form with data:', updateData);
 
@@ -354,7 +340,7 @@ const EditListingModal: React.FC<EditListingModalProps> = ({ facility, isOpen, o
             </label>
             <LogoUpload
               facilityId={facility.id}
-              existingLogo={formData.logo}
+              existingLogo={logo}
               onLogoChange={handleLogoChange}
             />
           </div>
@@ -365,7 +351,7 @@ const EditListingModal: React.FC<EditListingModalProps> = ({ facility, isOpen, o
             </label>
             <PhotoUpload
               facilityId={facility.id}
-              existingPhotos={formData.images || []}
+              existingPhotos={photos}
               onPhotosChange={handlePhotosChange}
               isVerified={facility.isVerified}
             />

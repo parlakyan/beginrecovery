@@ -179,8 +179,6 @@ export default function CreateListing() {
         languageObjects: data.languageObjects,
         licenses: data.licenses,
         images: photos,
-        // Only include logo if it has a value
-        ...(logo ? { logo } : {}),
         // Initialize required fields with default values
         accreditation: [],
         rating: 0,
@@ -190,6 +188,11 @@ export default function CreateListing() {
         isFeatured: false,
         moderationStatus: 'pending' as const
       };
+
+      // Handle logo field - if undefined, don't include it (will default to null in Firestore)
+      if (logo !== undefined) {
+        formattedData.logo = logo;
+      }
 
       // Create facility
       const { id } = await facilitiesService.createFacility(formattedData);
@@ -232,7 +235,7 @@ export default function CreateListing() {
           if (updatedPhotos.length > 0) {
             updateData.images = updatedPhotos;
           }
-          if (updatedLogo) {
+          if (updatedLogo !== undefined) {
             updateData.logo = updatedLogo;
           }
 
@@ -254,14 +257,15 @@ export default function CreateListing() {
       }
 
       // Store the data in sessionStorage as backup
-      sessionStorage.setItem('facilityData', JSON.stringify({
+      const backupData = {
         facilityId: id,
         facility: {
           ...formattedData,
           images: updatedPhotos,
-          ...(updatedLogo ? { logo: updatedLogo } : {})
+          logo: updatedLogo
         }
-      }));
+      };
+      sessionStorage.setItem('facilityData', JSON.stringify(backupData));
 
       // Navigate to payment with facility ID and scroll to top
       navigate('/payment', { 
@@ -270,7 +274,7 @@ export default function CreateListing() {
           facility: {
             ...formattedData,
             images: updatedPhotos,
-            ...(updatedLogo ? { logo: updatedLogo } : {})
+            logo: updatedLogo
           }
         },
         replace: true // Use replace to prevent back navigation to form
