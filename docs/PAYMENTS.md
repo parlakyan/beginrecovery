@@ -6,19 +6,51 @@ The Recovery Directory platform uses Stripe for handling subscription payments f
 ## Payment Flow
 
 ### Upgrade Process
-1. User clicks "Upgrade to Verified"
-2. Stripe Checkout session created
-3. User completes payment
-4. Webhook processes payment
-5. Facility status updated
+1. User clicks "Upgrade to Verified" on facility card
+2. System stores facility context in sessionStorage
+3. Payment page displays facility name and details
+4. Stripe Checkout session created
+5. User completes payment
+6. Webhook processes payment
+7. Facility status updated
 
 ```mermaid
 graph TD
-    A[User] -->|Clicks Upgrade| B[Create Session]
-    B -->|Redirect| C[Stripe Checkout]
-    C -->|Complete| D[Success Page]
-    C -->|Cancel| E[Cancel Page]
-    D -->|Webhook| F[Update Status]
+    A[User] -->|Clicks Upgrade| B[Store Context]
+    B -->|Show Details| C[Payment Page]
+    C -->|Create Session| D[Stripe Checkout]
+    D -->|Complete| E[Success Page]
+    D -->|Cancel| F[Cancel Page]
+    F -->|Try Again| C
+    E -->|Webhook| G[Update Status]
+```
+
+## State Management
+
+### Facility Context
+```typescript
+interface FacilityContext {
+  facilityId: string;
+  facility: {
+    id: string;
+    name: string;
+    // other facility data
+  };
+}
+```
+
+### Session Storage
+```typescript
+// Store facility data
+sessionStorage.setItem('facilityData', JSON.stringify({
+  facilityId,
+  facility
+}));
+
+// Retrieve facility data
+const facilityData = JSON.parse(
+  sessionStorage.getItem('facilityData') || '{}'
+);
 ```
 
 ## Stripe Integration
@@ -39,25 +71,27 @@ STRIPE_WEBHOOK_SECRET=whsec_...
 
 ## Components
 
-### Payment Button
-```typescript
-interface PaymentButtonProps {
-  facilityId: string;
-  onSuccess?: () => void;
-}
-```
+### Payment Page
+- Shows facility name and details
+- Displays subscription price
+- Handles payment initiation
+- Preserves facility context
+- Shows loading states
 
 ### Success Page
 - Handles successful payments
 - Shows confirmation
 - Updates facility status
 - Redirects to dashboard
+- Cleans up session data
 
 ### Cancel Page
 - Handles cancelled payments
-- Returns to upgrade flow
+- Shows facility name
+- Provides "Try Again" option
+- Returns to payment page with context
+- Offers account navigation
 - Preserves facility state
-- Shows helpful message
 
 ## Server Implementation
 
@@ -132,6 +166,28 @@ interface FacilityPayment {
 }
 ```
 
+## Navigation Flow
+
+### Payment Initiation
+1. Store facility context in sessionStorage
+2. Navigate to payment page
+3. Display facility details
+4. Initialize Stripe
+
+### Payment Cancellation
+1. Preserve facility context
+2. Show facility name
+3. Offer retry option
+4. Provide account navigation
+5. Maintain state on retry
+
+### Payment Success
+1. Process webhook
+2. Update facility status
+3. Clear session data
+4. Redirect to dashboard
+5. Show success message
+
 ## Error Handling
 
 ### Payment Errors
@@ -139,12 +195,14 @@ interface FacilityPayment {
 2. Insufficient funds
 3. Network issues
 4. Session expiration
+5. Context loss
 
-### Webhook Errors
-1. Signature verification
-2. Event processing
-3. Database updates
-4. Status synchronization
+### Recovery Strategies
+1. Preserve context in sessionStorage
+2. Provide clear error messages
+3. Enable easy retries
+4. Maintain facility reference
+5. Fallback navigation options
 
 ## Security
 
@@ -153,12 +211,14 @@ interface FacilityPayment {
 - HTTPS only
 - Secure webhook
 - Data encryption
+- Session management
 
 ### Access Control
 - User authentication
 - Role verification
 - Session validation
 - Rate limiting
+- Context validation
 
 ## Testing
 
@@ -180,6 +240,9 @@ stripe listen --forward-to localhost:3000/webhook
 3. Subscription cancellation
 4. Webhook handling
 5. Status updates
+6. Context preservation
+7. Navigation flows
+8. Error recovery
 
 ## Monitoring
 
@@ -188,12 +251,14 @@ stripe listen --forward-to localhost:3000/webhook
 - Conversion rate
 - Average value
 - Churn rate
+- Navigation patterns
 
 ### Error Tracking
 - Payment failures
 - Webhook errors
 - System errors
 - User errors
+- Context losses
 
 ## Best Practices
 
@@ -203,6 +268,8 @@ stripe listen --forward-to localhost:3000/webhook
 3. Validate webhooks
 4. Monitor transactions
 5. Handle edge cases
+6. Preserve context
+7. Clear navigation
 
 ### Security
 1. Use HTTPS
@@ -210,6 +277,7 @@ stripe listen --forward-to localhost:3000/webhook
 3. Secure credentials
 4. Monitor activity
 5. Regular audits
+6. Protect session data
 
 ### User Experience
 1. Clear pricing
@@ -217,6 +285,9 @@ stripe listen --forward-to localhost:3000/webhook
 3. Good feedback
 4. Error messages
 5. Success confirmation
+6. Facility context
+7. Easy navigation
+8. Retry options
 
 ## Troubleshooting
 
@@ -225,6 +296,8 @@ stripe listen --forward-to localhost:3000/webhook
 2. Webhook failures
 3. Status sync issues
 4. Session timeouts
+5. Context loss
+6. Navigation errors
 
 ### Solutions
 1. Check card details
@@ -232,6 +305,8 @@ stripe listen --forward-to localhost:3000/webhook
 3. Check logs
 4. Validate configuration
 5. Test connectivity
+6. Verify session storage
+7. Check navigation state
 
 ## Future Improvements
 1. Multiple plans
@@ -244,3 +319,7 @@ stripe listen --forward-to localhost:3000/webhook
 8. Payment methods
 9. Invoice customization
 10. Enhanced security
+11. Improved navigation
+12. Better context handling
+13. Smarter retries
+14. Enhanced error recovery

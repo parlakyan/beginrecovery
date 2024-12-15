@@ -32,6 +32,44 @@ Basic features available to free listings:
 4. Basic contact information
 5. No logo display (logo can be uploaded but won't be shown until verified)
 
+## Upgrade Flow
+
+### Initiation
+1. Owner clicks "Upgrade to Verified" on facility card
+2. System stores facility context in sessionStorage
+3. Payment page displays facility name and details
+4. Stripe checkout session created
+5. User completes payment
+6. Webhook processes payment
+7. Facility status updated
+
+### Context Preservation
+```typescript
+// Store facility context
+sessionStorage.setItem('facilityData', JSON.stringify({
+  facilityId,
+  facility: {
+    id: string;
+    name: string;
+    // other facility data
+  }
+}));
+```
+
+### Navigation Handling
+- Payment page shows facility name
+- Cancel page maintains context
+- "Try Again" returns to payment
+- Fallback to account page
+- Clear navigation paths
+
+### Status Updates
+- Automatic on successful payment
+- Preserved during moderation
+- Reverts on subscription cancellation
+- Admin can manually toggle
+- Logo visibility updates automatically
+
 ## Homepage Display
 
 ### Featured Treatment Centers
@@ -117,13 +155,13 @@ The verification system is implemented through modular services:
   - Logo
   - Verification status
 
-
 ### Logo Management
 - Stored in Firebase Storage under facility ID
 - Separate logo directory for each facility
 - Automatic cleanup on removal
 - URL stored in facility document
 - Field removed when logo deleted
+- Empty string used for removal (not undefined/null)
 
 ### Location Services
 - Automatic user location detection
@@ -141,6 +179,7 @@ The verification system is implemented through modular services:
 - Handles file validation
 - Manages storage cleanup
 - Only displayed for verified listings
+- Uses empty string for removal
 
 #### FeaturedCarousel
 - Shows 3 facilities at a time
@@ -155,6 +194,8 @@ The verification system is implemented through modular services:
 - Shows logo for verified listings
 - Adapts photo display based on status
 - Shows/hides premium features
+- Handles subscription cancellation
+- Maintains state during updates
 
 #### ImageCarousel
 - Shows all photos for verified listings
@@ -189,6 +230,7 @@ The verification system is implemented through modular services:
 - Status change handling
 - Location state management
 - Address and coordinates storage
+- Session storage for upgrade flow
 
 ## Verification Process
 
@@ -199,10 +241,12 @@ The verification system is implemented through modular services:
 4. Submit for moderation
 
 ### Upgrade Process
-1. Click "Upgrade to Verified"
-2. Process payment through Stripe
-3. Webhook updates verification status
-4. Features automatically unlock
+1. Click "Upgrade to Verified" on facility card
+2. System stores facility context
+3. Payment page shows facility details
+4. Process payment through Stripe
+5. Webhook updates verification status
+6. Features automatically unlock
    - Logo becomes visible
    - All photos displayed
    - Premium features enabled
@@ -213,6 +257,7 @@ The verification system is implemented through modular services:
 - Reverts on subscription cancellation
 - Admin can manually toggle
 - Logo visibility updates automatically
+- Proper state management during changes
 
 ## Testing Verification
 
@@ -235,6 +280,9 @@ The verification system is implemented through modular services:
 16. Test insurance logo management
 17. Test license admin controls
 18. Test insurance admin controls
+19. Test upgrade flow navigation
+20. Test context preservation
+21. Test cancellation handling
 
 ### Component Testing
 1. RehabCard display modes
@@ -253,6 +301,9 @@ The verification system is implemented through modular services:
 14. CertificationsSection display
 15. License logo handling
 16. Insurance logo handling
+17. Payment flow navigation
+18. Context preservation
+19. State management
 
 ## Security
 
@@ -335,8 +386,7 @@ service firebase.storage {
 - Role-based permissions
 - Token validation
 - Path validation
-
-[Rest of the file content remains the same...]
+- Session data protection
 
 ## Best Practices
 
@@ -350,6 +400,9 @@ service firebase.storage {
 7. Address validation
 8. Coordinates verification
 9. Clean up resources on removal
+10. Preserve context during navigation
+11. Handle session storage properly
+12. Use empty string for logo removal
 
 ### UI/UX
 1. Clear verification indicators
@@ -361,6 +414,9 @@ service firebase.storage {
 7. Loading states
 8. Error messages
 9. Logo visibility rules
+10. Clear navigation paths
+11. Context preservation
+12. Facility identification
 
 ### Testing
 1. Test both states
@@ -372,6 +428,9 @@ service firebase.storage {
 7. Test address input
 8. Test map display
 9. Test logo management
+10. Test navigation flows
+11. Test context preservation
+12. Test state management
 
 ## Troubleshooting
 
@@ -386,6 +445,9 @@ service firebase.storage {
 8. Coordinate accuracy
 9. Logo not displaying
 10. Logo removal issues
+11. Navigation errors
+12. Context loss
+13. Session storage issues
 
 ### Solutions
 1. Check webhook logs
@@ -398,6 +460,10 @@ service firebase.storage {
 8. Confirm coordinates
 9. Check storage paths
 10. Verify file cleanup
+11. Check session storage
+12. Validate navigation state
+13. Review context data
+
 ## Future Improvements
 1. Granular feature control
 2. Multiple tier support
@@ -414,3 +480,8 @@ service firebase.storage {
 13. Insurance verification API
 14. Provider network integration
 15. Real-time status updates
+16. Improved navigation flows
+17. Better context management
+18. Enhanced session handling
+19. Smarter state preservation
+20. Better error recovery

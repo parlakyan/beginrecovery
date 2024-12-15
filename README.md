@@ -3,66 +3,68 @@
 ## Project Overview
 A comprehensive platform connecting individuals seeking rehabilitation services with treatment facilities. The platform offers both free (Unverified) and paid (Verified) listings, with different feature sets for each tier.
 
-## Key Features
+## Documentation Navigation
 
-### Facility Directory
-- Advanced search and filtering
-- Location-based results
-- Treatment type categorization
-- Amenity filtering
-- URL-friendly slugs for SEO
+### 1. Getting Started
+- [Project Setup & Technical Overview](./README.md)
+- [Development Guidelines & Standards](./docs/README.md)
+- [Contributing Guidelines](./CONTRIBUTING.md)
 
-### Listing Management
-- Different display rules for verified/unverified listings
-- Moderation system (pending/approved/rejected/archived)
-- Owner dashboard for listing management
-- Admin dashboard for content moderation
+### 2. Core Systems
+- [Design System](./docs/DESIGN_SYSTEM.md) - UI guidelines, colors, typography
+- [Verification System](./docs/VERIFICATION.md) - Listing verification and features
+- [Payment System](./docs/PAYMENTS.md) - Stripe integration and subscriptions
+- [Storage System](./docs/STORAGE.md) - File management and organization
+- [Photo Upload System](./docs/PHOTO_UPLOAD.md) - Image handling and processing
 
-### Photo & Logo System
-- Up to 12 photos per facility
-- One logo per facility
-- Slideshow for verified listings
-- Single photo for unverified listings
-- Logo display for verified listings
-- Drag and drop support
-- Progress tracking
-- Storage cleanup on removal
+### 3. Features & Components
+- [Components Guide](./docs/COMPONENTS.md) - Reusable UI components
+- [Services Documentation](./docs/SERVICES.md) - Backend services
+- [User Roles & Permissions](./docs/ROLES.md) - Access control
+- [Content Moderation](./docs/MODERATION.md) - Content review system
+- [Maps Integration](./docs/GOOGLE_MAPS.md) - Location services
 
-### Location Services
-- User location detection
-- Location-based facility sorting
-- Geocoding integration
-- Location-aware messaging
+### 4. Development Tools
+- [API Documentation](./docs/API.md) - API endpoints and usage
+- [Analytics & Tracking](./docs/ANALYTICS.md) - Usage metrics
+- [Testing Guidelines](./docs/TESTING.md) - Testing practices
+- [Deployment Process](./docs/DEPLOYMENT.md) - Deployment workflow
 
-### Payment Integration
-- Stripe subscription management
-- Automatic verification status updates
-- Payment webhook handling
-- Subscription status tracking
+### 5. Additional Systems
+- [Import System](./docs/IMPORTS.md) - Facility data imports
+- [Claims System](./docs/CLAIMS.md) - Facility claiming process
+- [Migration System](./docs/MIGRATIONS.md) - Data migrations
+- [Filters & Fields](./docs/FILTERS_AND_FIELDS.md) - Search and filtering
 
 ## Listing Tiers
 
 ### Verified (Paid) Listings
-- Full photo gallery with slideshow (up to 12 photos)
-- Green "Verified" badge
-- "Currently accepting patients" status indicator
-- Facility logo display and management
-  - Custom logo upload
-  - Logo appears in contact box
-  - Logo management in edit modal
-- Homepage showcase based on location
-- Certifications section
-- Staff section
-- Call and Message buttons
-- Website link
-- Featured in search results
+Features available to verified listings:
+1. Full photo gallery with slideshow (up to 12 photos)
+2. Green "Verified" badge
+3. "Currently accepting patients" status indicator
+4. Facility logo display and management
+   - Custom logo upload
+   - Logo appears in contact box
+   - Logo management in edit modal
+5. Homepage showcase based on location
+6. Certifications section
+7. Staff section
+8. Call and Message buttons
+9. Website link
+10. Featured in search results
+
+[View Detailed Verification Documentation](./docs/VERIFICATION.md)
 
 ### Unverified (Free) Listings
-- Single photo display
-- Basic facility information
-- Standard search listing
-- Basic contact information
-- Logo can be uploaded but won't display until verified
+Basic features available to free listings:
+1. Basic facility information
+2. Single photo display
+3. Standard search listing
+4. Basic contact information
+5. Logo can be uploaded but won't display until verified
+
+[View Free Listing Features](./docs/VERIFICATION.md#unverified-free-listings)
 
 ## Homepage Sections
 
@@ -82,112 +84,7 @@ A comprehensive platform connecting individuals seeking rehabilitation services 
 - Filter and search capabilities
 - Shows logos only for verified listings
 
-## User Roles & Permissions
-
-### Admin
-- Access to admin dashboard
-- Can edit any facility
-- Can approve/reject/archive listings
-- Can toggle verification status
-- Can feature/unfeature listings
-- Can manage facility logos and photos
-- Can run system migrations
-
-### Facility Owner
-- Can create and edit own listings
-- Can upgrade to verified status
-- Can view listing status (pending/approved/rejected)
-- Can manage facility photos and logo
-- Access to owner dashboard
-
-### Regular User
-- Can browse facilities
-- Can view facility details
-- Can save favorite facilities
-- Can contact facilities
-
-## Technical Architecture
-
-### Design System
-This project follows a strict design system defined in `docs/DESIGN_SYSTEM.md`. Key aspects include:
-- Color palette
-- Typography
-- Spacing
-- Component design
-- Code conventions
-- Accessibility standards
-
-### Firebase Storage
-The project uses Firebase Storage for handling facility photos and logos:
-- Organized storage structure
-- Separate directories for photos and logos
-- Public read access, authenticated write access
-- File size and type restrictions
-- Automatic cleanup on removal
-- Detailed documentation in `docs/STORAGE.md`
-
-### Services Architecture
-The project uses a modular service architecture detailed in `docs/SERVICES.md`:
-
-#### Facilities Service
-- Modular structure for better organization
-- Separate concerns (CRUD, search, moderation)
-- Integration with licenses and insurance
-- Verification status management
-- Automated migrations
-  - Slug generation for URLs
-  - Data structure updates
-  - Batch processing
-
-#### Users Service
-- User management and authentication
-- Role-based access control
-- Profile management
-- Statistics tracking
-
-#### Licenses Service
-- License/certification management
-- Integration with facility verification
-- Logo management
-- Admin controls
-
-#### Insurance Service
-- Insurance provider management
-- Integration with facility profiles
-- Logo management
-- Admin controls
-
-#### Network Service
-- Online/offline state management
-- Connection handling
-- Firestore network control
-
-## Project Structure
-- `src/`: Frontend React application
-  - `components/`: React components
-    - `FeaturedCarousel/`: Location-based carousel component
-    - `ImageCarousel/`: Image slideshow component
-    - `RehabCard/`: Facility card component
-    - `EditListingModal/`: Facility editing modal
-    - `LogoUpload/`: Logo management component
-  - `pages/`: Page components
-  - `services/`: Service modules
-  - `hooks/`: Custom React hooks
-  - `types/`: TypeScript type definitions
-  - `utils/`: Utility functions
-- `server/`: Backend server logic
-- `netlify/`: Serverless functions
-- `prisma/`: Database schema
-- `docs/`: Project documentation
-  - `COMPONENTS.md`: Component documentation
-  - `SERVICES.md`: Services architecture documentation
-  - `VERIFICATION.md`: Verification system
-  - `STORAGE.md`: Storage system
-  - `DESIGN_SYSTEM.md`: Design guidelines
-  - `IMPORTS.md`: Facility import system
-  - `CLAIMS.md`: Facility claiming system
-  - `MIGRATIONS.md`: Data migration system
-
+[View Homepage Implementation](./docs/components/feature.md)
 
 ## Setup Instructions
 
@@ -258,24 +155,29 @@ npm run dev
 npm run build
 ```
 
+## Project Structure
+- `src/`: Frontend React application
+  - `components/`: React components
+  - `pages/`: Page components
+  - `services/`: Service modules
+  - `hooks/`: Custom React hooks
+  - `types/`: TypeScript type definitions
+  - `utils/`: Utility functions
+- `server/`: Backend server logic
+- `netlify/`: Serverless functions
+- `prisma/`: Database schema
+- `docs/`: Project documentation
+
+[View Detailed Project Structure](./docs/README.md#code-organization)
+
 ## Contributing
-Please read the CONTRIBUTING.md for details on our code of conduct and the process for submitting pull requests.
+Please read the [Contributing Guidelines](./CONTRIBUTING.md) for details on our code of conduct and the process for submitting pull requests.
 
 ## License
 This project is licensed under the MIT License.
 
-## Import System
-
-The project includes a robust facility import system that allows administrators to:
-- Import facilities from CSV files
-- Process addresses through Google Maps API
-- Review and fix partial address matches
-- Monitor import progress
-
-Key features:
-- Two-phase import process (basic data + geocoding)
-- Batch processing with rate limiting
-- Progress tracking and error handling
-- Address review interface
-- Detailed documentation in `docs/IMPORTS.md`
-
+## Need Help?
+- Start with [Development Guidelines](./docs/README.md)
+- Check [Components Documentation](./docs/COMPONENTS.md)
+- Review [Technical Documentation](./docs/SERVICES.md)
+- See [Troubleshooting Guide](./docs/README.md#troubleshooting)
