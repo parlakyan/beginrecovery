@@ -78,6 +78,14 @@ export default function AccountPage() {
     }
   };
 
+  const handleFacilityUpdate = (updatedFacility: Facility) => {
+    setListings(prevListings => 
+      prevListings.map(listing => 
+        listing.id === updatedFacility.id ? updatedFacility : listing
+      )
+    );
+  };
+
   const handleSignOut = async () => {
     try {
       await signOut();
@@ -120,6 +128,7 @@ export default function AccountPage() {
               key={facility.id}
               facility={facility}
               onEdit={handleEdit}
+              onUpdate={handleFacilityUpdate}
               showOwnerControls
             />
           ))}

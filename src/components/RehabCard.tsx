@@ -12,15 +12,17 @@ interface RehabCardProps {
   facility: Facility;
   onEdit?: (facility: Facility) => void;
   showOwnerControls?: boolean;
+  onUpdate?: (updatedFacility: Facility) => void;
 }
 
-export default function RehabCard({ facility, onEdit, showOwnerControls = false }: RehabCardProps) {
+export default function RehabCard({ facility, onEdit, showOwnerControls = false, onUpdate }: RehabCardProps) {
   const navigate = useNavigate();
   const { user } = useAuthStore();
   const isOwner = user?.id === facility.ownerId;
   const isAdmin = user?.role === 'admin';
   const canEdit = (isOwner || isAdmin) && onEdit !== undefined;
   const [isLoading, setIsLoading] = useState(false);
+  const [localFacility, setLocalFacility] = useState<Facility>(facility);
 
   const handleNavigation = () => {
     window.scrollTo(0, 0);
@@ -51,7 +53,21 @@ export default function RehabCard({ facility, onEdit, showOwnerControls = false 
     try {
       setIsLoading(true);
       await paymentsService.cancelSubscription(facility.id);
-      window.location.reload();
+
+      // Update local state
+      const updatedFacility: Facility = {
+        ...localFacility,
+        isVerified: false,
+        subscriptionId: undefined,
+        status: 'inactive'
+      };
+
+      setLocalFacility(updatedFacility);
+
+      // Notify parent component
+      if (onUpdate) {
+        onUpdate(updatedFacility);
+      }
     } catch (error) {
       console.error('Error canceling subscription:', error);
       alert('Failed to cancel subscription. Please try again.');
@@ -62,7 +78,7 @@ export default function RehabCard({ facility, onEdit, showOwnerControls = false 
 
   // Moderation status badge - only visible to owners and only for pending/rejected/archived status
   const ModerationBadge = () => {
-    if (!isOwner || facility.moderationStatus === 'approved') return null;
+    if (!isOwner || localFacility.moderationStatus === 'approved') return null;
 
     const badges = {
       pending: {
@@ -82,7 +98,7 @@ export default function RehabCard({ facility, onEdit, showOwnerControls = false 
       }
     };
 
-    const badge = badges[facility.moderationStatus || 'pending'];
+    const badge = badges[localFacility.moderationStatus || 'pending'];
     if (!badge) return null;
 
     return (
@@ -95,8 +111,8 @@ export default function RehabCard({ facility, onEdit, showOwnerControls = false 
 
   // Verification badge - visible to everyone
   const VerificationBadge = () => (
-    <div className={`absolute top-4 left-4 ${facility.isVerified ? 'bg-green-50' : 'bg-gray-50'} backdrop-blur-sm px-3 py-1.5 rounded-full flex items-center gap-2 shadow-lg border ${facility.isVerified ? 'border-green-200' : 'border-gray-200'} z-20`}>
-      {facility.isVerified ? (
+    <div className={`absolute top-4 left-4 ${localFacility.isVerified ? 'bg-green-50' : 'bg-gray-50'} backdrop-blur-sm px-3 py-1.5 rounded-full flex items-center gap-2 shadow-lg border ${localFacility.isVerified ? 'border-green-200' : 'border-gray-200'} z-20`}>
+      {localFacility.isVerified ? (
         <>
           <ShieldCheck className={`w-4 h-4 text-green-600`} />
           <span className="text-sm font-medium text-green-700">Verified</span>
@@ -113,12 +129,12 @@ export default function RehabCard({ facility, onEdit, showOwnerControls = false 
   // Get all tags to display
   const allTags = [
     // Managed treatment types
-    ...(facility.treatmentTypes || []).map(type => ({ text: type.name, type: 'treatmentType' })),
+    ...(localFacility.treatmentTypes || []).map(type => ({ text: type.name, type: 'treatmentType' })),
     // Substances
-    ...(facility.substances?.map(s => ({ text: s.name, type: 'substance' })) || []),
+    ...(localFacility.substances?.map(s => ({ text: s.name, type: 'substance' })) || []),
     // Other tags
-    ...(facility.conditions?.map(c => ({ text: c.name, type: 'condition' })) || []),
-    ...(facility.therapies?.map(t => ({ text: t.name, type: 'therapy' })) || [])
+    ...(localFacility.conditions?.map(c => ({ text: c.name, type: 'condition' })) || []),
+    ...(localFacility.therapies?.map(t => ({ text: t.name, type: 'therapy' })) || [])
   ];
 
   return (
@@ -128,36 +144,36 @@ export default function RehabCard({ facility, onEdit, showOwnerControls = false 
     >
       <div className="relative h-[240px] flex-shrink-0">
         <ImageCarousel 
-          images={facility.images} 
-          showNavigation={facility.images.length > 1}
+          images={localFacility.images} 
+          showNavigation={localFacility.images.length > 1}
           onImageClick={handleNavigation}
           paginationPosition="bottom"
-          isVerified={facility.isVerified}
-          coordinates={facility.coordinates}
+          isVerified={localFacility.isVerified}
+          coordinates={localFacility.coordinates}
         />
         <VerificationBadge />
         <ModerationBadge />
         <div className="absolute top-4 right-4 bg-white/90 backdrop-blur-sm px-3 py-1 rounded-full flex items-center gap-1 shadow-lg z-20">
           <Star className="w-4 h-4 text-yellow-400 fill-current" />
-          <span className="font-semibold">{facility.rating}</span>
+          <span className="font-semibold">{localFacility.rating}</span>
         </div>
       </div>
 
       <div className="p-6 flex flex-col flex-grow">
         <div className="flex-grow">
           <h2 className="text-xl font-bold text-gray-900 mb-3 group-hover:text-blue-600 transition-colors">
-            {facility.name}
+            {localFacility.name}
           </h2>
           
           <div className="space-y-2 mb-4">
             <div className="flex items-center text-gray-600">
               <MapPin className="w-4 h-4 mr-2 flex-shrink-0" />
-              <span className="text-sm">{facility.location}</span>
+              <span className="text-sm">{localFacility.location}</span>
             </div>
           </div>
 
           <div className="mb-4">
-            <p className="text-gray-600 text-sm line-clamp-2">{facility.description}</p>
+            <p className="text-gray-600 text-sm line-clamp-2">{localFacility.description}</p>
           </div>
 
           {/* Tags */}
@@ -184,12 +200,12 @@ export default function RehabCard({ facility, onEdit, showOwnerControls = false 
 
           {/* Amenities */}
           <div className="flex flex-wrap gap-2">
-            {facility.amenityObjects?.slice(0, 3).map((amenity) => (
+            {localFacility.amenityObjects?.slice(0, 3).map((amenity) => (
               <Tag key={amenity.id} variant="primary">{amenity.name}</Tag>
             ))}
-            {(facility.amenityObjects?.length || 0) > 3 && (
+            {(localFacility.amenityObjects?.length || 0) > 3 && (
               <span className="px-3 py-1 bg-gray-50 text-gray-600 rounded-full text-sm">
-                +{facility.amenityObjects!.length - 3} more
+                +{localFacility.amenityObjects!.length - 3} more
               </span>
             )}
           </div>
@@ -205,7 +221,7 @@ export default function RehabCard({ facility, onEdit, showOwnerControls = false 
               <Edit className="w-4 h-4" />
               Edit Facility
             </button>
-            {isOwner && !facility.isVerified && (
+            {isOwner && !localFacility.isVerified && (
               <button 
                 onClick={handleUpgrade}
                 className="w-full bg-blue-600 text-white py-2 rounded-lg hover:bg-blue-700 transition-all duration-200 flex items-center justify-center gap-2"
@@ -214,7 +230,7 @@ export default function RehabCard({ facility, onEdit, showOwnerControls = false 
                 Upgrade to Verified
               </button>
             )}
-            {isOwner && facility.isVerified && facility.subscriptionId && (
+            {isOwner && localFacility.isVerified && localFacility.subscriptionId && (
               <button 
                 onClick={handleCancelSubscription}
                 disabled={isLoading}
