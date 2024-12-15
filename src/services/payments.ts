@@ -156,5 +156,110 @@ export const paymentsService = {
       // Otherwise, wrap it in an Error object
       throw new Error('Failed to create checkout session. Please try again.');
     }
+  },
+
+  /**
+   * Cancels a facility's subscription
+   * 
+   * @param {string} facilityId - ID of the facility to cancel subscription for
+   * @returns {Promise<void>}
+   * 
+   * Dependencies:
+   * - Requires authenticated user (Firebase Auth)
+   * - Requires valid facility ID in Firestore
+   * - User must be facility owner or admin
+   */
+  async cancelSubscription(facilityId: string): Promise<void> {
+    // Verify user is authenticated
+    if (!auth.currentUser) {
+      throw new Error('User must be authenticated');
+    }
+
+    try {
+      // Force reload user before getting token
+      await auth.currentUser.reload();
+      console.log('User reloaded successfully');
+
+      // Get fresh auth token with force refresh
+      const idToken = await auth.currentUser.getIdToken(true);
+
+      // Cancel subscription via API
+      console.log('Canceling subscription for facility:', { facilityId });
+      const response = await fetch('/.netlify/functions/api/cancel-subscription', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          'Authorization': `Bearer ${idToken}`
+        },
+        body: JSON.stringify({ facilityId })
+      });
+
+      const data = await response.json();
+
+      // Handle API errors
+      if (!response.ok) {
+        console.error('Cancel subscription error:', {
+          status: response.status,
+          statusText: response.statusText,
+          data,
+          timestamp: new Date().toISOString()
+        });
+
+        // Handle specific error cases
+        if (response.status === 401) {
+          if (data.error === 'Token expired') {
+            throw new Error('Authentication expired. Please sign in again.');
+          }
+          if (data.error === 'Invalid token') {
+            // Force token refresh and retry once
+            console.log('Invalid token detected, attempting refresh...');
+            await auth.currentUser.reload();
+            const newToken = await auth.currentUser.getIdToken(true);
+            
+            // Retry with new token
+            const retryResponse = await fetch('/.netlify/functions/api/cancel-subscription', {
+              method: 'POST',
+              headers: {
+                'Content-Type': 'application/json',
+                'Authorization': `Bearer ${newToken}`
+              },
+              body: JSON.stringify({ facilityId })
+            });
+
+            if (!retryResponse.ok) {
+              throw new Error('Authentication failed. Please sign in again.');
+            }
+          }
+        }
+
+        throw new Error(data.message || data.error || `Failed to cancel subscription (${response.status})`);
+      }
+
+      console.log('Subscription canceled successfully');
+    } catch (error) {
+      // Log detailed error for debugging
+      console.error('Cancel subscription error:', {
+        message: error instanceof Error ? error.message : 'Unknown error',
+        code: (error as any).code,
+        name: error instanceof Error ? error.name : undefined,
+        stack: error instanceof Error ? error.stack : undefined,
+        timestamp: new Date().toISOString(),
+        userId: auth.currentUser?.uid,
+        userEmail: auth.currentUser?.email
+      });
+
+      // Handle Firebase Auth specific errors
+      if ((error as any).code?.startsWith('auth/')) {
+        throw new Error('Authentication error. Please sign in again.');
+      }
+
+      // If it's already an Error object, rethrow it
+      if (error instanceof Error) {
+        throw error;
+      }
+
+      // Otherwise, wrap it in an Error object
+      throw new Error('Failed to cancel subscription. Please try again.');
+    }
   }
 };

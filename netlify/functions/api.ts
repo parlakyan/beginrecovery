@@ -52,6 +52,82 @@ export const handler: Handler = async (event, context) => {
       hasAuth: !!event.headers.authorization
     });
 
+    // Cancel Subscription Handler
+    if (path === 'cancel-subscription' && event.httpMethod === 'POST') {
+      const authHeader = event.headers.authorization;
+      if (!authHeader?.startsWith('Bearer ')) {
+        return {
+          statusCode: 401,
+          headers,
+          body: JSON.stringify({ error: 'Unauthorized' })
+        };
+      }
+
+      try {
+        const token = authHeader.split('Bearer ')[1];
+        const decodedToken = await auth.verifyIdToken(token);
+
+        if (!event.body) {
+          throw new Error('Missing request body');
+        }
+
+        const { facilityId } = JSON.parse(event.body);
+        if (!facilityId) {
+          throw new Error('Missing facilityId');
+        }
+
+        // Get facility data
+        const facilityRef = db.collection('facilities').doc(facilityId);
+        const facilityDoc = await facilityRef.get();
+        
+        if (!facilityDoc.exists) {
+          throw new Error('Facility not found');
+        }
+
+        const facilityData = facilityDoc.data();
+        
+        // Verify ownership
+        if (facilityData?.ownerId !== decodedToken.uid && decodedToken.role !== 'admin') {
+          throw new Error('Unauthorized to cancel subscription');
+        }
+
+        // Get subscription ID
+        const subscriptionId = facilityData?.subscriptionId;
+        if (!subscriptionId) {
+          throw new Error('No active subscription found');
+        }
+
+        // Cancel subscription in Stripe
+        const subscription = await stripe.subscriptions.cancel(subscriptionId);
+
+        // Update facility status
+        await facilityRef.update({
+          status: 'inactive',
+          isVerified: false,
+          updatedAt: new Date().toISOString()
+        });
+
+        return {
+          statusCode: 200,
+          headers,
+          body: JSON.stringify({ 
+            success: true,
+            status: subscription.status
+          })
+        };
+      } catch (error) {
+        console.error('Error canceling subscription:', error);
+        return {
+          statusCode: 400,
+          headers,
+          body: JSON.stringify({ 
+            error: 'Failed to cancel subscription',
+            message: error instanceof Error ? error.message : 'Unknown error'
+          })
+        };
+      }
+    }
+
     // User Data Endpoint
     if (path === 'user' && event.httpMethod === 'GET') {
       const authHeader = event.headers.authorization;
@@ -125,15 +201,6 @@ export const handler: Handler = async (event, context) => {
             previousClaims: currentClaims
           });
         }
-
-        // Special handling for admin
-       /* const isAdmin = decodedToken.email === 'admin@beginrecovery.com';
-        if (isAdmin && currentRole !== 'admin') {
-          await userRef.update({ role: 'admin' });
-          await auth.setCustomUserClaims(decodedToken.uid, { role: 'admin' });
-          console.log('Updated user to admin role and set custom claims');
-          currentRole = 'admin';
-        }*/
 
         // Return user data with correct role
         const responseData = {

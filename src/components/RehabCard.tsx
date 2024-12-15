@@ -1,4 +1,4 @@
-import React from 'react';
+import React, { useState } from 'react';
 import { Star, MapPin, ArrowRight, ShieldCheck, ShieldAlert, Clock, XCircle, Edit, CreditCard, Ban } from 'lucide-react';
 import { useNavigate } from 'react-router-dom';
 import { useAuthStore } from '../store/authStore';
@@ -6,6 +6,7 @@ import ImageCarousel from './ImageCarousel';
 import { Tag } from './ui';
 import { Facility } from '../types';
 import { facilitiesService } from '../services/facilities';
+import { paymentsService } from '../services/payments';
 
 interface RehabCardProps {
   facility: Facility;
@@ -19,6 +20,7 @@ export default function RehabCard({ facility, onEdit, showOwnerControls = false 
   const isOwner = user?.id === facility.ownerId;
   const isAdmin = user?.role === 'admin';
   const canEdit = (isOwner || isAdmin) && onEdit !== undefined;
+  const [isLoading, setIsLoading] = useState(false);
 
   const handleNavigation = () => {
     window.scrollTo(0, 0);
@@ -44,30 +46,17 @@ export default function RehabCard({ facility, onEdit, showOwnerControls = false 
 
   const handleCancelSubscription = async (e: React.MouseEvent) => {
     e.stopPropagation();
-    if (!facility.subscriptionId) return;
+    if (!facility.id || isLoading) return;
 
     try {
-      // Call Stripe webhook to cancel subscription
-      await fetch('/api/cancel-subscription', {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-        },
-        body: JSON.stringify({
-          subscriptionId: facility.subscriptionId
-        })
-      });
-
-      // Update facility status
-      await facilitiesService.updateFacility(facility.id, {
-        subscriptionId: undefined,
-        isVerified: false
-      });
-
-      // Refresh the page or update UI
+      setIsLoading(true);
+      await paymentsService.cancelSubscription(facility.id);
       window.location.reload();
     } catch (error) {
       console.error('Error canceling subscription:', error);
+      alert('Failed to cancel subscription. Please try again.');
+    } finally {
+      setIsLoading(false);
     }
   };
 
@@ -228,10 +217,11 @@ export default function RehabCard({ facility, onEdit, showOwnerControls = false 
             {isOwner && facility.isVerified && facility.subscriptionId && (
               <button 
                 onClick={handleCancelSubscription}
-                className="w-full bg-red-50 text-red-600 py-2 rounded-lg hover:bg-red-100 transition-all duration-200 flex items-center justify-center gap-2"
+                disabled={isLoading}
+                className="w-full bg-red-50 text-red-600 py-2 rounded-lg hover:bg-red-100 transition-all duration-200 flex items-center justify-center gap-2 disabled:opacity-50 disabled:cursor-not-allowed"
               >
                 <Ban className="w-4 h-4" />
-                Cancel Subscription
+                {isLoading ? 'Canceling...' : 'Cancel Subscription'}
               </button>
             )}
           </div>
