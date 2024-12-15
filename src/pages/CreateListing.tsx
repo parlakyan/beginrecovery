@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useState, useCallback } from 'react';
 import { useForm } from 'react-hook-form';
 import { useNavigate } from 'react-router-dom';
 import { Building2, Loader2 } from 'lucide-react';
@@ -146,6 +146,10 @@ export default function CreateListing() {
     window.scrollTo(0, 0);
   }, []);
 
+  const handleLogoChange = useCallback((newLogo: string | undefined) => {
+    setLogo(newLogo);
+  }, []);
+
   const onSubmit = async (data: CreateListingForm) => {
     setLoading(true);
     setError(null);
@@ -175,7 +179,8 @@ export default function CreateListing() {
         languageObjects: data.languageObjects,
         licenses: data.licenses,
         images: photos,
-        logo,
+        // Only include logo if it has a value
+        ...(logo ? { logo } : {}),
         // Initialize required fields with default values
         accreditation: [],
         rating: 0,
@@ -222,11 +227,18 @@ export default function CreateListing() {
             }
           }
 
-          // Update facility with new URLs
-          await facilitiesService.updateFacility(id, {
-            images: updatedPhotos,
-            logo: updatedLogo
-          });
+          // Update facility with new URLs if needed
+          const updateData: Partial<Facility> = {};
+          if (updatedPhotos.length > 0) {
+            updateData.images = updatedPhotos;
+          }
+          if (updatedLogo) {
+            updateData.logo = updatedLogo;
+          }
+
+          if (Object.keys(updateData).length > 0) {
+            await facilitiesService.updateFacility(id, updateData);
+          }
         } catch (moveError) {
           console.error('Error moving files:', moveError);
           // Continue with the process even if file moving fails
@@ -247,7 +259,7 @@ export default function CreateListing() {
         facility: {
           ...formattedData,
           images: updatedPhotos,
-          logo: updatedLogo
+          ...(updatedLogo ? { logo: updatedLogo } : {})
         }
       }));
 
@@ -258,7 +270,7 @@ export default function CreateListing() {
           facility: {
             ...formattedData,
             images: updatedPhotos,
-            logo: updatedLogo
+            ...(updatedLogo ? { logo: updatedLogo } : {})
           }
         },
         replace: true // Use replace to prevent back navigation to form
@@ -408,7 +420,7 @@ export default function CreateListing() {
                 <LogoUpload
                   facilityId={tempId}
                   existingLogo={logo}
-                  onLogoChange={setLogo}
+                  onLogoChange={handleLogoChange}
                 />
               </div>
 

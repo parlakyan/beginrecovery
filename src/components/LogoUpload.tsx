@@ -101,8 +101,9 @@ export default function LogoUpload({
           url: result.url.split('?')[0], // Log URL without query params
           path: result.path
         });
-        setLogo(result.url);
-        onLogoChange(result.url);
+        const newLogo = result.url;
+        setLogo(newLogo);
+        onLogoChange(newLogo);
       }
     } catch (err) {
       console.error('Error uploading logo:', err);
@@ -188,8 +189,9 @@ export default function LogoUpload({
           url: result.url.split('?')[0], // Log URL without query params
           path: result.path
         });
-        setLogo(result.url);
-        onLogoChange(result.url);
+        const newLogo = result.url;
+        setLogo(newLogo);
+        onLogoChange(newLogo);
       }
     } catch (err) {
       console.error('Error uploading logo:', err);
@@ -226,7 +228,7 @@ export default function LogoUpload({
         console.log('Logo removed successfully');
       }
       setLogo(undefined);
-      onLogoChange(undefined); // Send undefined instead of empty string
+      onLogoChange(undefined); // Send undefined to indicate logo removal
     } catch (err) {
       console.error('Error removing logo:', err);
       setError('Failed to remove logo. Please try again.');
@@ -290,11 +292,19 @@ export default function LogoUpload({
         </div>
       ) : (
         <div className="relative group w-32 h-32 mx-auto">
-          <img
-            src={logo}
-            alt="Facility logo"
-            className="w-full h-full object-cover rounded-lg"
-          />
+          <div className="w-full h-full rounded-lg bg-gray-100 flex items-center justify-center overflow-hidden">
+            <img
+              src={logo}
+              alt="Facility logo"
+              className="w-full h-full object-cover"
+              onError={(e) => {
+                // If image fails to load, remove it
+                console.error('Logo failed to load:', logo);
+                setLogo(undefined);
+                onLogoChange(undefined);
+              }}
+            />
+          </div>
           <button
             onClick={handleRemoveLogo}
             className="absolute top-2 right-2 p-1 bg-red-600 text-white rounded-full opacity-0 group-hover:opacity-100 transition-opacity"

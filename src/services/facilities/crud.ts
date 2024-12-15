@@ -156,7 +156,7 @@ export const facilitiesCrud = {
       const currentData = facilityDoc.data();
 
       // Handle logo removal
-      if (data.logo === undefined && currentData?.logo) {
+      if ((data.logo === undefined || data.logo === '') && currentData?.logo) {
         try {
           const url = new URL(currentData.logo);
           const path = decodeURIComponent(url.pathname.split('/o/')[1].split('?')[0]);
@@ -187,14 +187,19 @@ export const facilitiesCrud = {
         }
       }
 
-      // Create a clean update object by removing undefined values
+      // Create a clean update object by removing undefined and empty string values
       const cleanData = Object.entries(data).reduce((acc, [key, value]) => {
-        // Only include non-undefined values
-        if (value !== undefined) {
+        // Skip undefined values and empty strings (except for logo which is handled separately)
+        if (value !== undefined && (key === 'logo' || value !== '')) {
           acc[key] = value;
         }
         return acc;
       }, {} as Record<string, any>);
+
+      // If logo was undefined or empty string, explicitly set to null
+      if ((data.logo === undefined || data.logo === '') && 'logo' in data) {
+        cleanData.logo = null;
+      }
 
       // Add server timestamp
       cleanData.updatedAt = serverTimestamp();

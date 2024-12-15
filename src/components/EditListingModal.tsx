@@ -167,7 +167,7 @@ const EditListingModal: React.FC<EditListingModalProps> = ({ facility, isOpen, o
     console.log('Logo changed:', logo);
     setFormData(prev => ({
       ...prev,
-      logo: logo // If undefined, it will be filtered out in onSubmit
+      logo
     }));
   }, []);
 
@@ -191,7 +191,7 @@ const EditListingModal: React.FC<EditListingModalProps> = ({ facility, isOpen, o
       const languageObjects = availableLanguages.filter(l => data.languageObjects.includes(l.id));
       const licenses = availableLicenses.filter(l => data.licenses.includes(l.id));
 
-      // Create update data, filtering out undefined values
+      // Create update data
       const updateData: Partial<Facility> = {
         name: data.name,
         description: data.description,
