@@ -56,12 +56,11 @@ export const useAuthStore = create<AuthState>((set, get) => ({
     }
 
     try {
-      // Force token refresh to ensure latest claims
-      await firebaseUser.getIdToken(true);
-      const token = await firebaseUser.getIdToken();
-      console.log('Getting fresh token for user data fetch');
+      // Get token without force refresh first
+      const token = await firebaseUser.getIdToken(false);
+      console.log('Getting user data with current token');
       
-      // Get user data from API with forced token refresh
+      // Get user data from API
       const response = await fetch('/.netlify/functions/api/user', {
         headers: {
           'Authorization': `Bearer ${token}`
@@ -92,14 +91,12 @@ export const useAuthStore = create<AuthState>((set, get) => ({
       if (firebaseUser.email === 'admin@beginrecovery.com' && customUser.role !== 'admin') {
         console.log('Forcing admin role for admin email');
         customUser.role = 'admin';
-        // Update role in database and force token refresh
+        // Update role in database
         await usersService.createUser({
           email: firebaseUser.email,
           role: 'admin',
           createdAt: userData.createdAt || new Date().toISOString()
         });
-        // Force token refresh
-        await firebaseUser.getIdToken(true);
       }
 
       set({ user: customUser, initialized: true, loading: false });
@@ -112,11 +109,6 @@ export const useAuthStore = create<AuthState>((set, get) => ({
         role: firebaseUser.email === 'admin@beginrecovery.com' ? 'admin' : 'user',
         createdAt: new Date().toISOString()
       } as CustomUser;
-
-      // Force token refresh for fallback user
-      if (fallbackUser.role === 'admin') {
-        await firebaseUser.getIdToken(true);
-      }
 
       set({ 
         user: fallbackUser,
@@ -151,10 +143,8 @@ export const useAuthStore = create<AuthState>((set, get) => ({
         email: userCredential.user.email
       });
 
-      // Force token refresh and user data fetch
-      await userCredential.user.reload();
-      await userCredential.user.getIdToken(true);
-      await get().refreshToken();
+      // Get fresh token without force refresh
+      await userCredential.user.getIdToken(false);
       
       // Force another sign in if admin to ensure claims are set
       if (email === 'admin@beginrecovery.com') {
@@ -193,10 +183,8 @@ export const useAuthStore = create<AuthState>((set, get) => ({
 
       console.log('User document created with role:', role);
       
-      // Force token refresh and user data fetch
-      await userCredential.user.reload();
-      await userCredential.user.getIdToken(true);
-      await get().refreshToken();
+      // Get token without force refresh
+      await userCredential.user.getIdToken(false);
       
       // Force another sign in if admin to ensure claims are set
       if (email === 'admin@beginrecovery.com') {
@@ -283,22 +271,14 @@ export const useAuthStore = create<AuthState>((set, get) => ({
     }
 
     try {
-      console.log('Refreshing auth token and user data');
-      // Force reload user data
-      await user.reload();
-      // Get fresh token with force refresh
-      const token = await user.getIdToken(true);
+      // Get token without force refresh
+      const token = await user.getIdToken(false);
       // Fetch latest user data
       await get().setUser(user);
-      console.log('Token and user data refreshed successfully');
       return token;
     } catch (error) {
-      console.error('Error refreshing token:', error);
-      // Sign out if auth error occurs
-      if ((error as any).code?.startsWith('auth/')) {
-        await firebaseSignOut(auth);
-        set({ user: null, error: 'Authentication expired. Please sign in again.' });
-      }
+      // Log but don't throw error for non-critical refresh failures
+      console.warn('Token refresh warning:', error);
       return null;
     }
   }
@@ -320,7 +300,7 @@ auth.onAuthStateChanged(
   }
 );
 
-// Set up automatic token refresh every 30 minutes
+// Set up automatic token refresh every 45 minutes
 let refreshInterval: NodeJS.Timeout;
 
 auth.onAuthStateChanged((user) => {
@@ -331,8 +311,13 @@ auth.onAuthStateChanged((user) => {
 
   if (user) {
     refreshInterval = setInterval(async () => {
-      await useAuthStore.getState().refreshToken();
-    }, 30 * 60 * 1000); // 30 minutes
+      try {
+        await useAuthStore.getState().refreshToken();
+      } catch (error) {
+        // Ignore refresh errors in background refresh
+        console.warn('Background token refresh warning:', error);
+      }
+    }, 45 * 60 * 1000); // 45 minutes
   }
 });
 
