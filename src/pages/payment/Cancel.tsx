@@ -6,6 +6,22 @@ import Footer from '../../components/Footer';
 
 export default function PaymentCancel() {
   const navigate = useNavigate();
+  const facilityData = JSON.parse(sessionStorage.getItem('facilityData') || '{}');
+
+  const handleTryAgain = () => {
+    // If we have facility data, use it to return to payment
+    if (facilityData.facilityId) {
+      navigate('/payment', { 
+        state: { 
+          facilityId: facilityData.facilityId,
+          facility: facilityData.facility
+        }
+      });
+    } else {
+      // Fallback to account page if no facility data
+      navigate('/account');
+    }
+  };
 
   return (
     <div className="min-h-screen bg-gray-50">
@@ -20,18 +36,23 @@ export default function PaymentCancel() {
               <p className="text-gray-600">
                 Your payment was cancelled and you have not been charged.
               </p>
+              {facilityData.facility?.name && (
+                <p className="text-gray-700">
+                  Facility: {facilityData.facility.name}
+                </p>
+              )}
               <div className="flex gap-4">
                 <button
-                  onClick={() => navigate('/payment')}
+                  onClick={handleTryAgain}
                   className="px-6 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700"
                 >
                   Try Again
                 </button>
                 <button
-                  onClick={() => navigate('/')}
+                  onClick={() => navigate('/account')}
                   className="px-6 py-2 border border-gray-300 rounded-lg hover:bg-gray-50"
                 >
-                  Return Home
+                  Return to Account
                 </button>
               </div>
             </div>

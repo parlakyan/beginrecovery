@@ -20,6 +20,16 @@ export default function Payment() {
   const facilityId = location.state?.facilityId || JSON.parse(sessionStorage.getItem('facilityData') || '{}').facilityId;
   const facilityData = location.state?.facility || JSON.parse(sessionStorage.getItem('facilityData') || '{}').facility;
 
+  // Store facility data in sessionStorage when available
+  React.useEffect(() => {
+    if (facilityId && facilityData) {
+      sessionStorage.setItem('facilityData', JSON.stringify({
+        facilityId,
+        facility: facilityData
+      }));
+    }
+  }, [facilityId, facilityData]);
+
   // Scroll to top on mount
   React.useEffect(() => {
     window.scrollTo(0, 0);
@@ -177,6 +187,11 @@ export default function Payment() {
             <div className="text-center mb-8">
               <CreditCard className="w-12 h-12 text-blue-600 mx-auto mb-4" />
               <h1 className="text-2xl font-bold mb-2">Complete Your Subscription</h1>
+              {facilityData?.name && (
+                <h2 className="text-lg text-gray-700 font-medium mb-2">
+                  {facilityData.name}
+                </h2>
+              )}
               <p className="text-gray-600">
                 Your facility listing will be activated immediately after payment
               </p>
