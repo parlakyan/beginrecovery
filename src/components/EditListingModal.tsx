@@ -55,7 +55,8 @@ const EditListingModal: React.FC<EditListingModalProps> = ({ facility, isOpen, o
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [photos, setPhotos] = useState<string[]>(facility.images || []);
-  const [logo, setLogo] = useState<string | undefined>(facility.logo || undefined);
+  // Keep logo as string | undefined to match Facility type
+  const [logo, setLogo] = useState<string | undefined>(facility.logo);
   const [availableLicenses, setAvailableLicenses] = useState<License[]>([]);
   const [availableInsurances, setAvailableInsurances] = useState<Insurance[]>([]);
   const [availableConditions, setAvailableConditions] = useState<Condition[]>([]);
@@ -145,7 +146,7 @@ const EditListingModal: React.FC<EditListingModalProps> = ({ facility, isOpen, o
 
       // Reset photos and logo
       setPhotos(facility.images || []);
-      setLogo(facility.logo || undefined);
+      setLogo(facility.logo);
 
       setError(null);
     }
@@ -201,6 +202,7 @@ const EditListingModal: React.FC<EditListingModalProps> = ({ facility, isOpen, o
         languageObjects,
         licenses,
         images: photos,
+        // Pass logo directly since it's already string | undefined
         logo
       };
 
