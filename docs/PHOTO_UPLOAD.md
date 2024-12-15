@@ -3,6 +3,27 @@
 ## Overview
 The upload system uses Firebase Cloud Storage to handle facility images and logos. It supports up to 12 photos per facility and one logo, with different display rules for verified and unverified listings.
 
+## Important Notes on Logo Handling
+When handling logo uploads and removals, there are a few critical points to remember:
+
+1. Logo Field Values:
+   - When setting a logo: Use the full URL string
+   - When removing a logo: Use an empty string ('')
+   - Never use undefined or null as these will cause Firebase errors
+
+2. Logo Removal Process:
+   ```typescript
+   // Correct way to remove a logo
+   await facilitiesService.updateFacility(facilityId, {
+     logo: '' // Use empty string, not undefined or null
+   });
+   ```
+
+3. Component State:
+   - LogoUpload component uses undefined internally to indicate removal
+   - EditListingModal converts undefined to empty string before saving
+   - This conversion is critical for Firebase compatibility
+
 ## Verification-Based Features
 
 ### Verified (Paid) Listings
@@ -65,6 +86,7 @@ Located in `src/components/LogoUpload.tsx`
 - Displays logo preview
 - Handles file validation
 - Manages logo removal and cleanup
+- Returns undefined when logo is removed (must be converted to empty string before saving)
 
 ### PhotoUpload Component
 Located in `src/components/PhotoUpload.tsx`
@@ -243,11 +265,28 @@ firebase deploy --only storage
 
 ### Logo Upload
 ```typescript
-<LogoUpload
-  facilityId={facility.id}
-  existingLogo={facility.logo}
-  onLogoChange={handleLogoChange}
-/>
+// In EditListingModal
+const [logo, setLogo] = useState<string | undefined>(facility.logo);
+
+const handleLogoChange = useCallback((newLogo: string | undefined) => {
+  setLogo(newLogo);
+}, []);
+
+const onSubmit = async (data: EditListingForm) => {
+  const updateData: Partial<Facility> = {
+    // ... other fields
+    logo: logo === undefined ? '' : logo // Convert undefined to empty string
+  };
+  await onSave(updateData);
+};
+
+return (
+  <LogoUpload
+    facilityId={facility.id}
+    existingLogo={logo}
+    onLogoChange={handleLogoChange}
+  />
+);
 ```
 
 ### Create Listing Form
@@ -327,7 +366,7 @@ If you encounter CORS errors:
 5. Verify verification status is correct
 
 ### Logo Removal Issues
-1. Check Firebase deleteField is working
+1. Ensure you're using empty string ('') not undefined/null
 2. Verify storage cleanup completed
 3. Confirm database update succeeded
 4. Check component state updates
@@ -346,6 +385,8 @@ If you encounter CORS errors:
 10. Handle verification status changes properly
 11. Clean up storage on file removal
 12. Use proper file organization
+13. Convert undefined to empty string for logo removal
+14. Never use null for logo field
 
 ## Future Improvements
 1. Image compression
