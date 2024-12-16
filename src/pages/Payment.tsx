@@ -1,7 +1,6 @@
-import React from 'react';
+import React, { useState, useEffect } from 'react';
 import { useLocation, useNavigate } from 'react-router-dom';
 import { Loader2, CreditCard, Lock } from 'lucide-react';
-import { loadStripe } from '@stripe/stripe-js';
 import { useAuthStore } from '../store/authStore';
 import { paymentsService } from '../services/payments';
 import { facilitiesService } from '../services/facilities';
@@ -9,7 +8,11 @@ import { Facility } from '../types';
 import Header from '../components/Header';
 import Footer from '../components/Footer';
 
-const stripePromise = loadStripe(import.meta.env.VITE_STRIPE_PUBLIC_KEY);
+// Lazy load Stripe only when needed
+const loadStripeInstance = async () => {
+  const { loadStripe } = await import('@stripe/stripe-js');
+  return loadStripe(import.meta.env.VITE_STRIPE_PUBLIC_KEY);
+};
 
 interface StoredData {
   facilityId: string;
@@ -17,8 +20,8 @@ interface StoredData {
 }
 
 export default function Payment() {
-  const [loading, setLoading] = React.useState(false);
-  const [error, setError] = React.useState<string | null>(null);
+  const [loading, setLoading] = useState(false);
+  const [error, setError] = useState<string | null>(null);
   const location = useLocation();
   const navigate = useNavigate();
   const { user, refreshToken } = useAuthStore();
@@ -29,7 +32,7 @@ export default function Payment() {
   const facilityData = storedData.facility;
 
   // Store facility data in sessionStorage when available
-  React.useEffect(() => {
+  useEffect(() => {
     if (facilityId && facilityData) {
       sessionStorage.setItem('facilityData', JSON.stringify({
         facilityId,
@@ -39,19 +42,19 @@ export default function Payment() {
   }, [facilityId, facilityData]);
 
   // Scroll to top on mount
-  React.useEffect(() => {
+  useEffect(() => {
     window.scrollTo(0, 0);
   }, []);
 
   // Ensure we have the required data
-  React.useEffect(() => {
+  useEffect(() => {
     if (!facilityId || !facilityData) {
       navigate('/create-listing');
     }
   }, [facilityId, facilityData, navigate]);
 
   // Ensure user is authenticated
-  React.useEffect(() => {
+  useEffect(() => {
     const checkAuth = async () => {
       if (!user) {
         // Store the current path and data for redirect after login
@@ -159,7 +162,7 @@ export default function Payment() {
 
       // Fallback to redirectToCheckout if no URL is provided
       console.log('Using fallback redirect method');
-      const stripe = await stripePromise;
+      const stripe = await loadStripeInstance();
       if (!stripe) {
         throw new Error('Payment system is not available. Please try again later.');
       }
