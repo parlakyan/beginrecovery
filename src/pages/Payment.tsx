@@ -5,6 +5,7 @@ import { loadStripe } from '@stripe/stripe-js';
 import { useAuthStore } from '../store/authStore';
 import { paymentsService } from '../services/payments';
 import { facilitiesService } from '../services/facilities';
+import { generateSlug } from '../services/facilities/utils';
 import Header from '../components/Header';
 import Footer from '../components/Footer';
 
@@ -87,21 +88,18 @@ export default function Payment() {
     setError(null);
 
     try {
-      // Update facility as unverified
-      await facilitiesService.updateFacility(facilityId, {
-        isVerified: false,
-        moderationStatus: 'pending'
-      });
+      // Get the facility's slug
+      const slug = facilityData.slug || generateSlug(facilityData.name, facilityData.location);
 
       // Clear stored data
       sessionStorage.removeItem('facilityData');
       sessionStorage.removeItem('paymentData');
 
-      // Navigate to listing detail page
-      navigate(`/listing/${facilityId}`);
+      // Navigate to listing detail page using slug
+      navigate(`/${slug}`, { replace: true });
     } catch (err) {
       console.error('Error skipping payment:', err);
-      setError('Failed to create unverified listing. Please try again.');
+      setError('Failed to skip payment. Please try again.');
     } finally {
       setLoading(false);
     }

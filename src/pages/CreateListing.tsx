@@ -186,8 +186,8 @@ export default function CreateListing() {
         moderationStatus: 'pending' as const
       };
 
-      // Only include logo if it exists
-      if (logo) {
+      // Only include logo if it exists and is not empty
+      if (logo && logo.trim() !== '') {
         formattedData.logo = logo;
       }
 
@@ -198,7 +198,7 @@ export default function CreateListing() {
       let updatedPhotos = [...photos];
       let updatedLogo = logo;
 
-      if (photos.length > 0 || logo) {
+      if (photos.length > 0 || (logo && logo.trim() !== '')) {
         try {
           // Move photos if any
           if (photos.length > 0) {
@@ -217,8 +217,8 @@ export default function CreateListing() {
             });
           }
 
-          // Move logo if exists
-          if (logo) {
+          // Move logo if exists and not empty
+          if (logo && logo.trim() !== '') {
             const { movedFiles: movedLogo } = await storageService.moveFiles(
               `facilities/${tempId}/logo`,
               `facilities/${id}/logo`
@@ -238,7 +238,7 @@ export default function CreateListing() {
           if (updatedPhotos.length > 0) {
             updateData.images = updatedPhotos;
           }
-          if (updatedLogo) {
+          if (updatedLogo && updatedLogo.trim() !== '') {
             updateData.logo = updatedLogo;
           }
 
@@ -264,8 +264,9 @@ export default function CreateListing() {
         facilityId: id,
         facility: {
           ...formattedData,
+          id,
           images: updatedPhotos,
-          ...(updatedLogo && { logo: updatedLogo })
+          ...(updatedLogo && updatedLogo.trim() !== '' && { logo: updatedLogo })
         }
       };
       sessionStorage.setItem('facilityData', JSON.stringify(backupData));
@@ -276,8 +277,9 @@ export default function CreateListing() {
           facilityId: id,
           facility: {
             ...formattedData,
+            id,
             images: updatedPhotos,
-            ...(updatedLogo && { logo: updatedLogo })
+            ...(updatedLogo && updatedLogo.trim() !== '' && { logo: updatedLogo })
           }
         },
         replace: true // Use replace to prevent back navigation to form
