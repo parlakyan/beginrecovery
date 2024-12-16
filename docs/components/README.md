@@ -5,6 +5,16 @@ The Recovery Directory platform uses a component-based architecture with several
 
 ## Component Categories
 
+### [Auth Components](../AUTHENTICATION.md#components)
+Authentication and authorization components:
+- Login form
+- Register form
+- Reset password form
+- Protected route wrapper
+- Role-based access control
+
+For detailed authentication implementation, see [Authentication Documentation](../AUTHENTICATION.md).
+
 ### [UI Components](./ui.md)
 Core UI building blocks like:
 - Button
@@ -42,7 +52,7 @@ Modal dialogs and overlays:
 
 ### State Management
 - Use local state for UI
-- Use Zustand for global state
+- Use Zustand for global state (see [Authentication Store](../AUTHENTICATION.md#auth-store))
 - Handle async operations
 - Manage loading states
 - Clean up on unmount
@@ -54,6 +64,7 @@ Modal dialogs and overlays:
 - Network issues
 - User feedback
 - Storage cleanup errors
+- Authentication errors
 
 ### Accessibility
 - ARIA labels
@@ -61,6 +72,7 @@ Modal dialogs and overlays:
 - Screen reader support
 - Focus management
 - Color contrast
+- Form accessibility
 
 ## Common Patterns
 
@@ -89,6 +101,13 @@ Modal dialogs and overlays:
 )}
 ```
 
+### Protected Content
+```tsx
+{user?.role === 'admin' && (
+  <AdminFeatures />
+)}
+```
+
 ### Resource Cleanup
 ```tsx
 useEffect(() => {
@@ -96,6 +115,19 @@ useEffect(() => {
     // Clean up resources
   };
 }, []);
+```
+
+### Auth State Management
+```tsx
+const { user, loading } = useAuthStore();
+
+if (loading) {
+  return <LoadingSpinner />;
+}
+
+if (!user) {
+  return <Navigate to="/login" />;
+}
 ```
 
 ## Future Improvements

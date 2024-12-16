@@ -155,9 +155,6 @@ export default function CreateListing() {
     setError(null);
 
     try {
-      // Refresh auth token first
-      await refreshToken();
-
       // Process form data
       const formattedData: Partial<Facility> = {
         name: data.name,
@@ -208,7 +205,10 @@ export default function CreateListing() {
             const { movedFiles: movedPhotos } = await storageService.moveFiles(
               `facilities/${tempId}/photos`,
               `facilities/${id}/photos`
-            );
+            ).catch(err => {
+              console.error('Error moving photos:', err);
+              return { movedFiles: [] };
+            });
             
             // Update photo URLs
             updatedPhotos = photos.map(oldUrl => {
@@ -222,7 +222,10 @@ export default function CreateListing() {
             const { movedFiles: movedLogo } = await storageService.moveFiles(
               `facilities/${tempId}/logo`,
               `facilities/${id}/logo`
-            );
+            ).catch(err => {
+              console.error('Error moving logo:', err);
+              return { movedFiles: [] };
+            });
             
             // Update logo URL
             if (movedLogo.length > 0) {
@@ -419,7 +422,7 @@ export default function CreateListing() {
 
               <div>
                 <label className="block text-sm font-medium text-gray-700 mb-1">
-                  Facility Logo
+                  Facility Logo (Optional)
                 </label>
                 <LogoUpload
                   facilityId={tempId}
@@ -586,7 +589,7 @@ export default function CreateListing() {
                   className="px-6 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 disabled:opacity-50 flex items-center gap-2"
                 >
                   {loading && <Loader2 className="w-4 h-4 animate-spin" />}
-                  {loading ? 'Creating...' : 'Continue to Payment'}
+                  {loading ? 'Creating...' : 'Create Listing'}
                 </button>
               </div>
             </form>

@@ -4,6 +4,7 @@ import { Loader2, CreditCard, Lock } from 'lucide-react';
 import { loadStripe } from '@stripe/stripe-js';
 import { useAuthStore } from '../store/authStore';
 import { paymentsService } from '../services/payments';
+import { facilitiesService } from '../services/facilities';
 import Header from '../components/Header';
 import Footer from '../components/Footer';
 
@@ -80,6 +81,31 @@ export default function Payment() {
 
     checkAuth();
   }, [user, navigate, facilityId, facilityData, refreshToken]);
+
+  const handleSkip = async () => {
+    setLoading(true);
+    setError(null);
+
+    try {
+      // Update facility as unverified
+      await facilitiesService.updateFacility(facilityId, {
+        isVerified: false,
+        moderationStatus: 'pending'
+      });
+
+      // Clear stored data
+      sessionStorage.removeItem('facilityData');
+      sessionStorage.removeItem('paymentData');
+
+      // Navigate to listing detail page
+      navigate(`/listing/${facilityId}`);
+    } catch (err) {
+      console.error('Error skipping payment:', err);
+      setError('Failed to create unverified listing. Please try again.');
+    } finally {
+      setLoading(false);
+    }
+  };
 
   const handlePayment = async () => {
     setLoading(true);
@@ -193,7 +219,7 @@ export default function Payment() {
                 </h2>
               )}
               <p className="text-gray-600">
-                Your facility listing will be activated immediately after payment
+                Upgrade to a verified listing or continue with a free unverified listing
               </p>
             </div>
 
@@ -214,14 +240,25 @@ export default function Payment() {
               </div>
             </div>
 
-            <button
-              onClick={handlePayment}
-              disabled={loading}
-              className="w-full bg-blue-600 text-white py-3 rounded-lg font-semibold hover:bg-blue-700 disabled:opacity-50 flex items-center justify-center gap-2"
-            >
-              {loading && <Loader2 className="w-5 h-5 animate-spin" />}
-              {loading ? 'Processing...' : 'Complete Payment'}
-            </button>
+            <div className="space-y-4">
+              <button
+                onClick={handlePayment}
+                disabled={loading}
+                className="w-full bg-blue-600 text-white py-3 rounded-lg font-semibold hover:bg-blue-700 disabled:opacity-50 flex items-center justify-center gap-2"
+              >
+                {loading && <Loader2 className="w-5 h-5 animate-spin" />}
+                {loading ? 'Processing...' : 'Complete Payment'}
+              </button>
+
+              <button
+                onClick={handleSkip}
+                disabled={loading}
+                className="w-full border border-gray-300 bg-white text-gray-700 py-3 rounded-lg font-semibold hover:bg-gray-50 disabled:opacity-50 flex items-center justify-center gap-2"
+              >
+                {loading && <Loader2 className="w-5 h-5 animate-spin" />}
+                {loading ? 'Processing...' : 'Continue with Free Listing'}
+              </button>
+            </div>
 
             <div className="mt-4 flex items-center justify-center gap-2 text-sm text-gray-500">
               <Lock className="w-4 h-4" />

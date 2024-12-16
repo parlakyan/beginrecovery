@@ -1,47 +1,50 @@
 # Verification System Documentation
 
-## Overview
-The Recovery Directory platform uses a two-tier system for facility listings:
-- Verified (Paid) listings
-- Unverified (Free) listings
+[Previous content until Upgrade Flow section remains unchanged...]
 
-## Listing Tiers
+## Listing Creation Flow
 
-### Verified (Paid) Listings
-Features available to verified listings:
-1. Green "Verified" badge
-2. "Currently accepting patients" status indicator
-3. Facility logo display and management
-   - Upload custom logo
-   - Logo appears in contact box
-   - Logo management in edit modal
-   - Logo removal with storage cleanup
-4. Homepage showcase based on location
-5. Certifications section
-6. Staff section
-7. Call and Message buttons
-8. Website and Message buttons
-9. Full photo gallery with slideshow
-10. Featured in search results
+### Initial Creation
+1. User creates new facility listing
+   - Basic information required
+   - Logo upload is optional
+   - Photos can be added
+   - Created as unverified by default
+   - Status set to 'pending' for moderation
 
-### Unverified (Free) Listings
-Basic features available to free listings:
-1. Basic facility information
-2. Single photo display
-3. Standard search listing
-4. Basic contact information
-5. No logo display (logo can be uploaded but won't be shown until verified)
+### Verification Options
+After creating the listing, users have two options:
+1. Continue with Free Listing
+   - Listing remains unverified
+   - Awaits admin approval
+   - Limited features available
+   - Can upgrade to verified later
+
+2. Complete Payment
+   - Listing becomes verified immediately
+   - Automatically approved
+   - All premium features unlocked
+   - Logo becomes visible if uploaded
+
+### Status Management
+- New listings start as unverified and pending
+- Free listings require admin approval
+- Paid listings are auto-approved
+- Admin can manually change status
+- Status changes trigger feature updates
 
 ## Upgrade Flow
 
 ### Initiation
-1. Owner clicks "Upgrade to Verified" on facility card
+1. Owner clicks "Upgrade to Verified" on facility card or listing
 2. System stores facility context in sessionStorage
 3. Payment page displays facility name and details
-4. Stripe checkout session created
-5. User completes payment
-6. Webhook processes payment
-7. Facility status updated
+4. User can choose to:
+   - Complete payment (becomes verified and approved)
+   - Skip payment (remains unverified and pending)
+5. Webhook processes payment if completed
+6. Facility status updated accordingly
+
 
 ### Context Preservation
 ```typescript

@@ -20,6 +20,7 @@ export const facilitiesVerification = {
       const facilityRef = doc(db, FACILITIES_COLLECTION, id);
       await updateDoc(facilityRef, {
         isVerified: true,
+        moderationStatus: 'approved', // Auto-approve verified facilities
         updatedAt: serverTimestamp()
       });
       
@@ -37,6 +38,7 @@ export const facilitiesVerification = {
       const facilityRef = doc(db, FACILITIES_COLLECTION, id);
       await updateDoc(facilityRef, {
         isVerified: false,
+        moderationStatus: 'pending', // Reset to pending when unverified
         updatedAt: serverTimestamp()
       });
       

@@ -6,6 +6,8 @@ The Recovery Directory platform implements a role-based access control system wi
 - Facility Owner
 - Regular User
 
+For detailed authentication implementation and session management, see [Authentication Documentation](./AUTHENTICATION.md).
+
 ## Role Definitions
 
 ### Admin Role
@@ -150,16 +152,20 @@ const AdminDashboard = () => {
 ## Security Considerations
 
 ### Authentication
-- Firebase Authentication
-- Role-based routing
-- Protected routes
-- Session management
+- Firebase Authentication integration
+- Role-based routing with protected routes
+- Secure session management
+- Token refresh strategy
+
+For detailed authentication implementation, see [Authentication Documentation](./AUTHENTICATION.md#implementation-details).
 
 ### Authorization
 - Server-side role checks
 - Client-side access control
 - API endpoint protection
 - Data access validation
+
+For security best practices, see [Authentication Security Guide](./AUTHENTICATION.md#security-considerations).
 
 ### Data Access
 - Role-based queries
@@ -198,6 +204,8 @@ const AdminDashboard = () => {
 3. Access control problems
 4. Authentication failures
 
+For authentication-specific troubleshooting, see [Authentication Troubleshooting Guide](./AUTHENTICATION.md#troubleshooting).
+
 ### Solutions
 1. Verify user role
 2. Check permission settings
@@ -211,3 +219,5 @@ const AdminDashboard = () => {
 3. Granular permissions
 4. Role analytics
 5. Enhanced security
+
+For planned authentication improvements, see [Authentication Updates](./AUTHENTICATION.md#updates-and-maintenance).

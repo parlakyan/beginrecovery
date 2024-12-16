@@ -5,6 +5,49 @@ The Recovery Directory platform uses a modular service architecture to handle di
 
 ## Services Structure
 
+### Auth Service
+Located in `src/services/auth.ts`, handles authentication and session management:
+
+For detailed authentication implementation, see [Authentication Documentation](./AUTHENTICATION.md).
+
+#### Key Features
+- Firebase Authentication integration
+- Token management and refresh
+- Session persistence
+- Role-based access control
+- Error handling
+
+```typescript
+import { authService } from '../services/auth';
+
+// Sign in user
+const user = await authService.signIn(email, password);
+
+// Sign out user
+await authService.signOut();
+
+// Refresh token
+const token = await authService.refreshToken();
+
+// Check user role
+const isAdmin = await authService.hasRole(user, 'admin');
+```
+
+#### Authentication Flow
+```mermaid
+graph TD
+    A[Sign In] --> B[Get Token]
+    B --> C[Fetch User Data]
+    C --> D[Set Role]
+    D --> E[Enable Session]
+    E --> F[Start Token Refresh]
+```
+
+For complete authentication implementation details and best practices, see:
+- [Authentication Implementation](./AUTHENTICATION.md#implementation-details)
+- [Security Considerations](./AUTHENTICATION.md#security-considerations)
+- [Token Management](./AUTHENTICATION.md#token-management)
+
 ### Facilities Service
 Located in `src/services/facilities/`, split into modular components:
 
@@ -127,9 +170,11 @@ interface SearchParams {
 ### Users Service
 Located in `src/services/users.ts`, handles user management:
 
+For authentication-related functionality, see [Authentication Documentation](./AUTHENTICATION.md).
+
 #### Key Features
 - User CRUD operations
-- Role management
+- Role management (see [Roles Documentation](./ROLES.md))
 - Authentication integration
 - Password reset functionality
 - User statistics
