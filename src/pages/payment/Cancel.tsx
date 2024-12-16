@@ -29,7 +29,8 @@ export default function PaymentCancel() {
 
       <div className="container mx-auto px-4 py-16">
         <div className="max-w-lg mx-auto">
-          <div className="bg-white rounded-xl shadow-lg p-8 text-center">
+          {/* Add data-lpignore to prevent LastPass from injecting UI */}
+          <div className="bg-white rounded-xl shadow-lg p-8 text-center" data-lpignore="true">
             <div className="flex flex-col items-center gap-4">
               <XCircle className="w-16 h-16 text-red-500" />
               <h1 className="text-2xl font-bold">Payment Cancelled</h1>
@@ -41,7 +42,8 @@ export default function PaymentCancel() {
                   Facility: {facilityData.facility.name}
                 </p>
               )}
-              <div className="flex gap-4">
+              {/* Add data-lpignore to prevent LastPass from injecting UI */}
+              <div className="flex gap-4" data-lpignore="true">
                 <button
                   onClick={handleTryAgain}
                   className="px-6 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700"

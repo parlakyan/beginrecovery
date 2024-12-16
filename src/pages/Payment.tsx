@@ -227,7 +227,8 @@ export default function Payment() {
 
       <div className="container mx-auto px-4 py-16">
         <div className="max-w-lg mx-auto">
-          <div className="bg-white rounded-xl shadow-lg p-8">
+          {/* Add data-lpignore to prevent LastPass from injecting UI */}
+          <div className="bg-white rounded-xl shadow-lg p-8" data-lpignore="true">
             <div className="text-center mb-8">
               <CreditCard className="w-12 h-12 text-blue-600 mx-auto mb-4" />
               <h1 className="text-2xl font-bold mb-2">Complete Your Subscription</h1>
@@ -258,7 +259,8 @@ export default function Payment() {
               </div>
             </div>
 
-            <div className="space-y-4">
+            {/* Add data-lpignore to prevent LastPass from injecting UI */}
+            <div className="space-y-4" data-lpignore="true">
               <button
                 onClick={handlePayment}
                 disabled={loading}

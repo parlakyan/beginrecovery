@@ -56,7 +56,8 @@ export default function PaymentSuccess() {
 
       <div className="container mx-auto px-4 py-16">
         <div className="max-w-lg mx-auto">
-          <div className="bg-white rounded-xl shadow-md p-8 text-center">
+          {/* Add data-lpignore to prevent LastPass from injecting UI */}
+          <div className="bg-white rounded-xl shadow-md p-8 text-center" data-lpignore="true">
             {loading ? (
               <div className="flex flex-col items-center gap-4">
                 <Loader2 className="w-12 h-12 text-blue-600 animate-spin" />
