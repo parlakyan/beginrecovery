@@ -12,13 +12,19 @@ import {
   orderBy,
   limit,
   QueryDocumentSnapshot,
-  DocumentData
+  DocumentData,
+  FieldValue
 } from 'firebase/firestore';
 import { db, auth } from '../../lib/firebase';
 import { storageService } from '../storage';
 import { Facility } from '../../types';
 import { FACILITIES_COLLECTION, BATCH_SIZE } from './types';
 import { transformFacilityData, generateSlug } from './utils';
+
+type FacilityDataWithTimestamps = Omit<Partial<Facility>, 'createdAt' | 'updatedAt'> & {
+  createdAt: FieldValue;
+  updatedAt: FieldValue;
+};
 
 /**
  * Core CRUD operations for facilities
@@ -28,8 +34,8 @@ export const facilitiesCrud = {
     try {
       const facilitiesRef = collection(db, FACILITIES_COLLECTION);
       
+      // Create base facility data with required fields
       const facilityData = {
-        ...data,
         ownerId: auth.currentUser?.uid,
         rating: 0,
         reviews: 0,
@@ -40,8 +46,32 @@ export const facilitiesCrud = {
         isFeatured: false,
         createdAt: serverTimestamp(),
         updatedAt: serverTimestamp(),
-        slug: generateSlug(data.name || '', data.location || '')
-      };
+        slug: generateSlug(data.name || '', data.location || ''),
+        // Optional fields with default values
+        images: data.images || [],
+        highlights: data.highlights || [],
+        amenityObjects: data.amenityObjects || [],
+        accreditation: data.accreditation || [],
+        languageObjects: data.languageObjects || [],
+        // Copy over other fields if they exist
+        ...(data.name && { name: data.name }),
+        ...(data.description && { description: data.description }),
+        ...(data.location && { location: data.location }),
+        ...(data.coordinates && { coordinates: data.coordinates }),
+        ...(data.city && { city: data.city }),
+        ...(data.state && { state: data.state }),
+        ...(data.phone && { phone: data.phone }),
+        ...(data.email && { email: data.email }),
+        ...(data.website && { website: data.website }),
+        ...(data.treatmentTypes && { treatmentTypes: data.treatmentTypes }),
+        ...(data.substances && { substances: data.substances }),
+        ...(data.conditions && { conditions: data.conditions }),
+        ...(data.therapies && { therapies: data.therapies }),
+        ...(data.insurances && { insurances: data.insurances }),
+        ...(data.licenses && { licenses: data.licenses }),
+        // Only add logo if it exists and is not empty
+        ...(data.logo && data.logo.trim() !== '' && { logo: data.logo })
+      } as FacilityDataWithTimestamps;
 
       const docRef = await addDoc(facilitiesRef, facilityData);
       return { id: docRef.id };

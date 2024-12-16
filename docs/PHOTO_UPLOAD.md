@@ -8,21 +8,39 @@ When handling logo uploads and removals, there are a few critical points to reme
 
 1. Logo Field Values:
    - When setting a logo: Use the full URL string
-   - When removing a logo: Use an empty string ('')
-   - Never use undefined or null as these will cause Firebase errors
+   - When removing a logo: Use undefined, empty string (''), or null
+   - The facilities service will handle all cases appropriately
 
 2. Logo Removal Process:
    ```typescript
-   // Correct way to remove a logo
+   // Any of these methods will work
    await facilitiesService.updateFacility(facilityId, {
-     logo: '' // Use empty string, not undefined or null
+     logo: undefined
+   });
+   // or
+   await facilitiesService.updateFacility(facilityId, {
+     logo: ''
+   });
+   // or
+   await facilitiesService.updateFacility(facilityId, {
+     logo: null
    });
    ```
 
 3. Component State:
    - LogoUpload component uses undefined internally to indicate removal
-   - EditListingModal converts undefined to empty string before saving
-   - This conversion is critical for Firebase compatibility
+   - Facilities service handles conversion between undefined/null/empty string
+   - Storage cleanup is handled automatically
+
+4. Creating New Facilities:
+   ```typescript
+   // Logo will only be included if it exists and is not empty
+   const { id } = await facilitiesService.createFacility({
+     name: 'Facility Name',
+     // ... other required fields
+     logo: logoUrl // Optional, will be handled appropriately
+   });
+   ```
 
 ## Verification-Based Features
 
@@ -86,7 +104,7 @@ Located in `src/components/LogoUpload.tsx`
 - Displays logo preview
 - Handles file validation
 - Manages logo removal and cleanup
-- Returns undefined when logo is removed (must be converted to empty string before saving)
+- Returns undefined when logo is removed (handled by facilities service)
 
 ### PhotoUpload Component
 Located in `src/components/PhotoUpload.tsx`
@@ -176,7 +194,12 @@ service firebase.storage {
     // Facility files - admins and owners can write
     match /facilities/{facilityId}/{allPaths=**} {
       allow write: if request.auth != null 
-        && isValidImage()
+        && (
+          // Allow non-image files in temp directory
+          request.path.matches('facilities/temp-.*') ||
+          // Require image validation for permanent files
+          isValidImage()
+        )
         && (isAdmin() || isOwner());
       allow delete: if request.auth != null 
         && (isAdmin() || isOwner());
@@ -235,6 +258,7 @@ Located in `src/services/storage.ts`
 - Manages photo order
 - Handles file deletion
 - Manages file moves between directories
+- Handles non-existent files gracefully
 
 ## Setup Process
 
@@ -275,7 +299,7 @@ const handleLogoChange = useCallback((newLogo: string | undefined) => {
 const onSubmit = async (data: EditListingForm) => {
   const updateData: Partial<Facility> = {
     // ... other fields
-    logo: logo === undefined ? '' : logo // Convert undefined to empty string
+    logo // Facilities service handles undefined/null/empty string
   };
   await onSave(updateData);
 };
@@ -331,6 +355,7 @@ return (
 - Verification status checks
 - File deletion errors
 - File move errors
+- Non-existent file handling
 
 ## Security
 - Public read access
@@ -341,6 +366,7 @@ return (
 - CORS restrictions to allowed domains
 - Verification status enforcement
 - Proper file cleanup
+- Temp file handling
 
 ## Troubleshooting
 
@@ -366,7 +392,7 @@ If you encounter CORS errors:
 5. Verify verification status is correct
 
 ### Logo Removal Issues
-1. Ensure you're using empty string ('') not undefined/null
+1. Use undefined, empty string (''), or null - all are handled properly
 2. Verify storage cleanup completed
 3. Confirm database update succeeded
 4. Check component state updates
@@ -385,8 +411,8 @@ If you encounter CORS errors:
 10. Handle verification status changes properly
 11. Clean up storage on file removal
 12. Use proper file organization
-13. Convert undefined to empty string for logo removal
-14. Never use null for logo field
+13. Handle undefined/null/empty string consistently
+14. Use temp directories for in-progress uploads
 
 ## Future Improvements
 1. Image compression
@@ -401,3 +427,5 @@ If you encounter CORS errors:
 10. Improved image transition animations
 11. Logo resizing/cropping tools
 12. Better file organization structure
+13. Improved temp file handling
+14. Enhanced file validation

@@ -66,7 +66,7 @@ export const storageService = {
     }
 
     try {
-      // If uploading to a logo folder, clean up existing files first
+      // Only clean up logo folder if we're uploading to a logo folder
       if (path.includes('/logo/')) {
         const folderPath = path.split('/').slice(0, -1).join('/');
         await this.cleanupFolder(folderPath);
@@ -174,15 +174,25 @@ export const storageService = {
             await deleteObject(itemRef);
             console.log('Deleted file:', itemRef.fullPath);
           } catch (error) {
-            console.error('Error deleting file:', {
-              path: itemRef.fullPath,
-              error,
-              timestamp: new Date().toISOString()
-            });
+            if ((error as StorageError).code === 'storage/object-not-found') {
+              // Ignore if file doesn't exist
+              console.log('File already deleted:', itemRef.fullPath);
+            } else {
+              console.error('Error deleting file:', {
+                path: itemRef.fullPath,
+                error,
+                timestamp: new Date().toISOString()
+              });
+            }
           }
         })
       );
     } catch (error) {
+      if ((error as StorageError).code === 'storage/object-not-found') {
+        // Ignore if folder doesn't exist
+        console.log('Folder does not exist:', path);
+        return;
+      }
       console.error('Error cleaning up folder:', {
         path,
         error,
@@ -267,6 +277,11 @@ export const storageService = {
 
       return { movedFiles };
     } catch (error) {
+      if ((error as StorageError).code === 'storage/object-not-found') {
+        // Return empty result if source folder doesn't exist
+        console.log('Source folder does not exist:', fromPath);
+        return { movedFiles: [] };
+      }
       console.error('Error moving files:', {
         fromPath,
         toPath,
@@ -294,6 +309,11 @@ export const storageService = {
         console.log('File deleted successfully:', path);
       }
     } catch (error) {
+      if ((error as StorageError).code === 'storage/object-not-found') {
+        // Ignore if file doesn't exist
+        console.log('File already deleted:', path);
+        return;
+      }
       console.error('Error deleting file:', {
         error,
         path,
@@ -316,11 +336,16 @@ export const storageService = {
           try {
             await this.deleteFile(path);
           } catch (error) {
-            console.error('Error deleting file:', {
-              path,
-              error,
-              timestamp: new Date().toISOString()
-            });
+            if ((error as StorageError).code === 'storage/object-not-found') {
+              // Ignore if file doesn't exist
+              console.log('File already deleted:', path);
+            } else {
+              console.error('Error deleting file:', {
+                path,
+                error,
+                timestamp: new Date().toISOString()
+              });
+            }
           }
         })
       );

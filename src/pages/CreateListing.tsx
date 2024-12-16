@@ -187,7 +187,7 @@ export default function CreateListing() {
         moderationStatus: 'pending' as const
       };
 
-      // Only include logo if it exists and is not empty
+      // Only add logo field if it exists and is not empty
       if (logo && logo.trim() !== '') {
         formattedData.logo = logo;
       }
@@ -267,7 +267,7 @@ export default function CreateListing() {
           ...formattedData,
           id,
           images: updatedPhotos,
-          ...(updatedLogo && updatedLogo.trim() !== '' && { logo: updatedLogo })
+          ...(updatedLogo && updatedLogo.trim() !== '' ? { logo: updatedLogo } : {})
         }
       };
       sessionStorage.setItem('facilityData', JSON.stringify(backupData));
@@ -280,7 +280,7 @@ export default function CreateListing() {
             ...formattedData,
             id,
             images: updatedPhotos,
-            ...(updatedLogo && updatedLogo.trim() !== '' && { logo: updatedLogo })
+            ...(updatedLogo && updatedLogo.trim() !== '' ? { logo: updatedLogo } : {})
           }
         },
         replace: true // Use replace to prevent back navigation to form
