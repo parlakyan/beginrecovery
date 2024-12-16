@@ -69,7 +69,14 @@ async function geocodeAddress(address: string, apiKey: string) {
       throw new Error(`Geocoding error: ${data.status} - ${data.error_message || 'Unknown error'}`);
     }
 
-    return data.results[0];
+    // Get the first result and its place ID
+    const result = data.results[0];
+    const placeId = result.place_id;
+
+    return {
+      ...result,
+      place_id: placeId
+    };
   } finally {
     clearTimeout(timeoutId);
   }
@@ -352,12 +359,13 @@ export const importService = {
               }
             }
 
-            // Update facility with required location fields
+            // Update facility with required location fields and place ID
             await updateDoc(facilityRef, {
               location: result.formatted_address,
               coordinates: { lat, lng },
               city: city || '',
               state: state || '',
+              googlePlaceId: result.place_id, // Store the place ID
               slug: generateSlug(facility.name, result.formatted_address)
             });
 

@@ -38,6 +38,7 @@ export interface Facility {
   status?: string;
   createdAt: string;
   updatedAt: string;
+  googlePlaceId?: string; // Added for Google Places integration
 }
 
 export interface User {
@@ -246,4 +247,19 @@ export interface ClaimStats {
   disputedClaims: number;
   autoApproved: number;
   manuallyApproved: number;
+}
+
+/**
+ * A review from Google Places API
+ */
+export interface GoogleReview {
+  id: string;
+  author: string;
+  authorPhotoUrl?: string;
+  rating: number;
+  content: string;
+  timestamp: number;
+  helpful: number;
+  googlePlaceId: string;
+  facilityId: string;
 }
