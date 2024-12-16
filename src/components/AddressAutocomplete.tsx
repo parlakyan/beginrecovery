@@ -5,6 +5,7 @@ interface AddressAutocompleteProps {
   register: UseFormRegister<any>;
   setValue: UseFormSetValue<any>;
   error?: string;
+  hideLabel?: boolean;
 }
 
 declare global {
@@ -14,7 +15,7 @@ declare global {
   }
 }
 
-export default function AddressAutocomplete({ register, setValue, error }: AddressAutocompleteProps) {
+export default function AddressAutocomplete({ register, setValue, error, hideLabel = false }: AddressAutocompleteProps) {
   const inputRef = useRef<HTMLInputElement | null>(null);
   const autocompleteRef = useRef<any>(null);
   const [scriptError, setScriptError] = useState<string | null>(null);
@@ -161,9 +162,6 @@ export default function AddressAutocomplete({ register, setValue, error }: Addre
 
   return (
     <div>
-      <label className="block text-sm font-medium text-gray-700 mb-1">
-        Location <span className="text-red-500">*</span>
-      </label>
       <div className="relative">
         <input
           {...register('location', { required: 'Location is required' })}

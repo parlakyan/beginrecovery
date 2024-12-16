@@ -156,7 +156,7 @@ export default function CreateListing() {
     setError(null);
 
     try {
-      // Process form data
+      // Process form data - exclude logo field completely
       const formattedData: Partial<Facility> = {
         name: data.name,
         description: data.description,
@@ -187,7 +187,7 @@ export default function CreateListing() {
         moderationStatus: 'pending' as const
       };
 
-      // Create facility
+      // Create facility without logo field
       const { id } = await facilitiesService.createFacility(formattedData);
 
       // Move uploaded files from temp location to permanent location
@@ -366,6 +366,7 @@ export default function CreateListing() {
                   register={register}
                   setValue={setValue}
                   error={errors.location?.message}
+                  hideLabel={true}
                 />
               </div>
 
