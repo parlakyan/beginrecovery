@@ -163,7 +163,7 @@ export default function FilterBar({ filters, filterOptions, optionCounts, onFilt
     const filterType = type;
 
     return (
-      <div className="relative filter-dropdown">
+      <div className="relative filter-dropdown shrink-0">
         <button
           onClick={() => handleDropdownClick(type)}
           className={`px-4 py-2 rounded-full border flex items-center gap-2 hover:bg-gray-50 ${
@@ -179,7 +179,7 @@ export default function FilterBar({ filters, filterOptions, optionCounts, onFilt
           <ChevronDown className="w-4 h-4" />
         </button>
         {activeDropdown === type && (
-          <div className="absolute top-full left-0 mt-2 w-72 bg-white rounded-lg shadow-lg border border-gray-200 p-4 z-50">
+          <div className="fixed top-auto mt-2 w-72 bg-white rounded-lg shadow-lg border border-gray-200 p-4 z-50">
             {/* Search input */}
             <div className="relative mb-3">
               <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-gray-400" />
@@ -226,8 +226,8 @@ export default function FilterBar({ filters, filterOptions, optionCounts, onFilt
   };
 
   return (
-    <div className="w-full">
-      <div className="flex gap-2 py-3 flex-wrap">
+    <div className="w-full overflow-x-auto">
+      <div className="flex gap-2 py-3 px-1 min-w-max">
         {renderDropdown('location', 'Location', filterOptions.locations, optionCounts.locations)}
         {renderDropdown('treatmentTypes', 'Treatment Types', filterOptions.treatmentTypes, optionCounts.treatmentTypes)}
         {renderDropdown('conditions', 'Conditions', filterOptions.conditions, optionCounts.conditions)}
@@ -237,7 +237,7 @@ export default function FilterBar({ filters, filterOptions, optionCounts, onFilt
         {renderDropdown('amenities', 'Amenities', filterOptions.amenities, optionCounts.amenities)}
 
         {/* Rating Filter */}
-        <div className="relative filter-dropdown">
+        <div className="relative filter-dropdown shrink-0">
           <button
             onClick={() => handleDropdownClick('rating')}
             className={`px-4 py-2 rounded-full border flex items-center gap-2 hover:bg-gray-50 ${
@@ -258,7 +258,7 @@ export default function FilterBar({ filters, filterOptions, optionCounts, onFilt
             <ChevronDown className="w-4 h-4" />
           </button>
           {activeDropdown === 'rating' && (
-            <div className="absolute top-full left-0 mt-2 w-48 bg-white rounded-lg shadow-lg border border-gray-200 p-4 z-50">
+            <div className="fixed top-auto mt-2 w-48 bg-white rounded-lg shadow-lg border border-gray-200 p-4 z-50">
               <div className="space-y-2">
                 {[5, 4, 3, 2, 1].map(rating => (
                   <button

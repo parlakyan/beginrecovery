@@ -1,53 +1,126 @@
-import React from 'react';
+import React, { useEffect, useState } from 'react';
 import { X } from 'lucide-react';
+import { treatmentTypesService } from '../services/treatmentTypes';
+import { amenitiesService } from '../services/amenities';
+import { insurancesService } from '../services/insurances';
+import { conditionsService } from '../services/conditions';
+import { substancesService } from '../services/substances';
+import { therapiesService } from '../services/therapies';
+import { languagesService } from '../services/languages';
+import { TreatmentType, Amenity, Insurance, Condition, Substance, Therapy, Language } from '../types';
+
+interface Filters {
+  treatmentTypes: string[];
+  amenities: string[];
+  insurance: string[];
+  conditions: string[];
+  substances: string[];
+  therapies: string[];
+  languages: string[];
+  rating: number | null;
+  priceRange: [number, number] | null;
+}
 
 interface SearchFiltersProps {
   isOpen: boolean;
   onClose: () => void;
-  filters: {
-    treatmentTypes: string[];
-    amenities: string[];
-    insurance: string[];
-    rating: number | null;
-    priceRange: [number, number] | null;
-  };
-  onFilterChange: (filters: any) => void;
+  filters: Filters;
+  onFilterChange: (filters: Filters) => void;
 }
 
-const treatmentOptions = [
-  'Alcohol Addiction',
-  'Drug Addiction',
-  'Dual Diagnosis',
-  'Mental Health',
-  'Prescription Drugs',
-  'Behavioral Addiction'
-];
+type FilterKey = keyof Omit<Filters, 'rating' | 'priceRange'>;
 
-const amenityOptions = [
-  'Private Rooms',
-  'Pool & Spa',
-  'Fitness Center',
-  'Meditation Garden',
-  '24/7 Medical Staff',
-  'Gourmet Dining',
-  'Yoga Studio',
-  'Art Therapy',
-  'Private Beach Access'
-];
-
-const insuranceOptions = [
-  'Blue Cross Blue Shield',
-  'Aetna',
-  'UnitedHealthcare',
-  'Cigna',
-  'Kaiser Permanente',
-  'Humana',
-  'Medicare',
-  'Medicaid'
-];
+interface ManagedOption {
+  id: string;
+  name: string;
+}
 
 export default function SearchFilters({ isOpen, onClose, filters, onFilterChange }: SearchFiltersProps) {
+  const [managedOptions, setManagedOptions] = useState<{
+    treatmentTypes: TreatmentType[];
+    amenities: Amenity[];
+    insurances: Insurance[];
+    conditions: Condition[];
+    substances: Substance[];
+    therapies: Therapy[];
+    languages: Language[];
+  }>({
+    treatmentTypes: [],
+    amenities: [],
+    insurances: [],
+    conditions: [],
+    substances: [],
+    therapies: [],
+    languages: []
+  });
+
+  // Fetch all managed options
+  useEffect(() => {
+    const fetchManagedOptions = async () => {
+      try {
+        const [
+          treatmentTypes,
+          amenities,
+          insurances,
+          conditions,
+          substances,
+          therapies,
+          languages
+        ] = await Promise.all([
+          treatmentTypesService.getTreatmentTypes(),
+          amenitiesService.getAmenities(),
+          insurancesService.getInsurances(),
+          conditionsService.getConditions(),
+          substancesService.getSubstances(),
+          therapiesService.getTherapies(),
+          languagesService.getLanguages()
+        ]);
+
+        setManagedOptions({
+          treatmentTypes,
+          amenities,
+          insurances,
+          conditions,
+          substances,
+          therapies,
+          languages
+        });
+      } catch (error) {
+        console.error('Error fetching managed options:', error);
+      }
+    };
+    fetchManagedOptions();
+  }, []);
+
   if (!isOpen) return null;
+
+  const renderFilterSection = (
+    title: string,
+    options: ManagedOption[],
+    filterKey: FilterKey
+  ) => (
+    <div>
+      <h3 className="text-lg font-semibold mb-4">{title}</h3>
+      <div className="space-y-2">
+        {options.map((option) => (
+          <label key={option.id} className="flex items-center">
+            <input
+              type="checkbox"
+              checked={filters[filterKey].includes(option.id)}
+              onChange={(e) => {
+                const newValues = e.target.checked
+                  ? [...filters[filterKey], option.id]
+                  : filters[filterKey].filter((id) => id !== option.id);
+                onFilterChange({ ...filters, [filterKey]: newValues });
+              }}
+              className="rounded border-gray-300 text-blue-600 focus:ring-blue-500"
+            />
+            <span className="ml-2">{option.name}</span>
+          </label>
+        ))}
+      </div>
+    </div>
+  );
 
   return (
     <div className="fixed inset-0 bg-black bg-opacity-50 z-50 flex justify-end">
@@ -61,73 +134,25 @@ export default function SearchFilters({ isOpen, onClose, filters, onFilterChange
 
         <div className="p-6 space-y-8">
           {/* Treatment Types */}
-          <div>
-            <h3 className="text-lg font-semibold mb-4">Treatment Types</h3>
-            <div className="space-y-2">
-              {treatmentOptions.map((treatment) => (
-                <label key={treatment} className="flex items-center">
-                  <input
-                    type="checkbox"
-                    checked={filters.treatmentTypes.includes(treatment)}
-                    onChange={(e) => {
-                      const newTypes = e.target.checked
-                        ? [...filters.treatmentTypes, treatment]
-                        : filters.treatmentTypes.filter((t) => t !== treatment);
-                      onFilterChange({ ...filters, treatmentTypes: newTypes });
-                    }}
-                    className="rounded border-gray-300 text-blue-600 focus:ring-blue-500"
-                  />
-                  <span className="ml-2">{treatment}</span>
-                </label>
-              ))}
-            </div>
-          </div>
+          {renderFilterSection('Treatment Types', managedOptions.treatmentTypes, 'treatmentTypes')}
+
+          {/* Conditions */}
+          {renderFilterSection('Conditions', managedOptions.conditions, 'conditions')}
+
+          {/* Substances */}
+          {renderFilterSection('Substances', managedOptions.substances, 'substances')}
+
+          {/* Therapies */}
+          {renderFilterSection('Therapies', managedOptions.therapies, 'therapies')}
+
+          {/* Languages */}
+          {renderFilterSection('Languages', managedOptions.languages, 'languages')}
 
           {/* Amenities */}
-          <div>
-            <h3 className="text-lg font-semibold mb-4">Amenities</h3>
-            <div className="space-y-2">
-              {amenityOptions.map((amenity) => (
-                <label key={amenity} className="flex items-center">
-                  <input
-                    type="checkbox"
-                    checked={filters.amenities.includes(amenity)}
-                    onChange={(e) => {
-                      const newAmenities = e.target.checked
-                        ? [...filters.amenities, amenity]
-                        : filters.amenities.filter((a) => a !== amenity);
-                      onFilterChange({ ...filters, amenities: newAmenities });
-                    }}
-                    className="rounded border-gray-300 text-blue-600 focus:ring-blue-500"
-                  />
-                  <span className="ml-2">{amenity}</span>
-                </label>
-              ))}
-            </div>
-          </div>
+          {renderFilterSection('Amenities', managedOptions.amenities, 'amenities')}
 
           {/* Insurance */}
-          <div>
-            <h3 className="text-lg font-semibold mb-4">Insurance Accepted</h3>
-            <div className="space-y-2">
-              {insuranceOptions.map((insurance) => (
-                <label key={insurance} className="flex items-center">
-                  <input
-                    type="checkbox"
-                    checked={filters.insurance.includes(insurance)}
-                    onChange={(e) => {
-                      const newInsurance = e.target.checked
-                        ? [...filters.insurance, insurance]
-                        : filters.insurance.filter((i) => i !== insurance);
-                      onFilterChange({ ...filters, insurance: newInsurance });
-                    }}
-                    className="rounded border-gray-300 text-blue-600 focus:ring-blue-500"
-                  />
-                  <span className="ml-2">{insurance}</span>
-                </label>
-              ))}
-            </div>
-          </div>
+          {renderFilterSection('Insurance Accepted', managedOptions.insurances, 'insurance')}
 
           {/* Rating */}
           <div>

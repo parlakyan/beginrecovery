@@ -15,10 +15,26 @@ import FeaturedCarousel from '../components/FeaturedCarousel';
 import { useLocation } from '../hooks/useLocation';
 import { Info } from 'lucide-react';
 
-const defaultFilters = {
+interface Filters {
+  treatmentTypes: string[];
+  amenities: string[];
+  insurance: string[];
+  conditions: string[];
+  substances: string[];
+  therapies: string[];
+  languages: string[];
+  rating: number | null;
+  priceRange: [number, number] | null;
+}
+
+const defaultFilters: Filters = {
   treatmentTypes: [],
   amenities: [],
   insurance: [],
+  conditions: [],
+  substances: [],
+  therapies: [],
+  languages: [],
   rating: null,
   priceRange: null
 };
@@ -38,7 +54,18 @@ export default function HomePage() {
       
       // Fetch facilities and featured facilities in parallel
       const [facilities, featured] = await Promise.all([
-        facilitiesService.getFacilities(),
+        facilitiesService.searchFacilities({
+          query: '',
+          location: [],
+          treatmentTypes: currentFilters.treatmentTypes,
+          amenities: currentFilters.amenities,
+          insurance: currentFilters.insurance,
+          conditions: currentFilters.conditions,
+          substances: currentFilters.substances,
+          therapies: currentFilters.therapies,
+          languages: currentFilters.languages,
+          rating: currentFilters.rating
+        }),
         facilitiesService.getFeaturedFacilities()
       ]);
       
@@ -65,7 +92,7 @@ export default function HomePage() {
     fetchFacilities();
   }, [userLocation]); // Refetch when user location changes
 
-  const handleFilterChange = (newFilters: typeof defaultFilters) => {
+  const handleFilterChange = (newFilters: Filters) => {
     setFilters(newFilters);
     fetchFacilities(newFilters);
   };
@@ -88,13 +115,6 @@ export default function HomePage() {
       
       <main>
         <HeroSection />
-        
-        <SearchFilters 
-          isOpen={isFiltersOpen}
-          onClose={() => setIsFiltersOpen(false)}
-          filters={filters}
-          onFilterChange={handleFilterChange}
-        />
 
         {/* Featured Treatment Centers */}
         {(loading || locationLoading) ? (
@@ -156,7 +176,15 @@ export default function HomePage() {
                 Filter Results
               </button>
             </div>
-            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6 max-w-6xl mx-auto">
+
+            <SearchFilters
+              isOpen={isFiltersOpen}
+              onClose={() => setIsFiltersOpen(false)}
+              filters={filters}
+              onFilterChange={handleFilterChange}
+            />
+
+            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6 max-w-6xl mx-auto mt-8">
               {loading ? (
                 <div className="col-span-3 flex justify-center py-12">
                   <div className="animate-spin rounded-full h-12 w-12 border-4 border-blue-600 border-t-transparent"></div>
