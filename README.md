@@ -11,6 +11,7 @@ A comprehensive platform connecting individuals seeking rehabilitation services 
 - [Contributing Guidelines](./CONTRIBUTING.md)
 
 ### 2. Core Systems
+- [Authentication System](./docs/AUTHENTICATION.md) - User authentication and authorization
 - [Design System](./docs/DESIGN_SYSTEM.md) - UI guidelines, colors, typography
 - [Verification System](./docs/VERIFICATION.md) - Listing verification and features
 - [Payment System](./docs/PAYMENTS.md) - Stripe integration and subscriptions
@@ -134,11 +135,19 @@ VITE_GOOGLE_MAPS_API_KEY=
 npm install -g firebase-tools
 firebase login
 firebase init
-# Select Storage when prompted
-firebase deploy --only storage
+# Select Storage and Authentication when prompted
+firebase deploy --only storage,auth
 ```
 
-5. Run Initial Setup
+5. Configure Authentication
+- Enable Email/Password authentication in Firebase Console
+- Set up security rules for Firestore and Storage
+- Configure authentication persistence
+- Set up role-based access control
+
+[View Authentication Setup Guide](./docs/AUTHENTICATION.md#configuration)
+
+6. Run Initial Setup
 ```bash
 # Start the development server
 npm run dev
@@ -150,7 +159,7 @@ npm run dev
 # Check console for migration status
 ```
 
-6. Build for Production
+7. Build for Production
 ```bash
 npm run build
 ```
@@ -163,12 +172,25 @@ npm run build
   - `hooks/`: Custom React hooks
   - `types/`: TypeScript type definitions
   - `utils/`: Utility functions
+  - `lib/`: Core libraries and configurations
+  - `store/`: State management
 - `server/`: Backend server logic
 - `netlify/`: Serverless functions
 - `prisma/`: Database schema
 - `docs/`: Project documentation
 
 [View Detailed Project Structure](./docs/README.md#code-organization)
+
+## Security Features
+- Role-based access control
+- Protected routes
+- Secure session management
+- Token-based authentication
+- CSRF protection
+- Rate limiting
+- Session invalidation
+
+[View Security Documentation](./docs/AUTHENTICATION.md#security-considerations)
 
 ## Contributing
 Please read the [Contributing Guidelines](./CONTRIBUTING.md) for details on our code of conduct and the process for submitting pull requests.
@@ -181,3 +203,4 @@ This project is licensed under the MIT License.
 - Check [Components Documentation](./docs/COMPONENTS.md)
 - Review [Technical Documentation](./docs/SERVICES.md)
 - See [Troubleshooting Guide](./docs/README.md#troubleshooting)
+- Review [Authentication Guide](./docs/AUTHENTICATION.md)

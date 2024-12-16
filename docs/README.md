@@ -263,6 +263,7 @@ gs://beginrecovery-bb288.appspot.com/
 ## Documentation Structure
 
 ### Core Documentation
+- [Authentication System](./AUTHENTICATION.md) - User authentication and authorization
 - [Design System](./DESIGN_SYSTEM.md) - UI guidelines, colors, typography
 - [Components](./COMPONENTS.md) - Reusable UI components
 - [Services](./SERVICES.md) - Backend services and API integration
@@ -339,6 +340,10 @@ gs://beginrecovery-bb288.appspot.com/
 5. FOLLOW component documentation
 
 ## Recent Updates
+- Enhanced authentication system with improved session management
+- Added local persistence for maintaining login state
+- Improved token refresh strategy and error handling
+- Added role-based route protection
 - Added AdminEntryCard component for consistent admin UI
 - Updated storage rules for new folders
 - Added logo support for TreatmentTypes
