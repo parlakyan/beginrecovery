@@ -5,11 +5,16 @@ import { loadStripe } from '@stripe/stripe-js';
 import { useAuthStore } from '../store/authStore';
 import { paymentsService } from '../services/payments';
 import { facilitiesService } from '../services/facilities';
-import { generateSlug } from '../services/facilities/utils';
+import { Facility } from '../types';
 import Header from '../components/Header';
 import Footer from '../components/Footer';
 
 const stripePromise = loadStripe(import.meta.env.VITE_STRIPE_PUBLIC_KEY);
+
+interface StoredData {
+  facilityId: string;
+  facility: Facility;
+}
 
 export default function Payment() {
   const [loading, setLoading] = React.useState(false);
@@ -19,8 +24,9 @@ export default function Payment() {
   const { user, refreshToken } = useAuthStore();
   
   // Try to get data from location state or sessionStorage
-  const facilityId = location.state?.facilityId || JSON.parse(sessionStorage.getItem('facilityData') || '{}').facilityId;
-  const facilityData = location.state?.facility || JSON.parse(sessionStorage.getItem('facilityData') || '{}').facility;
+  const storedData = location.state as StoredData || JSON.parse(sessionStorage.getItem('facilityData') || '{}') as StoredData;
+  const facilityId = storedData.facilityId;
+  const facilityData = storedData.facility;
 
   // Store facility data in sessionStorage when available
   React.useEffect(() => {
@@ -88,15 +94,26 @@ export default function Payment() {
     setError(null);
 
     try {
-      // Get the facility's slug
-      const slug = facilityData.slug || generateSlug(facilityData.name, facilityData.location);
+      // Update facility with status
+      await facilitiesService.updateFacility(facilityId, {
+        isVerified: false,
+        moderationStatus: 'pending',
+        // Only include logo if it exists
+        ...(facilityData.logo ? { logo: facilityData.logo } : {})
+      });
+
+      // Get updated facility data
+      const updatedFacility = await facilitiesService.getFacilityById(facilityId);
+      if (!updatedFacility) {
+        throw new Error('Failed to get updated facility data');
+      }
 
       // Clear stored data
       sessionStorage.removeItem('facilityData');
       sessionStorage.removeItem('paymentData');
 
       // Navigate to listing detail page using slug
-      navigate(`/${slug}`, { replace: true });
+      navigate(`/${updatedFacility.slug}`, { replace: true });
     } catch (err) {
       console.error('Error skipping payment:', err);
       setError('Failed to skip payment. Please try again.');

@@ -9,20 +9,31 @@ The Recovery Directory platform uses Stripe for handling subscription payments f
 1. User clicks "Upgrade to Verified" on facility card
 2. System stores facility context in sessionStorage
 3. Payment page displays facility name and details
-4. Stripe Checkout session created
-5. User completes payment
-6. Webhook processes payment
-7. Facility status updated
+4. User can choose between:
+   - Complete payment for verified listing
+   - Continue with free unverified listing
+5. For paid listings:
+   - Stripe Checkout session created
+   - User completes payment
+   - Webhook processes payment
+   - Facility status updated to verified
+6. For free listings:
+   - Facility status updated to unverified
+   - User redirected to listing page using slug
+7. In both cases, facility data is preserved and proper navigation is handled
 
 ```mermaid
 graph TD
     A[User] -->|Clicks Upgrade| B[Store Context]
     B -->|Show Details| C[Payment Page]
-    C -->|Create Session| D[Stripe Checkout]
-    D -->|Complete| E[Success Page]
-    D -->|Cancel| F[Cancel Page]
-    F -->|Try Again| C
-    E -->|Webhook| G[Update Status]
+    C -->|Free Option| D[Update Status]
+    C -->|Paid Option| E[Stripe Checkout]
+    D -->|Generate Slug| F[Listing Page]
+    E -->|Complete| G[Success Page]
+    E -->|Cancel| H[Cancel Page]
+    H -->|Try Again| C
+    G -->|Webhook| I[Update Status]
+    I -->|Navigate| J[Account Page]
 ```
 
 ## State Management
@@ -31,11 +42,16 @@ graph TD
 ```typescript
 interface FacilityContext {
   facilityId: string;
-  facility: {
-    id: string;
-    name: string;
-    // other facility data
-  };
+  facility: Facility;
+}
+
+interface Facility {
+  id: string;
+  name: string;
+  slug: string;
+  isVerified: boolean;
+  moderationStatus: 'pending' | 'approved' | 'rejected' | 'archived';
+  // other facility data
 }
 ```
 
@@ -47,10 +63,16 @@ sessionStorage.setItem('facilityData', JSON.stringify({
   facility
 }));
 
+// Store payment data
+sessionStorage.setItem('paymentData', JSON.stringify({
+  facilityId,
+  facility
+}));
+
 // Retrieve facility data
 const facilityData = JSON.parse(
   sessionStorage.getItem('facilityData') || '{}'
-);
+) as StoredData;
 ```
 
 ## Stripe Integration
@@ -74,9 +96,12 @@ STRIPE_WEBHOOK_SECRET=whsec_...
 ### Payment Page
 - Shows facility name and details
 - Displays subscription price
+- Offers free and paid options
 - Handles payment initiation
 - Preserves facility context
 - Shows loading states
+- Handles error cases
+- Manages navigation
 
 ### Success Page
 - Handles successful payments
@@ -84,6 +109,7 @@ STRIPE_WEBHOOK_SECRET=whsec_...
 - Updates facility status
 - Redirects to dashboard
 - Cleans up session data
+- Refreshes user token
 
 ### Cancel Page
 - Handles cancelled payments
@@ -163,6 +189,8 @@ interface FacilityPayment {
   subscriptionId: string;
   isVerified: boolean;
   verifiedUntil: Date;
+  moderationStatus: 'pending' | 'approved' | 'rejected' | 'archived';
+  slug: string;
 }
 ```
 
@@ -172,7 +200,20 @@ interface FacilityPayment {
 1. Store facility context in sessionStorage
 2. Navigate to payment page
 3. Display facility details
-4. Initialize Stripe
+4. Show payment options
+
+### Free Listing Flow
+1. Update facility status
+2. Generate/verify slug
+3. Navigate to listing page
+4. Clear session data
+
+### Paid Listing Flow
+1. Initialize Stripe
+2. Create checkout session
+3. Handle payment completion
+4. Update facility status
+5. Navigate to account page
 
 ### Payment Cancellation
 1. Preserve facility context
@@ -196,6 +237,8 @@ interface FacilityPayment {
 3. Network issues
 4. Session expiration
 5. Context loss
+6. Navigation failures
+7. Slug conflicts
 
 ### Recovery Strategies
 1. Preserve context in sessionStorage
@@ -203,6 +246,8 @@ interface FacilityPayment {
 3. Enable easy retries
 4. Maintain facility reference
 5. Fallback navigation options
+6. Handle slug conflicts
+7. Verify facility status
 
 ## Security
 
@@ -212,6 +257,7 @@ interface FacilityPayment {
 - Secure webhook
 - Data encryption
 - Session management
+- Status verification
 
 ### Access Control
 - User authentication
@@ -219,6 +265,7 @@ interface FacilityPayment {
 - Session validation
 - Rate limiting
 - Context validation
+- Permission checks
 
 ## Testing
 
@@ -237,12 +284,15 @@ stripe listen --forward-to localhost:3000/webhook
 ### Test Cases
 1. Successful payment
 2. Failed payment
-3. Subscription cancellation
-4. Webhook handling
-5. Status updates
-6. Context preservation
-7. Navigation flows
-8. Error recovery
+3. Free listing creation
+4. Subscription cancellation
+5. Webhook handling
+6. Status updates
+7. Context preservation
+8. Navigation flows
+9. Error recovery
+10. Slug generation
+11. Permission checks
 
 ## Monitoring
 
@@ -252,6 +302,7 @@ stripe listen --forward-to localhost:3000/webhook
 - Average value
 - Churn rate
 - Navigation patterns
+- Free vs paid ratio
 
 ### Error Tracking
 - Payment failures
@@ -259,6 +310,8 @@ stripe listen --forward-to localhost:3000/webhook
 - System errors
 - User errors
 - Context losses
+- Navigation issues
+- Slug conflicts
 
 ## Best Practices
 
@@ -270,6 +323,8 @@ stripe listen --forward-to localhost:3000/webhook
 5. Handle edge cases
 6. Preserve context
 7. Clear navigation
+8. Verify slugs
+9. Check permissions
 
 ### Security
 1. Use HTTPS
@@ -278,6 +333,7 @@ stripe listen --forward-to localhost:3000/webhook
 4. Monitor activity
 5. Regular audits
 6. Protect session data
+7. Verify status changes
 
 ### User Experience
 1. Clear pricing
@@ -288,6 +344,7 @@ stripe listen --forward-to localhost:3000/webhook
 6. Facility context
 7. Easy navigation
 8. Retry options
+9. Status indicators
 
 ## Troubleshooting
 
@@ -298,6 +355,8 @@ stripe listen --forward-to localhost:3000/webhook
 4. Session timeouts
 5. Context loss
 6. Navigation errors
+7. Slug conflicts
+8. Permission errors
 
 ### Solutions
 1. Check card details
@@ -307,6 +366,8 @@ stripe listen --forward-to localhost:3000/webhook
 5. Test connectivity
 6. Verify session storage
 7. Check navigation state
+8. Validate slugs
+9. Verify permissions
 
 ## Future Improvements
 1. Multiple plans
@@ -323,3 +384,5 @@ stripe listen --forward-to localhost:3000/webhook
 12. Better context handling
 13. Smarter retries
 14. Enhanced error recovery
+15. Slug customization
+16. Status transitions

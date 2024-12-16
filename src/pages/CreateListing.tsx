@@ -4,6 +4,7 @@ import { useNavigate } from 'react-router-dom';
 import { Building2, Loader2 } from 'lucide-react';
 import { useAuthStore } from '../store/authStore';
 import { facilitiesService } from '../services/facilities';
+import { generateSlug } from '../services/facilities/utils';
 import { usersService } from '../services/users';
 import { licensesService } from '../services/licenses';
 import { insurancesService } from '../services/insurances';

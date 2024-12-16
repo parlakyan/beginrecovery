@@ -69,11 +69,23 @@ service firebase.storage {
 
     // Facility files - admins and owners can write
     match /facilities/{facilityId}/{allPaths=**} {
-      allow write: if request.auth != null 
-        && isValidImage()
-        && (isAdmin() || isOwner());
-      allow delete: if request.auth != null 
-        && (isAdmin() || isOwner());
+      // Special handling for temp directories
+      allow write: if request.auth != null && (
+        // Allow any authenticated user to write to temp directories
+        facilityId.matches('temp-.*') ||
+        // For permanent directories, require admin/owner and valid image
+        (
+          isValidImage() &&
+          (isAdmin() || isOwner())
+        )
+      );
+      
+      allow delete: if request.auth != null && (
+        // Allow any authenticated user to delete from temp directories
+        facilityId.matches('temp-.*') ||
+        // For permanent directories, require admin/owner
+        (isAdmin() || isOwner())
+      );
     }
   }
 }
