@@ -156,8 +156,8 @@ export default function CreateListing() {
     setError(null);
 
     try {
-      // Process form data - exclude logo field completely
-      const formattedData: Partial<Facility> = {
+      // Process form data - explicitly list all fields to avoid undefined values
+      const formattedData = {
         name: data.name,
         description: data.description,
         location: data.location,
@@ -166,7 +166,7 @@ export default function CreateListing() {
         state: data.state,
         phone: data.phone,
         email: data.email,
-        website: data.website,
+        ...(data.website ? { website: data.website } : {}),
         highlights: data.highlights || [],
         treatmentTypes: data.treatmentTypes || [],
         substances: data.substances || [],

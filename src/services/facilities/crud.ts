@@ -68,10 +68,13 @@ export const facilitiesCrud = {
         ...(data.conditions && { conditions: data.conditions }),
         ...(data.therapies && { therapies: data.therapies }),
         ...(data.insurances && { insurances: data.insurances }),
-        ...(data.licenses && { licenses: data.licenses }),
-        // Only add logo if it exists and is not empty
-        ...(data.logo && data.logo.trim() !== '' && { logo: data.logo })
+        ...(data.licenses && { licenses: data.licenses })
       } as FacilityDataWithTimestamps;
+
+      // Only add logo if it exists and is not empty
+      if (data.logo && typeof data.logo === 'string' && data.logo.trim() !== '') {
+        facilityData.logo = data.logo;
+      }
 
       const docRef = await addDoc(facilitiesRef, facilityData);
       return { id: docRef.id };
