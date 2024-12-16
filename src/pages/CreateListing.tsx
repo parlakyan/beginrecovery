@@ -167,15 +167,15 @@ export default function CreateListing() {
         phone: data.phone,
         email: data.email,
         website: data.website,
-        highlights: data.highlights,
-        treatmentTypes: data.treatmentTypes,
-        substances: data.substances,
-        conditions: data.conditions,
-        therapies: data.therapies,
-        amenityObjects: data.amenityObjects,
-        insurances: data.insurances,
-        languageObjects: data.languageObjects,
-        licenses: data.licenses,
+        highlights: data.highlights || [],
+        treatmentTypes: data.treatmentTypes || [],
+        substances: data.substances || [],
+        conditions: data.conditions || [],
+        therapies: data.therapies || [],
+        amenityObjects: data.amenityObjects || [],
+        insurances: data.insurances || [],
+        languageObjects: data.languageObjects || [],
+        licenses: data.licenses || [],
         images: photos,
         // Initialize required fields with default values
         accreditation: [],
@@ -186,11 +186,6 @@ export default function CreateListing() {
         isFeatured: false,
         moderationStatus: 'pending' as const
       };
-
-      // Only add logo field if it exists and is not empty
-      if (logo && logo.trim() !== '') {
-        formattedData.logo = logo;
-      }
 
       // Create facility
       const { id } = await facilitiesService.createFacility(formattedData);
@@ -335,7 +330,7 @@ export default function CreateListing() {
               {/* Basic Information */}
               <div>
                 <label className="block text-sm font-medium text-gray-700 mb-1">
-                  Facility Name
+                  Facility Name <span className="text-red-500">*</span>
                 </label>
                 <input
                   {...register('name', { required: 'Facility name is required' })}
@@ -350,7 +345,7 @@ export default function CreateListing() {
 
               <div>
                 <label className="block text-sm font-medium text-gray-700 mb-1">
-                  Description
+                  Description <span className="text-red-500">*</span>
                 </label>
                 <textarea
                   {...register('description', { required: 'Description is required' })}
@@ -363,15 +358,20 @@ export default function CreateListing() {
                 )}
               </div>
 
-              <AddressAutocomplete
-                register={register}
-                setValue={setValue}
-                error={errors.location?.message}
-              />
+              <div>
+                <label className="block text-sm font-medium text-gray-700 mb-1">
+                  Location <span className="text-red-500">*</span>
+                </label>
+                <AddressAutocomplete
+                  register={register}
+                  setValue={setValue}
+                  error={errors.location?.message}
+                />
+              </div>
 
               <div>
                 <label className="block text-sm font-medium text-gray-700 mb-1">
-                  Phone Number
+                  Phone Number <span className="text-red-500">*</span>
                 </label>
                 <input
                   {...register('phone', { 
@@ -392,7 +392,7 @@ export default function CreateListing() {
 
               <div>
                 <label className="block text-sm font-medium text-gray-700 mb-1">
-                  Email Address
+                  Email Address <span className="text-red-500">*</span>
                 </label>
                 <input
                   {...register('email', { 
@@ -413,7 +413,7 @@ export default function CreateListing() {
 
               <div>
                 <label className="block text-sm font-medium text-gray-700 mb-1">
-                  Website (Optional)
+                  Website
                 </label>
                 <input
                   {...register('website')}
@@ -425,7 +425,7 @@ export default function CreateListing() {
 
               <div>
                 <label className="block text-sm font-medium text-gray-700 mb-1">
-                  Facility Logo (Optional)
+                  Facility Logo
                 </label>
                 <LogoUpload
                   facilityId={tempId}

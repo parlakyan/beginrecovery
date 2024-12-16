@@ -55,7 +55,7 @@ export default function AddressAutocomplete({ register, setValue, error }: Addre
 
           // Set location (address)
           if (place.formatted_address) {
-            setValue('location', place.formatted_address);
+            setValue('location', place.formatted_address, { shouldValidate: true });
           }
           
           // Set coordinates if available
@@ -162,14 +162,14 @@ export default function AddressAutocomplete({ register, setValue, error }: Addre
   return (
     <div>
       <label className="block text-sm font-medium text-gray-700 mb-1">
-        Location
+        Location <span className="text-red-500">*</span>
       </label>
       <div className="relative">
         <input
           {...register('location', { required: 'Location is required' })}
           ref={(e) => {
             inputRef.current = e; // Set local ref
-            register('location').ref(e); // Set react-hook-form ref
+            register('location', { required: 'Location is required' }).ref(e); // Set react-hook-form ref
           }}
           type="text"
           className={`w-full px-3 py-2 border rounded-lg focus:ring-2 focus:ring-blue-500 outline-none ${
