@@ -1,6 +1,6 @@
-import React from 'react';
+import React, { useEffect } from 'react';
 import { useForm } from 'react-hook-form';
-import { Link } from 'react-router-dom';
+import { Link, useLocation, Navigate } from 'react-router-dom';
 import { Mail, Lock, Check, X } from 'lucide-react';
 import { useAuthStore } from '../store/authStore';
 import Logo from '../components/Logo';
@@ -11,11 +11,21 @@ interface ResetPasswordForm {
   confirmPassword?: string;
 }
 
+const passwordValidation = {
+  hasUpperCase: (value: string) => /[A-Z]/.test(value) || 'Must contain uppercase letter',
+  hasLowerCase: (value: string) => /[a-z]/.test(value) || 'Must contain lowercase letter',
+  hasNumber: (value: string) => /[0-9]/.test(value) || 'Must contain number',
+  hasSpecialChar: (value: string) => 
+    /[!@#$%^&*(),.?":{}|<>]/.test(value) || 'Must contain special character'
+};
+
 export default function ResetPassword() {
   const { register, handleSubmit, watch, formState: { errors } } = useForm<ResetPasswordForm>();
-  const { resetPassword, error, loading, clearError } = useAuthStore();
+  const { user, resetPassword, error, loading, clearError } = useAuthStore();
+  const location = useLocation();
   const [success, setSuccess] = React.useState(false);
   const [resetToken, setResetToken] = React.useState<string | null>(null);
+  const [tokenError, setTokenError] = React.useState<string | null>(null);
   const [passwordStrength, setPasswordStrength] = React.useState({
     hasMinLength: false,
     hasUpperCase: false,
@@ -24,14 +34,36 @@ export default function ResetPassword() {
     hasSpecialChar: false
   });
 
-  React.useEffect(() => {
-    // Extract reset token from URL if present
-    const params = new URLSearchParams(window.location.search);
+  // Get return URL from location state or query params
+  const returnUrl = location.state?.returnUrl || 
+                   new URLSearchParams(location.search).get('returnUrl') || 
+                   '/login';
+
+  useEffect(() => {
+    // Extract and validate reset token from URL if present
+    const params = new URLSearchParams(location.search);
     const token = params.get('oobCode');
-    if (token) setResetToken(token);
+    if (token) {
+      try {
+        // Basic token validation (you might want to add more validation)
+        if (token.length < 20) {
+          setTokenError('Invalid reset token');
+        } else {
+          setResetToken(token);
+        }
+      } catch (err) {
+        console.error('Token validation error:', err);
+        setTokenError('Invalid reset token');
+      }
+    }
     
     clearError();
   }, [clearError]);
+
+  // Redirect if authenticated
+  if (user) {
+    return <Navigate to={returnUrl} replace />;
+  }
 
   const checkPasswordStrength = (password: string) => {
     setPasswordStrength({
@@ -80,6 +112,35 @@ export default function ResetPassword() {
     </div>
   );
 
+  if (tokenError) {
+    return (
+      <div className="min-h-screen bg-gray-50 flex flex-col justify-center py-12 sm:px-6 lg:px-8">
+        <div className="sm:mx-auto sm:w-full sm:max-w-md">
+          <Link to="/" className="flex justify-center mb-6">
+            <Logo />
+          </Link>
+          <div className="bg-white py-8 px-4 shadow sm:rounded-lg sm:px-10">
+            <div className="text-center">
+              <div className="mx-auto flex items-center justify-center h-12 w-12 rounded-full bg-red-100 mb-4">
+                <X className="h-6 w-6 text-red-600" />
+              </div>
+              <h2 className="text-2xl font-bold text-gray-900 mb-2">Invalid Reset Link</h2>
+              <p className="text-gray-600 mb-6">
+                This password reset link is invalid or has expired. Please request a new one.
+              </p>
+              <Link
+                to="/reset-password"
+                className="inline-flex justify-center py-2 px-4 border border-transparent rounded-md shadow-sm text-sm font-medium text-white bg-blue-600 hover:bg-blue-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-blue-500"
+              >
+                Request New Link
+              </Link>
+            </div>
+          </div>
+        </div>
+      </div>
+    );
+  }
+
   if (success) {
     return (
       <div className="min-h-screen bg-gray-50 flex flex-col justify-center py-12 sm:px-6 lg:px-8">
@@ -102,6 +163,7 @@ export default function ResetPassword() {
               </p>
               <Link
                 to="/login"
+                state={{ returnUrl }}
                 className="inline-flex justify-center py-2 px-4 border border-transparent rounded-md shadow-sm text-sm font-medium text-white bg-blue-600 hover:bg-blue-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-blue-500"
               >
                 Return to Login
@@ -124,7 +186,11 @@ export default function ResetPassword() {
         </h2>
         <p className="mt-2 text-center text-sm text-gray-600">
           Remember your password?{' '}
-          <Link to="/login" className="font-medium text-blue-600 hover:text-blue-500">
+          <Link 
+            to="/login" 
+            state={{ returnUrl }}
+            className="font-medium text-blue-600 hover:text-blue-500"
+          >
             Sign in
           </Link>
         </p>
@@ -155,7 +221,9 @@ export default function ResetPassword() {
                       message: 'Invalid email address'
                     }
                   })}
+                  id="email"
                   type="email"
+                  autoComplete="email"
                   className="appearance-none block w-full pl-10 pr-3 py-2 border border-gray-300 rounded-md shadow-sm placeholder-gray-400 focus:outline-none focus:ring-blue-500 focus:border-blue-500"
                 />
               </div>
@@ -181,15 +249,19 @@ export default function ResetPassword() {
                           value: 8,
                           message: 'Password must be at least 8 characters'
                         },
-                        validate: {
-                          hasUpperCase: (value) => /[A-Z]/.test(value) || 'Must contain uppercase letter',
-                          hasLowerCase: (value) => /[a-z]/.test(value) || 'Must contain lowercase letter',
-                          hasNumber: (value) => /[0-9]/.test(value) || 'Must contain number',
-                          hasSpecialChar: (value) => 
-                            /[!@#$%^&*(),.?":{}|<>]/.test(value) || 'Must contain special character'
+                        validate: (value) => {
+                          if (!value) return 'Password is required';
+                          return (
+                            passwordValidation.hasUpperCase(value) === true &&
+                            passwordValidation.hasLowerCase(value) === true &&
+                            passwordValidation.hasNumber(value) === true &&
+                            passwordValidation.hasSpecialChar(value) === true
+                          ) || 'Password does not meet requirements';
                         }
                       })}
+                      id="password"
                       type="password"
+                      autoComplete="new-password"
                       onChange={(e) => checkPasswordStrength(e.target.value)}
                       className="appearance-none block w-full pl-10 pr-3 py-2 border border-gray-300 rounded-md shadow-sm placeholder-gray-400 focus:outline-none focus:ring-blue-500 focus:border-blue-500"
                     />
@@ -210,9 +282,14 @@ export default function ResetPassword() {
                     <input
                       {...register('confirmPassword', { 
                         required: 'Please confirm your password',
-                        validate: value => value === watch('password') || 'Passwords do not match'
+                        validate: (value) => {
+                          if (!value) return 'Please confirm your password';
+                          return value === watch('password') || 'Passwords do not match';
+                        }
                       })}
+                      id="confirmPassword"
                       type="password"
+                      autoComplete="new-password"
                       className="appearance-none block w-full pl-10 pr-3 py-2 border border-gray-300 rounded-md shadow-sm placeholder-gray-400 focus:outline-none focus:ring-blue-500 focus:border-blue-500"
                     />
                   </div>

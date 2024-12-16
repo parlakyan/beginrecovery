@@ -21,11 +21,9 @@ export default function AccountPage() {
   // Fetch user's listings
   useEffect(() => {
     const fetchListings = async () => {
-      if (!user) return;
-      
       try {
         setLoading(true);
-        const data = await facilitiesService.getUserListings(user.id);
+        const data = await facilitiesService.getUserListings(user!.id);
         setListings(data);
       } catch (error) {
         console.error('Error fetching listings:', error);
@@ -42,17 +40,6 @@ export default function AccountPage() {
     window.scrollTo(0, 0);
   }, [activeTab]);
 
-  // Redirect if not logged in
-  useEffect(() => {
-    if (!user) {
-      navigate('/login', { 
-        state: { 
-          returnUrl: '/account'
-        }
-      });
-    }
-  }, [user, navigate]);
-
   const handleTabChange = (tab: string) => {
     // Scroll to top before changing tab
     window.scrollTo(0, 0);
@@ -68,10 +55,8 @@ export default function AccountPage() {
     try {
       await facilitiesService.updateFacility(editingFacility.id, data);
       // Refresh listings
-      if (user) {
-        const updatedListings = await facilitiesService.getUserListings(user.id);
-        setListings(updatedListings);
-      }
+      const updatedListings = await facilitiesService.getUserListings(user!.id);
+      setListings(updatedListings);
       setEditingFacility(null);
     } catch (error) {
       console.error('Error updating facility:', error);
@@ -89,7 +74,7 @@ export default function AccountPage() {
   const handleSignOut = async () => {
     try {
       await signOut();
-      navigate('/');
+      navigate('/', { replace: true });
     } catch (error) {
       console.error('Error signing out:', error);
     }
@@ -98,10 +83,6 @@ export default function AccountPage() {
   const handleChangePassword = () => {
     navigate('/reset-password');
   };
-
-  if (!user) {
-    return null;
-  }
 
   // Define tab contents
   const ListingsContent = () => (
@@ -163,7 +144,7 @@ export default function AccountPage() {
             <div className="mt-1">
               <input
                 type="email"
-                value={user.email || ''}
+                value={user?.email || ''}
                 disabled
                 className="w-full px-3 py-2 border rounded-lg bg-gray-50"
               />
@@ -174,7 +155,7 @@ export default function AccountPage() {
             <div className="mt-1">
               <input
                 type="text"
-                value={user.role || ''}
+                value={user?.role || ''}
                 disabled
                 className="w-full px-3 py-2 border rounded-lg bg-gray-50"
               />

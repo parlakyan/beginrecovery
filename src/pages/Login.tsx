@@ -1,6 +1,6 @@
-import React from 'react';
+import React, { useEffect } from 'react';
 import { useForm } from 'react-hook-form';
-import { useNavigate, useLocation, Link } from 'react-router-dom';
+import { useNavigate, useLocation, Link, Navigate } from 'react-router-dom';
 import { Mail, Lock } from 'lucide-react';
 import { useAuthStore } from '../store/authStore';
 import Logo from '../components/Logo';
@@ -12,6 +12,7 @@ import Logo from '../components/Logo';
 interface LoginForm {
   email: string;
   password: string;
+  rememberMe: boolean;
 }
 
 /**
@@ -19,17 +20,29 @@ interface LoginForm {
  * Handles user authentication with email/password
  */
 export default function Login() {
-  const { register, handleSubmit, formState: { errors } } = useForm<LoginForm>();
+  const { register, handleSubmit, formState: { errors } } = useForm<LoginForm>({
+    defaultValues: {
+      rememberMe: true // Default to remember me checked
+    }
+  });
   const navigate = useNavigate();
   const location = useLocation();
-  const { signIn, error, loading, clearError, refreshToken } = useAuthStore();
+  const { user, signIn, error, loading, clearError, refreshToken } = useAuthStore();
 
-  const from = location.state?.from?.pathname || '/';
+  // Get return URL from location state or query params
+  const returnUrl = location.state?.returnUrl || 
+                   new URLSearchParams(location.search).get('returnUrl') || 
+                   '/';
 
   // Clear any existing errors on mount
-  React.useEffect(() => {
+  useEffect(() => {
     clearError();
   }, [clearError]);
+
+  // Redirect if already authenticated
+  if (user) {
+    return <Navigate to={returnUrl} replace />;
+  }
 
   /**
    * Handle form submission
@@ -40,10 +53,8 @@ export default function Login() {
       await signIn(data.email, data.password);
       // Force token refresh to get latest claims/role
       await refreshToken();
-      // Add small delay to ensure state is updated
-      setTimeout(() => {
-        navigate(from, { replace: true });
-      }, 100);
+      // Navigate to return URL
+      navigate(returnUrl, { replace: true });
     } catch (err) {
       console.error('Login error:', err);
     }
@@ -61,7 +72,11 @@ export default function Login() {
         </h2>
         <p className="mt-2 text-center text-sm text-gray-600">
           Or{' '}
-          <Link to="/register" className="font-medium text-blue-600 hover:text-blue-500">
+          <Link 
+            to="/register" 
+            state={{ returnUrl }} 
+            className="font-medium text-blue-600 hover:text-blue-500"
+          >
             create a new account
           </Link>
         </p>
@@ -95,7 +110,9 @@ export default function Login() {
                       message: 'Invalid email address'
                     }
                   })}
+                  id="email"
                   type="email"
+                  autoComplete="email"
                   className="appearance-none block w-full pl-10 pr-3 py-2 border border-gray-300 rounded-md shadow-sm placeholder-gray-400 focus:outline-none focus:ring-blue-500 focus:border-blue-500"
                 />
               </div>
@@ -115,7 +132,9 @@ export default function Login() {
                 </div>
                 <input
                   {...register('password', { required: 'Password is required' })}
+                  id="password"
                   type="password"
+                  autoComplete="current-password"
                   className="appearance-none block w-full pl-10 pr-3 py-2 border border-gray-300 rounded-md shadow-sm placeholder-gray-400 focus:outline-none focus:ring-blue-500 focus:border-blue-500"
                 />
               </div>
@@ -128,8 +147,8 @@ export default function Login() {
             <div className="flex items-center justify-between">
               <div className="flex items-center">
                 <input
+                  {...register('rememberMe')}
                   id="remember-me"
-                  name="remember-me"
                   type="checkbox"
                   className="h-4 w-4 text-blue-600 focus:ring-blue-500 border-gray-300 rounded"
                 />
@@ -141,6 +160,7 @@ export default function Login() {
               <div className="text-sm">
                 <Link 
                   to="/reset-password" 
+                  state={{ returnUrl }}
                   className="font-medium text-blue-600 hover:text-blue-500"
                 >
                   Forgot your password?

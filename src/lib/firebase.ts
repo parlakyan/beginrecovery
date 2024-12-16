@@ -1,5 +1,5 @@
 import { initializeApp } from 'firebase/app';
-import { getAuth, browserLocalPersistence, setPersistence, onAuthStateChanged } from 'firebase/auth';
+import { getAuth, browserLocalPersistence, setPersistence } from 'firebase/auth';
 import { getFirestore } from 'firebase/firestore';
 import { getStorage } from 'firebase/storage';
 
@@ -52,59 +52,27 @@ const auth = getAuth(app);
 const storage = getStorage(app);
 
 /**
- * Configure Authentication Persistence
- * Uses browserLocalPersistence to maintain auth state across page reloads
- * This allows users to stay logged in until they explicitly sign out
- */
-setPersistence(auth, browserLocalPersistence)
-  .then(() => {
-    console.log('Firebase Auth persistence set to LOCAL');
-  })
-  .catch((error) => {
-    console.error('Error setting auth persistence:', error);
-  });
-
-/**
  * Initialize Firestore Database
  * Sets up the main database instance used for data storage
  */
 const db = getFirestore(app);
 
 /**
- * Authentication State Observer
- * Monitors and logs authentication state changes
- * Also handles automatic token refresh for authenticated users
+ * Configure Authentication Persistence
+ * Uses browserLocalPersistence to maintain auth state across page reloads
+ * This allows users to stay logged in until they explicitly sign out
  * 
- * Logged Information:
- * - Authentication status
- * - User ID
- * - Email
- * - Email verification status
- * - Last login time
- * - Account creation time
+ * Note: This must be called before any other auth operations
  */
-onAuthStateChanged(auth, (user) => {
-  console.log('Auth state changed:', {
-    isAuthenticated: !!user,
-    userId: user?.uid,
-    email: user?.email,
-    emailVerified: user?.emailVerified,
-    lastLoginTime: user?.metadata.lastSignInTime,
-    creationTime: user?.metadata.creationTime
-  });
-
-  // Refresh token for authenticated users
-  if (user) {
-    user.getIdToken(true).then(token => {
-      console.log('Token refreshed:', {
-        tokenLength: token.length,
-        userId: user.uid
-      });
-    }).catch(error => {
-      console.error('Error refreshing token:', error);
-    });
+(async () => {
+  try {
+    await setPersistence(auth, browserLocalPersistence);
+    console.log('Firebase Auth persistence set to LOCAL');
+  } catch (error) {
+    console.error('Error setting auth persistence:', error);
+    // Still allow the app to function, just with reduced persistence
   }
-});
+})();
 
 // Export initialized Firebase instances
 export { app, auth, db, storage };

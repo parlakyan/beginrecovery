@@ -6,7 +6,9 @@ import {
   createUserWithEmailAndPassword,
   sendPasswordResetEmail,
   confirmPasswordReset,
-  User as FirebaseUser 
+  User as FirebaseUser,
+  setPersistence,
+  browserLocalPersistence
 } from 'firebase/auth';
 import { usersService } from '../services/users';
 
@@ -38,6 +40,9 @@ interface AuthState {
   resetPassword: (email: string, token?: string, newPassword?: string) => Promise<void>;
   refreshToken: () => Promise<string | null>;
 }
+
+// Set persistence to local
+setPersistence(auth, browserLocalPersistence).catch(console.error);
 
 export const useAuthStore = create<AuthState>((set, get) => ({
   user: null,
@@ -75,8 +80,7 @@ export const useAuthStore = create<AuthState>((set, get) => ({
       console.log('User data fetched:', {
         id: userData.id,
         email: userData.email,
-        role: userData.role,
-        isAdmin: userData.role === 'admin'
+        role: userData.role
       });
 
       // Create custom user with API data
@@ -99,22 +103,27 @@ export const useAuthStore = create<AuthState>((set, get) => ({
         });
       }
 
-      set({ user: customUser, initialized: true, loading: false });
+      // Only update state if user is still logged in
+      if (auth.currentUser?.uid === firebaseUser.uid) {
+        set({ user: customUser, initialized: true, loading: false });
+      }
     } catch (error) {
       console.error('Error getting user data:', error);
-      // Fallback to basic user if API fails
-      const fallbackUser = {
-        ...firebaseUser,
-        id: firebaseUser.uid,
-        role: firebaseUser.email === 'admin@beginrecovery.com' ? 'admin' : 'user',
-        createdAt: new Date().toISOString()
-      } as CustomUser;
+      // Only set fallback if user is still logged in
+      if (auth.currentUser?.uid === firebaseUser.uid) {
+        const fallbackUser = {
+          ...firebaseUser,
+          id: firebaseUser.uid,
+          role: firebaseUser.email === 'admin@beginrecovery.com' ? 'admin' : 'user',
+          createdAt: new Date().toISOString()
+        } as CustomUser;
 
-      set({ 
-        user: fallbackUser,
-        initialized: true,
-        loading: false
-      });
+        set({ 
+          user: fallbackUser,
+          initialized: true,
+          loading: false
+        });
+      }
     }
   },
 
@@ -216,6 +225,9 @@ export const useAuthStore = create<AuthState>((set, get) => ({
     try {
       await firebaseSignOut(auth);
       set({ user: null, loading: false });
+      // Clear any cached data
+      sessionStorage.clear();
+      localStorage.clear();
     } catch (error) {
       console.error('Sign out error:', error);
       set({ 
@@ -271,13 +283,12 @@ export const useAuthStore = create<AuthState>((set, get) => ({
     }
 
     try {
-      // Get token without force refresh
-      const token = await user.getIdToken(false);
+      // Force token refresh
+      const token = await user.getIdToken(true);
       // Fetch latest user data
-      await get().setUser(user);
+      await get().setUser(auth.currentUser);
       return token;
     } catch (error) {
-      // Log but don't throw error for non-critical refresh failures
       console.warn('Token refresh warning:', error);
       return null;
     }
@@ -285,14 +296,25 @@ export const useAuthStore = create<AuthState>((set, get) => ({
 }));
 
 // Set up auth state listener
+let authStateInitialized = false;
+
 auth.onAuthStateChanged(
-  (user) => {
+  async (user) => {
     console.log('Firebase auth state changed:', {
       isAuthenticated: !!user,
       userId: user?.uid,
-      email: user?.email
+      email: user?.email,
+      isInitialLoad: !authStateInitialized
     });
-    useAuthStore.getState().setUser(user);
+
+    // Skip initial load if we already have a user
+    if (!authStateInitialized && useAuthStore.getState().user) {
+      authStateInitialized = true;
+      return;
+    }
+
+    authStateInitialized = true;
+    await useAuthStore.getState().setUser(user);
   },
   (error) => {
     console.error('Firebase auth error:', error);
@@ -314,7 +336,6 @@ auth.onAuthStateChanged((user) => {
       try {
         await useAuthStore.getState().refreshToken();
       } catch (error) {
-        // Ignore refresh errors in background refresh
         console.warn('Background token refresh warning:', error);
       }
     }, 45 * 60 * 1000); // 45 minutes

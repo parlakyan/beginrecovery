@@ -1,6 +1,6 @@
-import React from 'react';
+import React, { useEffect } from 'react';
 import { useForm } from 'react-hook-form';
-import { useNavigate, Link, useLocation } from 'react-router-dom';
+import { useNavigate, Link, useLocation, Navigate } from 'react-router-dom';
 import { Mail, Lock, Building2 } from 'lucide-react';
 import { useAuthStore } from '../store/authStore';
 import Logo from '../components/Logo';
@@ -24,16 +24,25 @@ export default function Register() {
   const { register, handleSubmit, watch, formState: { errors } } = useForm<RegisterForm>();
   const navigate = useNavigate();
   const location = useLocation();
-  const { signUp, error, loading, clearError } = useAuthStore();
+  const { user, signUp, error, loading, clearError, refreshToken } = useAuthStore();
   
-  // Get return URL and user type from location state
-  const returnUrl = location.state?.returnUrl || '/';
-  const userType = location.state?.userType || 'user';
+  // Get return URL and user type from location state or query params
+  const returnUrl = location.state?.returnUrl || 
+                   new URLSearchParams(location.search).get('returnUrl') || 
+                   '/';
+  const userType = location.state?.userType || 
+                  new URLSearchParams(location.search).get('type') || 
+                  'user';
 
   // Clear any existing errors on mount
-  React.useEffect(() => {
+  useEffect(() => {
     clearError();
   }, [clearError]);
+
+  // Redirect if already authenticated
+  if (user) {
+    return <Navigate to={returnUrl} replace />;
+  }
 
   /**
    * Handle form submission
@@ -42,7 +51,10 @@ export default function Register() {
   const onSubmit = async (data: RegisterForm) => {
     try {
       await signUp(data.email, data.password, userType);
-      navigate(returnUrl);
+      // Force token refresh to get latest claims/role
+      await refreshToken();
+      // Navigate to return URL
+      navigate(returnUrl, { replace: true });
     } catch (err) {
       console.error('Registration error:', err);
     }
@@ -96,7 +108,9 @@ export default function Register() {
                       message: 'Invalid email address'
                     }
                   })}
+                  id="email"
                   type="email"
+                  autoComplete="email"
                   className="appearance-none block w-full pl-10 pr-3 py-2 border border-gray-300 rounded-md shadow-sm placeholder-gray-400 focus:outline-none focus:ring-blue-500 focus:border-blue-500"
                 />
               </div>
@@ -122,7 +136,9 @@ export default function Register() {
                       message: 'Password must be at least 6 characters'
                     }
                   })}
+                  id="password"
                   type="password"
+                  autoComplete="new-password"
                   className="appearance-none block w-full pl-10 pr-3 py-2 border border-gray-300 rounded-md shadow-sm placeholder-gray-400 focus:outline-none focus:ring-blue-500 focus:border-blue-500"
                 />
               </div>
@@ -145,7 +161,9 @@ export default function Register() {
                     required: 'Please confirm your password',
                     validate: value => value === watch('password') || 'Passwords do not match'
                   })}
+                  id="confirmPassword"
                   type="password"
+                  autoComplete="new-password"
                   className="appearance-none block w-full pl-10 pr-3 py-2 border border-gray-300 rounded-md shadow-sm placeholder-gray-400 focus:outline-none focus:ring-blue-500 focus:border-blue-500"
                 />
               </div>
