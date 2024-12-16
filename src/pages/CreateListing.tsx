@@ -13,6 +13,7 @@ import { treatmentTypesService } from '../services/treatmentTypes';
 import { storageService } from '../services/storage';
 import { amenitiesService } from '../services/amenities';
 import { languagesService } from '../services/languages';
+import { substancesService } from '../services/substances';
 import { Facility, License, Insurance, Condition, Therapy, TreatmentType, Substance, Amenity, Language } from '../types';
 import Header from '../components/Header';
 import Footer from '../components/Footer';
@@ -20,7 +21,6 @@ import PhotoUpload from '../components/PhotoUpload';
 import LogoUpload from '../components/LogoUpload';
 import AddressAutocomplete from '../components/AddressAutocomplete';
 import DropdownSelect from '../components/ui/DropdownSelect';
-import { substancesService } from '../services/substances';
 
 interface CreateListingForm {
   name: string;
@@ -189,8 +189,8 @@ export default function CreateListing() {
         moderationStatus: 'pending' as const
       };
 
-      // Handle logo field - if undefined, don't include it (will default to null in Firestore)
-      if (logo !== undefined) {
+      // Only include logo if it exists
+      if (logo) {
         formattedData.logo = logo;
       }
 
@@ -235,7 +235,7 @@ export default function CreateListing() {
           if (updatedPhotos.length > 0) {
             updateData.images = updatedPhotos;
           }
-          if (updatedLogo !== undefined) {
+          if (updatedLogo) {
             updateData.logo = updatedLogo;
           }
 
@@ -262,7 +262,7 @@ export default function CreateListing() {
         facility: {
           ...formattedData,
           images: updatedPhotos,
-          logo: updatedLogo
+          ...(updatedLogo && { logo: updatedLogo })
         }
       };
       sessionStorage.setItem('facilityData', JSON.stringify(backupData));
@@ -274,7 +274,7 @@ export default function CreateListing() {
           facility: {
             ...formattedData,
             images: updatedPhotos,
-            logo: updatedLogo
+            ...(updatedLogo && { logo: updatedLogo })
           }
         },
         replace: true // Use replace to prevent back navigation to form

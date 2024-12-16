@@ -40,7 +40,7 @@ export default function AddressAutocomplete({ register, setValue, error }: Addre
       try {
         autocompleteRef.current = new window.google.maps.places.Autocomplete(inputRef.current, {
           componentRestrictions: { country: 'us' },
-          fields: ['formatted_address', 'geometry', 'address_components'],
+          fields: ['formatted_address', 'geometry', 'address_components', 'place_id'],
           types: ['address']
         });
 
@@ -64,6 +64,11 @@ export default function AddressAutocomplete({ register, setValue, error }: Addre
               lat: place.geometry.location.lat(),
               lng: place.geometry.location.lng()
             });
+          }
+
+          // Set Place ID
+          if (place.place_id) {
+            setValue('googlePlaceId', place.place_id);
           }
 
           // Extract and set address components if available
@@ -94,7 +99,8 @@ export default function AddressAutocomplete({ register, setValue, error }: Addre
               // Log the extracted components for debugging
               console.log('Extracted address components:', {
                 city: addressComponents.locality,
-                state: addressComponents.state_short
+                state: addressComponents.state_short,
+                placeId: place.place_id
               });
             } catch (err) {
               console.warn('Error processing address components:', err);

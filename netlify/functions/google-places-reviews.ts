@@ -1,4 +1,4 @@
-import { Handler } from '@netlify/functions';
+import { Handler, HandlerEvent } from '@netlify/functions';
 import { Client } from '@googlemaps/google-maps-services-js';
 
 const GOOGLE_MAPS_API_KEY = process.env.VITE_GOOGLE_MAPS_API_KEY;
@@ -9,12 +9,28 @@ if (!GOOGLE_MAPS_API_KEY) {
 
 const client = new Client({});
 
-const handler: Handler = async (event) => {
+const corsHeaders = {
+  'Access-Control-Allow-Origin': '*',
+  'Access-Control-Allow-Headers': 'Content-Type',
+  'Access-Control-Allow-Methods': 'GET, OPTIONS'
+};
+
+const handler: Handler = async (event: HandlerEvent) => {
   // Only allow GET requests
-  if (event.httpMethod !== 'GET') {
+  if (event.httpMethod !== 'GET' && event.httpMethod !== 'OPTIONS') {
     return {
       statusCode: 405,
-      body: 'Method Not Allowed'
+      body: 'Method Not Allowed',
+      headers: corsHeaders
+    };
+  }
+
+  // Handle OPTIONS request for CORS
+  if (event.httpMethod === 'OPTIONS') {
+    return {
+      statusCode: 204,
+      body: '',
+      headers: corsHeaders
     };
   }
 
@@ -23,7 +39,11 @@ const handler: Handler = async (event) => {
   if (!placeId) {
     return {
       statusCode: 400,
-      body: JSON.stringify({ error: 'placeId parameter is required' })
+      body: JSON.stringify({ error: 'placeId parameter is required' }),
+      headers: {
+        ...corsHeaders,
+        'Content-Type': 'application/json'
+      }
     };
   }
 
@@ -43,6 +63,7 @@ const handler: Handler = async (event) => {
     return {
       statusCode: 200,
       headers: {
+        ...corsHeaders,
         'Content-Type': 'application/json'
       },
       body: JSON.stringify({
@@ -65,6 +86,10 @@ const handler: Handler = async (event) => {
 
     return {
       statusCode: 500,
+      headers: {
+        ...corsHeaders,
+        'Content-Type': 'application/json'
+      },
       body: JSON.stringify({ 
         error: 'Error fetching place details',
         details: error instanceof Error ? error.message : 'Unknown error'

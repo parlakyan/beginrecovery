@@ -3,7 +3,7 @@
 ## Overview
 This project uses various Google Maps APIs for location-based features:
 - Maps Embed API: For displaying maps on facility detail pages
-- Places API: For address autocomplete
+- Places API: For address autocomplete and reviews
 - Maps JavaScript API: Required for Places API functionality
 - Geocoding API: For batch address processing
 
@@ -74,6 +74,7 @@ Provides address suggestions with form integration:
 - Address autocompletion
 - Coordinates extraction
 - Address component parsing
+- Place ID capture for reviews
 - Error handling
 - Loading states
 
@@ -93,6 +94,54 @@ Displays a map for a facility location:
 - Loading states
 - Error handling
 - Responsive design
+
+### ReviewsSection
+Displays Google Reviews for a facility:
+
+```tsx
+<ReviewsSection
+  facilityId={facility.id}
+  placeId={facility.googlePlaceId}
+/>
+```
+
+#### Features
+- Google Places reviews integration
+- Review caching
+- Rating display
+- Review sorting
+- Error handling
+- Loading states
+
+## Reviews Integration
+
+### Place ID Storage
+The Place ID is automatically captured and stored during:
+1. Manual address entry via AddressAutocomplete
+2. Batch import geocoding
+3. Address updates in EditListingModal
+
+### Reviews Service
+```typescript
+// Fetch reviews for a facility
+const reviews = await reviewsService.getReviews(facilityId, placeId);
+
+// Reviews are cached to minimize API calls
+const cachedReviews = await reviewsService.getCachedReviews(facilityId);
+```
+
+### Serverless Function
+A Netlify function handles Google Places API calls:
+```typescript
+// Fetch place details including reviews
+const placeDetails = await client.placeDetails({
+  params: {
+    place_id: placeId,
+    key: GOOGLE_MAPS_API_KEY,
+    fields: ['name', 'rating', 'user_ratings_total', 'reviews']
+  }
+});
+```
 
 ## Batch Geocoding Implementation
 

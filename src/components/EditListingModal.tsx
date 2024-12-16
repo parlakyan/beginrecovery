@@ -199,9 +199,13 @@ const EditListingModal: React.FC<EditListingModalProps> = ({ facility, isOpen, o
         insurances,
         languageObjects,
         licenses,
-        images: photos,
-        logo: logo === undefined ? '' : logo
+        images: photos
       };
+
+      // Only include logo if it exists
+      if (logo) {
+        updateData.logo = logo;
+      }
 
       // Only include coordinates if they exist and have valid lat/lng
       if (data.coordinates?.lat && data.coordinates?.lng) {
