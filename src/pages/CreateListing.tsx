@@ -189,15 +189,17 @@ export default function CreateListing() {
       };
 
       // Only include optional fields if they have values
-      if (data.website?.trim()) {
-        formattedData.website = data.website.trim();
+      const website = data.website?.trim();
+      if (website) {
+        formattedData.website = website;
       }
       
-      if (logo?.trim()) {
-        formattedData.logo = logo.trim();
+      const trimmedLogo = logo?.trim();
+      if (trimmedLogo) {
+        formattedData.logo = trimmedLogo;
       }
 
-      // Create facility
+      // Create facility with formattedData only
       const { id } = await facilitiesService.createFacility(formattedData);
 
       // Move uploaded files from temp location to permanent location
