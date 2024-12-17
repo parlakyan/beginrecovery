@@ -79,7 +79,7 @@ export default function CreateListing() {
       licenses: [],
       city: '',
       state: '',
-      website: undefined
+      website: ''
     }
   });
 
@@ -156,8 +156,9 @@ export default function CreateListing() {
     setError(null);
 
     try {
-      // Process form data - explicitly list all fields to avoid undefined values
+      // Process form data - only include fields with values
       const formattedData = {
+        // Required fields
         name: data.name,
         description: data.description,
         location: data.location,
@@ -166,7 +167,15 @@ export default function CreateListing() {
         state: data.state,
         phone: data.phone,
         email: data.email,
-        ...(data.website ? { website: data.website } : {}),
+        // Initialize required fields with default values
+        accreditation: [],
+        rating: 0,
+        reviews: 0,
+        reviewCount: 0,
+        isVerified: false,
+        isFeatured: false,
+        moderationStatus: 'pending' as const,
+        // Arrays with default empty arrays
         highlights: data.highlights || [],
         treatmentTypes: data.treatmentTypes || [],
         substances: data.substances || [],
@@ -177,17 +186,11 @@ export default function CreateListing() {
         languageObjects: data.languageObjects || [],
         licenses: data.licenses || [],
         images: photos,
-        // Initialize required fields with default values
-        accreditation: [],
-        rating: 0,
-        reviews: 0,
-        reviewCount: 0,
-        isVerified: false,
-        isFeatured: false,
-        moderationStatus: 'pending' as const
+        // Optional fields - only include if they have non-empty values
+        ...(data.website && data.website.trim() !== '' && { website: data.website.trim() })
       };
 
-      // Create facility without logo field
+      // Create facility with only required fields
       const { id } = await facilitiesService.createFacility(formattedData);
 
       // Move uploaded files from temp location to permanent location
@@ -229,8 +232,10 @@ export default function CreateListing() {
             }
           }
 
-          // Update facility with new URLs if needed
+          // Update facility with new URLs and optional fields if needed
           const updateData: Partial<Facility> = {};
+          
+          // Add updated files
           if (updatedPhotos.length > 0) {
             updateData.images = updatedPhotos;
           }
