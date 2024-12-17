@@ -156,7 +156,7 @@ export default function CreateListing() {
     setError(null);
 
     try {
-      // Process form data - only include fields with values
+      // Process form data - only include required fields and arrays
       const formattedData: Partial<Facility> = {
         // Required fields
         name: data.name,
@@ -188,11 +188,17 @@ export default function CreateListing() {
         images: photos,
       };
 
-      // Create facility with only required fields
-      const { id } = await facilitiesService.createFacility({
-        ...formattedData,
-        website: data.website // Let crud.ts handle website field validation
-      });
+      // Only include optional fields if they have values
+      if (data.website?.trim()) {
+        formattedData.website = data.website.trim();
+      }
+      
+      if (logo?.trim()) {
+        formattedData.logo = logo.trim();
+      }
+
+      // Create facility
+      const { id } = await facilitiesService.createFacility(formattedData);
 
       // Move uploaded files from temp location to permanent location
       let updatedPhotos = [...photos];
@@ -233,7 +239,7 @@ export default function CreateListing() {
             }
           }
 
-          // Update facility with new URLs and optional fields if needed
+          // Update facility with new URLs if needed
           const updateData: Partial<Facility> = {};
           
           // Add updated files

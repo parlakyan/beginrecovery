@@ -62,9 +62,12 @@ export const facilitiesCrud = {
         ...(data.state && { state: data.state }),
         ...(data.phone && { phone: data.phone }),
         ...(data.email && { email: data.email }),
-        // Handle website field - only include if it exists and is not empty
+        // Handle optional fields - only include if they exist and are not empty
         ...(typeof data.website === 'string' && data.website.trim() !== '' && { 
           website: data.website.trim() 
+        }),
+        ...(typeof data.logo === 'string' && data.logo.trim() !== '' && {
+          logo: data.logo.trim()
         }),
         ...(data.treatmentTypes && { treatmentTypes: data.treatmentTypes }),
         ...(data.substances && { substances: data.substances }),
@@ -73,11 +76,6 @@ export const facilitiesCrud = {
         ...(data.insurances && { insurances: data.insurances }),
         ...(data.licenses && { licenses: data.licenses })
       } as FacilityDataWithTimestamps;
-
-      // Only add logo if it exists and is not empty
-      if (data.logo && typeof data.logo === 'string' && data.logo.trim() !== '') {
-        facilityData.logo = data.logo;
-      }
 
       const docRef = await addDoc(facilitiesRef, facilityData);
       return { id: docRef.id };
