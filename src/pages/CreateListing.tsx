@@ -78,8 +78,8 @@ export default function CreateListing() {
       languageObjects: [],
       licenses: [],
       city: '',
-      state: '',
-      website: ''
+      state: ''
+      // Removed website default value to ensure it starts as undefined
     }
   });
 
@@ -188,14 +188,14 @@ export default function CreateListing() {
         images: photos,
       };
 
-      // Only include optional fields if they have values
+      // Only include optional fields if they have non-empty values
       const website = data.website?.trim();
-      if (website) {
+      if (website && website.length > 0) {
         formattedData.website = website;
       }
       
       const trimmedLogo = logo?.trim();
-      if (trimmedLogo) {
+      if (trimmedLogo && trimmedLogo.length > 0) {
         formattedData.logo = trimmedLogo;
       }
 
