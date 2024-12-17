@@ -157,7 +157,7 @@ export default function CreateListing() {
 
     try {
       // Process form data - only include fields with values
-      const baseData = {
+      const formattedData: Partial<Facility> = {
         // Required fields
         name: data.name,
         description: data.description,
@@ -188,15 +188,11 @@ export default function CreateListing() {
         images: photos,
       };
 
-      // Handle website field separately to ensure proper typing
-      const website = data.website?.trim();
-      const formattedData: Partial<Facility> = website 
-        ? { ...baseData, website }
-        : baseData;
-
-
       // Create facility with only required fields
-      const { id } = await facilitiesService.createFacility(formattedData);
+      const { id } = await facilitiesService.createFacility({
+        ...formattedData,
+        website: data.website // Let crud.ts handle website field validation
+      });
 
       // Move uploaded files from temp location to permanent location
       let updatedPhotos = [...photos];
