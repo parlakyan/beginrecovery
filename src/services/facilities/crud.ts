@@ -62,7 +62,10 @@ export const facilitiesCrud = {
         ...(data.state && { state: data.state }),
         ...(data.phone && { phone: data.phone }),
         ...(data.email && { email: data.email }),
-        ...(data.website && { website: data.website }),
+        // Handle website field - only include if it exists and is not empty
+        ...(typeof data.website === 'string' && data.website.trim() !== '' && { 
+          website: data.website.trim() 
+        }),
         ...(data.treatmentTypes && { treatmentTypes: data.treatmentTypes }),
         ...(data.substances && { substances: data.substances }),
         ...(data.conditions && { conditions: data.conditions }),

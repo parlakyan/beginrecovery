@@ -157,7 +157,7 @@ export default function CreateListing() {
 
     try {
       // Process form data - only include fields with values
-      const formattedData = {
+      const baseData = {
         // Required fields
         name: data.name,
         description: data.description,
@@ -186,9 +186,14 @@ export default function CreateListing() {
         languageObjects: data.languageObjects || [],
         licenses: data.licenses || [],
         images: photos,
-        // Optional fields - only include if they have non-empty values
-        ...(data.website && data.website.trim() !== '' && { website: data.website.trim() })
       };
+
+      // Handle website field separately to ensure proper typing
+      const website = data.website?.trim();
+      const formattedData: Partial<Facility> = website 
+        ? { ...baseData, website }
+        : baseData;
+
 
       // Create facility with only required fields
       const { id } = await facilitiesService.createFacility(formattedData);
