@@ -35,7 +35,6 @@ interface CreateListingForm {
   state: string;
   phone: string;
   email: string;
-  website?: string;
   highlights: string[];
   treatmentTypes: TreatmentType[];
   substances: Substance[];
@@ -57,6 +56,7 @@ export default function CreateListing() {
   const [error, setError] = useState<string | null>(null);
   const [photos, setPhotos] = useState<string[]>([]);
   const [logo, setLogo] = useState<string | undefined>(undefined);
+  const [website, setWebsite] = useState<string>('');
   const [availableLicenses, setAvailableLicenses] = useState<License[]>([]);
   const [availableInsurances, setAvailableInsurances] = useState<Insurance[]>([]);
   const [availableConditions, setAvailableConditions] = useState<Condition[]>([]);
@@ -79,7 +79,6 @@ export default function CreateListing() {
       licenses: [],
       city: '',
       state: ''
-      // Removed website default value to ensure it starts as undefined
     }
   });
 
@@ -188,18 +187,16 @@ export default function CreateListing() {
         images: photos,
       };
 
-      // Only include optional fields if they have non-empty values
-      const website = data.website?.trim();
-      if (website && website.length > 0) {
-        formattedData.website = website;
-      }
-      
-      const trimmedLogo = logo?.trim();
-      if (trimmedLogo && trimmedLogo.length > 0) {
-        formattedData.logo = trimmedLogo;
+      // Only include optional fields if they have values
+      if (website.trim()) {
+        formattedData.website = website.trim();
       }
 
-      // Create facility with formattedData only
+      if (logo?.trim()) {
+        formattedData.logo = logo.trim();
+      }
+
+      // Create facility
       const { id } = await facilitiesService.createFacility(formattedData);
 
       // Move uploaded files from temp location to permanent location
@@ -431,8 +428,9 @@ export default function CreateListing() {
                   Website
                 </label>
                 <input
-                  {...register('website')}
                   type="url"
+                  value={website}
+                  onChange={(e) => setWebsite(e.target.value)}
                   placeholder="https://www.example.com"
                   className="w-full px-4 py-2 border rounded-lg focus:ring-2 focus:ring-blue-500 outline-none"
                 />
